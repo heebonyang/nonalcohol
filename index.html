@@ -1,14 +1,1178 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생활 관리</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6; min-height: 100vh; color: #1f2937;
+        }
+
+        /* ── 메인 탭 ── */
+        .main-nav {
+            display: flex; background: white; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .main-tab {
+            flex: 1; padding: 16px; border: none; background: transparent;
+            font-size: 1rem; font-weight: 700; color: #6b7280; cursor: pointer;
+            border-bottom: 3px solid transparent; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .main-tab:hover { background: #f9fafb; color: #1f2937; }
+        .main-tab.active { color: #0284c7; border-bottom-color: #0284c7; background: #f0f9ff; }
+        .app-section { display: none; }
+        .app-section.active { display: block; }
+
+        /* ══ 금주 앱 CSS ══ */
+        #app-jk { padding: 30px 20px; }
+        #app-jk .container { max-width: 1000px; margin: auto; }
+        #app-jk .header-card {
+            background: #fff; padding: 30px; border-radius: 20px;
+            text-align: center; margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        #app-jk .sub-title { font-size: 1.2rem; color: #6b7280; font-weight: 600; margin-bottom: 10px; }
+        #app-jk .main-streak { font-size: 4rem; font-weight: 800; color: #0284c7; display: block; }
+        #app-jk .streak-unit { font-size: 1.5rem; color: #1f2937; vertical-align: middle; }
+        #app-jk .input-card {
+            background: #fff; padding: 25px; border-radius: 20px;
+            margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        #app-jk .form-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+        #app-jk input, #app-jk select {
+            border: 1px solid #d1d5db; padding: 12px 15px;
+            border-radius: 10px; font-size: 0.95rem; outline: none; font-family: inherit;
+        }
+        #app-jk .reason-container { width: 100%; display: none; margin-top: 15px; }
+        #app-jk .reason-input { width: 100%; border: 2px solid #fecaca !important; background: #fff1f2 !important; }
+        #app-jk .btn-save {
+            background: #0284c7; color: white; border: none;
+            padding: 12px 35px; border-radius: 10px; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+        }
+        #app-jk .btn-save.edit-mode { background: #f59e0b; }
+        #app-jk .table-card {
+            background: #fff; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        #app-jk table { width: 100%; border-collapse: collapse; }
+        #app-jk th {
+            background: #f9fafb; padding: 15px; color: #4b5563;
+            font-size: 0.85rem; border-bottom: 1px solid #e5e7eb;
+        }
+        #app-jk td { padding: 18px 15px; border-bottom: 1px solid #f3f4f6; text-align: center; }
+        #app-jk .status-o { color: #059669; font-weight: 800; }
+        #app-jk .status-x { color: #dc2626; font-weight: 800; }
+        #app-jk .reason-label { font-size: 0.8rem; color: #ef4444; display: block; margin-top: 5px; font-style: italic; }
+        #app-jk .btn-edit {
+            background: #e5e7eb; color: #374151; border: none;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer;
+            margin-right: 5px; font-family: inherit;
+        }
+        #app-jk .btn-del {
+            background: #fee2e2; color: #b91c1c; border: none;
+            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: inherit;
+        }
+
+        /* ══ 가계부 앱 CSS ══ */
+        #app-gk { padding: 16px; }
+        #app-gk .container { max-width: 600px; margin: 0 auto; }
+        #app-gk .dashboard {
+            background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+            border-radius: 20px; padding: 22px; color: white;
+            margin-bottom: 16px; box-shadow: 0 8px 24px rgba(90,103,216,0.35);
+        }
+        #app-gk .dashboard-title {
+            font-size: 0.9rem; text-align: center; opacity: 0.85;
+            margin-bottom: 14px; font-weight: 600;
+        }
+        #app-gk .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        #app-gk .stat-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 11px 10px; text-align: center; }
+        #app-gk .stat-label { font-size: 0.72rem; opacity: 0.8; margin-bottom: 4px; }
+        #app-gk .stat-value { font-size: 1.1rem; font-weight: 700; }
+        #app-gk .stat-value.red { color: #fbb6ce; }
+        #app-gk .daily-budget-box {
+            background: rgba(255,255,255,0.18); border-radius: 14px; padding: 16px;
+            text-align: center; margin-bottom: 12px;
+        }
+        #app-gk .daily-budget-label { font-size: 0.8rem; opacity: 0.85; margin-bottom: 4px; }
+        #app-gk .daily-budget-amount { font-size: 2.1rem; font-weight: 800; line-height: 1.1; }
+        #app-gk .daily-budget-amount.over { color: #fbb6ce; }
+        #app-gk .daily-budget-sub { font-size: 0.72rem; opacity: 0.7; margin-top: 5px; }
+        #app-gk .progress-labels { display: flex; justify-content: space-between; font-size: 0.72rem; opacity: 0.82; margin-bottom: 5px; }
+        #app-gk .progress-bar { height: 7px; background: rgba(255,255,255,0.25); border-radius: 999px; overflow: hidden; }
+        #app-gk .progress-fill { height: 100%; background: white; border-radius: 999px; transition: width 0.6s ease; }
+        #app-gk .notice {
+            background: #fffbeb; border-left: 4px solid #f6ad55; border-radius: 10px;
+            padding: 11px 14px; margin-bottom: 14px; font-size: 0.83rem; color: #744210;
+        }
+        #app-gk .notice h3 { font-size: 0.82rem; margin-bottom: 7px; color: #92400e; }
+        #app-gk .notice-row { display: flex; justify-content: space-between; padding: 2px 0; }
+        #app-gk .alert-banner {
+            background: #fff5f5; border-left: 4px solid #fc8181; border-radius: 10px;
+            padding: 10px 14px; margin-bottom: 14px; font-size: 0.83rem; color: #c53030;
+        }
+        #app-gk .gk-tabs { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; }
+        #app-gk .gk-tab {
+            padding: 8px 18px; border-radius: 999px; border: none; cursor: pointer;
+            font-size: 0.83rem; font-weight: 600; white-space: nowrap;
+            transition: background 0.2s; font-family: inherit;
+        }
+        #app-gk .gk-tab.active { background: #5a67d8; color: white; }
+        #app-gk .gk-tab:not(.active) { background: white; color: #4a5568; }
+        #app-gk .gk-tab:not(.active):hover { background: #e2e8f0; }
+        #app-gk .card {
+            background: white; border-radius: 14px; padding: 18px;
+            margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        #app-gk .card h2 { font-size: 0.95rem; color: #4a5568; margin-bottom: 14px; font-weight: 700; }
+        #app-gk .form-group { margin-bottom: 12px; }
+        #app-gk .form-group label { display: block; font-size: 0.75rem; color: #718096; margin-bottom: 5px; font-weight: 600; }
+        #app-gk .form-group input, #app-gk .form-group select {
+            width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0;
+            border-radius: 8px; font-size: 0.92rem; background: white; font-family: inherit;
+        }
+        #app-gk .form-group input:focus, #app-gk .form-group select:focus {
+            outline: none; border-color: #5a67d8;
+        }
+        #app-gk .gk-row { display: flex; gap: 10px; }
+        #app-gk .gk-row .form-group { flex: 1; min-width: 0; }
+        #app-gk .btn {
+            padding: 11px 18px; border: none; border-radius: 9px; cursor: pointer;
+            font-size: 0.9rem; font-weight: 700; width: 100%;
+            transition: opacity 0.2s; font-family: inherit;
+        }
+        #app-gk .btn:hover { opacity: 0.88; }
+        #app-gk .btn-primary { background: #5a67d8; color: white; }
+        #app-gk .btn-success { background: #48bb78; color: white; }
+        #app-gk .btn-sm {
+            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
+            background: #fed7d7; color: #c53030; border: none; cursor: pointer;
+            font-weight: 600; font-family: inherit;
+        }
+        #app-gk .btn-sm:hover { background: #fc8181; color: white; }
+        #app-gk .btn-sm-edit {
+            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
+            background: #bee3f8; color: #2b6cb0; border: none; cursor: pointer;
+            font-weight: 600; font-family: inherit;
+        }
+        #app-gk .btn-sm-edit:hover { background: #63b3ed; color: white; }
+        #app-gk .btn-sm-confirm {
+            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
+            background: #c6f6d5; color: #276749; border: none; cursor: pointer;
+            font-weight: 600; font-family: inherit;
+        }
+        #app-gk .btn-sm-confirm:hover { background: #48bb78; color: white; }
+        #app-gk .btn-sm-unconfirm {
+            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
+            background: #e2e8f0; color: #718096; border: none; cursor: pointer;
+            font-weight: 600; font-family: inherit;
+        }
+        #app-gk .btn-sm-unconfirm:hover { background: #a0aec0; color: white; }
+        #app-gk .list-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid #f0f4f8; }
+        #app-gk .list-item:last-child { border-bottom: none; }
+        #app-gk .list-item .info .name { font-weight: 600; font-size: 0.92rem; }
+        #app-gk .list-item .info .sub { font-size: 0.77rem; color: #a0aec0; margin-top: 2px; }
+        #app-gk .list-item .right { display: flex; align-items: center; gap: 10px; }
+        #app-gk .list-item .amount { font-weight: 700; color: #e53e3e; font-size: 0.95rem; }
+        #app-gk .empty { text-align: center; color: #a0aec0; padding: 20px; font-size: 0.87rem; }
+        #app-gk .info-box { background: #ebf4ff; border-radius: 10px; padding: 14px; font-size: 0.8rem; color: #2b6cb0; line-height: 1.7; }
+        #app-gk .info-box p + p { margin-top: 4px; }
+        #app-gk .divider { height: 1px; background: #f0f4f8; margin: 10px 0; }
+
+        /* ══ 모바일 반응형 ══ */
+        @media (max-width: 600px) {
+            /* 탭 */
+            .main-tab { padding: 13px 8px; font-size: 0.88rem; }
+
+            /* 금주 앱 */
+            #app-jk { padding: 14px 12px; }
+            #app-jk .header-card { padding: 20px 16px; margin-bottom: 14px; }
+            #app-jk .sub-title { font-size: 1rem; }
+            #app-jk .main-streak { font-size: 3rem; }
+            #app-jk .streak-unit { font-size: 1.2rem; }
+            #app-jk .input-card { padding: 16px 14px; margin-bottom: 14px; }
+
+            /* 폼: 2열 그리드로 전환 */
+            #app-jk .form-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            /* 날짜·스크린·AI·저장 버튼은 전체 너비 */
+            #app-jk #targetDate,
+            #app-jk #screen,
+            #app-jk #ai { grid-column: 1 / -1; width: 100%; }
+            #app-jk .btn-save {
+                grid-column: 1 / -1; width: 100%;
+                padding: 14px; font-size: 1rem;
+            }
+            /* iOS Safari 자동 줌 방지 */
+            #app-jk input, #app-jk select { font-size: 16px; }
+
+            /* 테이블: 가로 스크롤 */
+            #app-jk .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 16px; }
+            #app-jk table { min-width: 500px; }
+            #app-jk th { padding: 11px 8px; font-size: 0.78rem; }
+            #app-jk td { padding: 13px 8px; font-size: 0.84rem; }
+            #app-jk .btn-edit,
+            #app-jk .btn-del { padding: 5px 8px; font-size: 0.78rem; }
+            #app-jk .btn-edit { margin-right: 3px; }
+
+            /* 가계부 앱 */
+            #app-gk { padding: 12px; }
+            #app-gk .dashboard { padding: 16px; border-radius: 16px; }
+            #app-gk .daily-budget-amount { font-size: 1.8rem; }
+            #app-gk .card { padding: 14px; }
+            /* iOS Safari 자동 줌 방지 */
+            #app-gk .form-group input,
+            #app-gk .form-group select,
+            #app-gk .form-group input[type="month"] { font-size: 16px; }
+        }
+    </style>
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+
+<!-- ══ 메인 탭 내비게이션 ══ -->
+<nav class="main-nav">
+    <button class="main-tab active" onclick="switchApp('jk', this)">🍺 금주 100일</button>
+    <button class="main-tab" onclick="switchApp('gk', this)">💰 D-Day 가계부</button>
+</nav>
+
+<!-- ══ 금주 앱 ══ -->
+<div id="app-jk" class="app-section active">
+    <div class="container">
+        <div class="header-card">
+            <div class="sub-title">금주 100일 프로젝트</div>
+            <div>
+                <span class="main-streak" id="day-count">0</span>
+                <span class="streak-unit" id="streak-text">일차 금주 중</span>
+            </div>
+        </div>
+        <div class="input-card">
+            <div class="form-grid">
+                <input type="date" id="targetDate" onchange="jk_resetInputs()">
+                <select id="sober" onchange="jk_toggleReason()">
+                    <option value="O">금주 성공 O</option>
+                    <option value="X">금주 실패 X</option>
+                </select>
+                <select id="exercise">
+                    <option value="O">운동 O</option>
+                    <option value="X">운동 X</option>
+                </select>
+                <input type="text" id="screen" placeholder="스크린 타임">
+                <input type="text" id="ai" placeholder="AI 공부 내용">
+                <button class="btn-save" id="save-btn" onclick="jk_addRecord()">기록하기</button>
+            </div>
+            <div class="reason-container" id="reason-container">
+                <input type="text" id="reason" class="reason-input" placeholder="실패 원인을 기록하세요">
+            </div>
+        </div>
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>날짜</th><th>금주 여부</th><th>운동</th>
+                        <th>스크린 타임</th><th>AI 공부 내용</th><th>관리</th>
+                    </tr>
+                </thead>
+                <tbody id="data-list"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══ 가계부 앱 ══ -->
+<div id="app-gk" class="app-section">
+    <div class="container">
+        <div class="dashboard">
+            <div class="dashboard-title" id="dash-title">🎯 목표 설정이 필요합니다</div>
+            <div class="stats-grid">
+                <div class="stat-box"><div class="stat-label">남은 날짜</div><div class="stat-value" id="dash-dday">D-?</div></div>
+                <div class="stat-box"><div class="stat-label">달성률</div><div class="stat-value" id="dash-pct">0%</div></div>
+                <div class="stat-box"><div class="stat-label">현재 잔액</div><div class="stat-value" id="dash-balance">-</div></div>
+                <div class="stat-box"><div class="stat-label">오늘까지 지출</div><div class="stat-value red" id="dash-month-spent">-</div></div>
+            </div>
+            <div class="daily-budget-box">
+                <div class="daily-budget-label">오늘 남은 지출 가능액</div>
+                <div class="daily-budget-amount" id="dash-today-remain">설정 필요</div>
+                <div class="daily-budget-sub" id="dash-today-sub"></div>
+            </div>
+            <div class="progress-labels">
+                <span id="dash-saved-label">저축 0원</span>
+                <span id="dash-goal-label">목표 5,000,000원</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="dash-progress" style="width:0%"></div>
+            </div>
+        </div>
+
+        <div class="notice" id="notice-upcoming" style="display:none">
+            <h3>📅 앞으로 7일 내 예정 거래</h3>
+            <div id="notice-list"></div>
+        </div>
+        <div class="alert-banner" id="alert-over" style="display:none">
+            ⚠️ 오늘 지출 가능액을 초과했습니다. 내일부터 더 아껴야 목표를 달성할 수 있어요.
+        </div>
+        <div class="alert-banner" id="alert-pending" style="display:none">
+            ⚠️ 예정일이 지난 미확인 항목이 <span id="alert-pending-count">0</span>건 있습니다. 실제 금액을 확인해 주세요.
+        </div>
+
+        <div class="gk-tabs">
+            <button class="gk-tab active" onclick="showTab('log')">📝 지출 기록</button>
+            <button class="gk-tab" onclick="showTab('income')">💰 예정 수입</button>
+            <button class="gk-tab" onclick="showTab('fixed')">🔒 예정 고정비</button>
+            <button class="gk-tab" onclick="showTab('settings')">⚙️ 설정</button>
+        </div>
+
+        <div id="tab-log">
+            <div class="card">
+                <h2>지출 추가</h2>
+                <div class="gk-row">
+                    <div class="form-group"><label>날짜</label><input type="date" id="log-date"></div>
+                    <div class="form-group"><label>금액 (원)</label><input type="number" id="log-amount" placeholder="0" min="0"></div>
+                </div>
+                <div class="form-group"><label>내용</label><input type="text" id="log-desc" placeholder="예: 편의점, 점심식사"></div>
+                <button class="btn btn-primary" onclick="addSpending()">+ 지출 추가</button>
+            </div>
+            <div class="card">
+                <h2>지출 내역</h2>
+                <div id="log-list"><div class="empty">아직 지출 내역이 없습니다</div></div>
+            </div>
+        </div>
+
+        <div id="tab-income" style="display:none">
+            <div class="card">
+                <h2>예정 수입 추가</h2>
+                <div class="form-group"><label>항목명</label><input type="text" id="income-name" placeholder="예: 월급, 보너스, 이자 수입"></div>
+                <div class="gk-row">
+                    <div class="form-group"><label>금액 (원)</label><input type="number" id="income-amount" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>수입 예정일</label><input type="date" id="income-date"></div>
+                </div>
+                <button class="btn btn-success" id="income-submit-btn" onclick="addIncome()">+ 수입 등록</button>
+            </div>
+            <div class="card">
+                <h2>등록된 예정 수입</h2>
+                <div id="income-list"><div class="empty">등록된 예정 수입이 없습니다</div></div>
+                <div id="income-total-wrap" style="display:none">
+                    <div class="divider"></div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;color:#4a5568;padding-top:8px;">
+                        <span>예정 수입 합계</span>
+                        <span id="income-total-amount" style="color:#48bb78;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-fixed" style="display:none">
+            <div class="card">
+                <h2>📊 이자 납부 기록</h2>
+                <div class="form-group"><label>대출명</label><input type="text" id="interest-loan-name" placeholder="예: 주택담보대출, 마이너스통장"></div>
+                <div class="gk-row">
+                    <div class="form-group"><label>납부일</label><input type="date" id="interest-date"></div>
+                    <div class="form-group"><label>납부 금액 (원)</label><input type="number" id="interest-amount" placeholder="0" min="0"></div>
+                </div>
+                <button class="btn btn-primary" onclick="addInterestLog()">+ 이자 기록 추가</button>
+            </div>
+            <div class="card">
+                <h2>이자 통계 &amp; 예측</h2>
+                <div id="interest-stats"><div class="empty">이자 납부 기록을 추가하면 통계 및 예측이 표시됩니다</div></div>
+            </div>
+            <div class="card">
+                <h2>예정 고정비 추가</h2>
+                <div class="form-group"><label>항목명</label><input type="text" id="fixed-name" placeholder="예: 월세, 이자, 보험료"></div>
+                <div class="gk-row">
+                    <div class="form-group"><label>금액 (원)</label><input type="number" id="fixed-amount" placeholder="0" min="0"></div>
+                    <div class="form-group"><label>지출 예정일</label><input type="date" id="fixed-date"></div>
+                </div>
+                <button class="btn btn-primary" id="fixed-submit-btn" onclick="addFixed()">+ 고정비 등록</button>
+            </div>
+            <div class="card">
+                <h2>등록된 예정 고정비</h2>
+                <div id="fixed-list"><div class="empty">등록된 고정비가 없습니다</div></div>
+                <div id="fixed-total-wrap" style="display:none">
+                    <div class="divider"></div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;color:#4a5568;padding-top:8px;">
+                        <span>예정 고정비 합계</span>
+                        <span id="fixed-total-amount" style="color:#e53e3e;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-settings" style="display:none">
+            <div class="card">
+                <h2>⚙️ 기본 설정</h2>
+                <div class="form-group"><label>목표 금액 (원)</label><input type="number" id="s-goal" placeholder="5000000"></div>
+                <div class="form-group"><label>목표 날짜</label><input type="date" id="s-target"></div>
+                <div class="divider"></div>
+                <div class="form-group"><label>현재 잔액 (원)</label><input type="number" id="s-balance" placeholder="0"></div>
+                <div class="divider"></div>
+                <div class="form-group"><label>비상금 예비 (원)</label><input type="number" id="s-emergency" placeholder="1000000"></div>
+                <button class="btn btn-success" onclick="saveSettings()">저장</button>
+            </div>
+            <div class="card">
+                <div class="info-box">
+                    <p>💡 <strong>일일 지출 가능액 계산 방식</strong></p>
+                    <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 고정비 − 이자 예측액 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
+                    <p style="margin-top:4px;">💡 이자 납부 기록이 쌓일수록 예측 정확도가 높아집니다 (선형 회귀 + 가중 평균)</p>
+                    <p style="margin-top:6px;">총 가용금액 − 이미 기록한 지출 = 남은 가용금액 ÷ 남은 날수 = <strong>오늘 권장 지출</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCE7iN5FD2d8HegeNx0BQt6Af935k4_yjI",
+    authDomain: "nonalcohol-f1fe7.firebaseapp.com",
+    projectId: "nonalcohol-f1fe7",
+    storageBucket: "nonalcohol-f1fe7.firebasestorage.app",
+    messagingSenderId: "429464917450",
+    appId: "1:429464917450:web:a6304e8624a5a336bfeb33"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// ── 공통 유틸 ──
+function todayStr() {
+    const t = new Date();
+    return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
+}
+function fmtDate(d) {
+    const dt = (typeof d === 'string') ? new Date(d) : d;
+    return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+function fmtMoney(n) { return Math.round(n).toLocaleString('ko-KR') + '원'; }
+function fmtMonthDay(d) { return `${d.getMonth()+1}월 ${d.getDate()}일`; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── 탭 전환 ──
+function switchApp(name, btn) {
+    document.querySelectorAll('.app-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.main-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('app-' + name).classList.add('active');
+    btn.classList.add('active');
+}
+window.switchApp = switchApp;
+
+// ═══════════════════════════════════
+// ── 금주 앱 (jk) ──
+// ═══════════════════════════════════
+const JK_DOC_REF = doc(db, 'challenge', 'main');
+let D_jk = { records: [] };
+
+function getCurrentStreak(records) {
+    const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+    let streak = 0;
+    for (const r of sorted) {
+        if (r.sober === 'O') streak++;
+        else break;
+    }
+    return streak;
+}
+
+async function jk_load() {
+    try {
+        const snap = await getDoc(JK_DOC_REF);
+        if (snap.exists()) D_jk = { records: [], ...snap.data() };
+    } catch (e) {
+        console.error('금주 로드 실패:', e);
+    }
+    jk_renderTable();
+}
+
+function jk_save() {
+    setDoc(JK_DOC_REF, D_jk).catch(err => console.error('금주 저장 실패:', err));
+}
+
+function jk_updateSoberCounter() {
+    const streak = getCurrentStreak(D_jk.records);
+    const countElem = document.getElementById('day-count');
+    const textElem  = document.getElementById('streak-text');
+    countElem.innerText = streak;
+    if (streak === 0) {
+        countElem.style.color = '#dc2626';
+        textElem.innerText = '일차 - 다시 시작해봐요!';
+    } else {
+        countElem.style.color = '#0284c7';
+        textElem.innerText = '일차 금주 중';
+    }
+}
+
+function jk_renderTable() {
+    const tbody = document.getElementById('data-list');
+    tbody.innerHTML = '';
+    const sorted = [...D_jk.records].sort((a, b) => b.date.localeCompare(a.date));
+    sorted.forEach(r => {
+        const reasonHtml = r.reason ? `<span class="reason-label">사유: ${escHtml(r.reason)}</span>` : '';
+        const safeDate     = escHtml(r.date);
+        const safeSober    = escHtml(r.sober);
+        const safeExercise = escHtml(r.exercise);
+        const safeScreen   = escHtml(r.screen).replace(/'/g, '&#39;');
+        const safeAi       = escHtml(r.ai).replace(/'/g, '&#39;');
+        const safeReason   = escHtml(r.reason || '').replace(/'/g, '&#39;');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="font-weight:600;color:#4b5563;">${safeDate}</td>
+            <td><span class="${r.sober === 'O' ? 'status-o' : 'status-x'}">${safeSober}</span>${reasonHtml}</td>
+            <td class="${r.exercise === 'O' ? 'status-o' : 'status-x'}">${safeExercise}</td>
+            <td>${escHtml(r.screen)}</td>
+            <td style="text-align:left;font-size:0.9rem;">${escHtml(r.ai)}</td>
+            <td>
+                <button class="btn-edit" onclick="jk_editItem('${safeDate}','${safeSober}','${safeExercise}','${safeScreen}','${safeAi}','${safeReason}')">수정</button>
+                <button class="btn-del"  onclick="jk_deleteRecord('${safeDate}')">삭제</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+    jk_updateSoberCounter();
+}
+
+function jk_toggleReason() {
+    const isX = document.getElementById('sober').value === 'X';
+    document.getElementById('reason-container').style.display = isX ? 'block' : 'none';
+    if (!isX) document.getElementById('reason').value = '';
+}
+
+function jk_resetInputs() {
+    document.getElementById('sober').value    = 'O';
+    document.getElementById('exercise').value = 'O';
+    document.getElementById('screen').value   = '';
+    document.getElementById('ai').value       = '';
+    document.getElementById('reason').value   = '';
+    jk_toggleReason();
+    const btn = document.getElementById('save-btn');
+    btn.innerText = '기록하기';
+    btn.classList.remove('edit-mode');
+}
+
+function jk_addRecord() {
+    const date     = document.getElementById('targetDate').value;
+    const sober    = document.getElementById('sober').value;
+    const exercise = document.getElementById('exercise').value;
+    const screen   = document.getElementById('screen').value;
+    const ai       = document.getElementById('ai').value;
+    const reason   = sober === 'O' ? '' : document.getElementById('reason').value;
+    if (!date) { alert('날짜를 선택해 주세요.'); return; }
+
+    const idx = D_jk.records.findIndex(r => r.date === date);
+    const newRecord = { date, sober, exercise, screen, ai, reason };
+    if (idx >= 0) {
+        D_jk.records[idx] = newRecord;
+    } else {
+        D_jk.records.push(newRecord);
+    }
+    jk_save();
+
+    document.getElementById('save-btn').innerText = '기록하기';
+    document.getElementById('save-btn').classList.remove('edit-mode');
+    document.getElementById('screen').value = '';
+    document.getElementById('ai').value     = '';
+    document.getElementById('reason').value = '';
+    jk_toggleReason();
+    jk_renderTable();
+}
+
+function jk_editItem(date, sober, exercise, screen, ai, reason) {
+    document.getElementById('targetDate').value  = date;
+    document.getElementById('sober').value       = sober;
+    document.getElementById('exercise').value    = exercise;
+    document.getElementById('screen').value      = screen;
+    document.getElementById('ai').value          = ai;
+    document.getElementById('reason').value      = sober === 'X' ? (reason || '') : '';
+    document.getElementById('reason-container').style.display = sober === 'X' ? 'block' : 'none';
+    const btn = document.getElementById('save-btn');
+    btn.innerText = '수정 완료';
+    btn.classList.add('edit-mode');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function jk_deleteRecord(date) {
+    if (confirm('기록을 삭제하시겠습니까?')) {
+        D_jk.records = D_jk.records.filter(r => r.date !== date);
+        jk_save();
+        jk_renderTable();
+    }
+}
+
+window.jk_toggleReason = jk_toggleReason;
+window.jk_resetInputs  = jk_resetInputs;
+window.jk_addRecord    = jk_addRecord;
+window.jk_editItem     = jk_editItem;
+window.jk_deleteRecord = jk_deleteRecord;
+
+// ═══════════════════════════════════
+// ── 가계부 앱 (gk) ──
+// ═══════════════════════════════════
+const GK_DOC_REF = doc(db, 'budget', 'main');
+let _editingIncomeId = null;
+let _editingFixedId  = null;
+const DEFAULT = {
+    goal: 5000000, targetDate: '2026-04-14', currentBalance: 0,
+    balanceDate: todayStr(),
+    emergencyFund: 1000000,
+    incomeEvents: [],    // [{id, name, amount, date}]
+    fixedExpenses: [],   // [{id, name, amount, date}]
+    spendingLog: [],
+    interestLog: []      // [{id, loanName, date, amount}] — 통계 기반 예측용
+};
+let D = { ...DEFAULT };
+
+async function loadFromFirestore() {
+    try {
+        const snap = await getDoc(GK_DOC_REF);
+        if (snap.exists()) D = { ...DEFAULT, ...snap.data() };
+    } catch(e) { console.error('로드 실패:', e); }
+}
+function save() {
+    setDoc(GK_DOC_REF, D).catch(err => console.error('저장 실패:', err));
+}
+
+function calcDashboard() {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const target = new Date(D.targetDate); target.setHours(23,59,59,999);
+    const remainDays = Math.max(1, Math.ceil((target - today) / 86400000));
+
+    const balanceDateObj = new Date(D.balanceDate || '2000-01-01'); balanceDateObj.setHours(0,0,0,0);
+
+    // 확인된 수입/고정비 (balanceDate 이후, actualAmount 우선 사용)
+    const confirmedIncome = (D.incomeEvents || [])
+        .filter(x => x.confirmed && new Date(x.date) >= balanceDateObj)
+        .reduce((s,x) => s + (x.actualAmount != null ? x.actualAmount : x.amount), 0);
+    const confirmedFixed = (D.fixedExpenses || [])
+        .filter(x => x.confirmed && new Date(x.date) >= balanceDateObj)
+        .reduce((s,x) => s + (x.actualAmount != null ? x.actualAmount : x.amount), 0);
+
+    const loggedSpent = D.spendingLog.filter(x => new Date(x.date) >= balanceDateObj).reduce((s,x) => s+x.amount, 0);
+    const currentBalance = D.currentBalance + confirmedIncome - confirmedFixed - loggedSpent;
+
+    // 목표일 전까지 미완료 예정 수입/고정비 합산
+    const futureIncome = (D.incomeEvents || [])
+        .filter(x => !x.confirmed && new Date(x.date) > today && new Date(x.date) <= target)
+        .reduce((s,x) => s + x.amount, 0);
+    const futureFixed = (D.fixedExpenses || [])
+        .filter(x => !x.confirmed && new Date(x.date) > today && new Date(x.date) <= target)
+        .reduce((s,x) => s + x.amount, 0);
+
+    // 통계 기반 이자 예측 (목표일 전)
+    const interestPredictions = calcInterestPredictions();
+    const futureInterest = interestPredictions
+        .filter(p => p.predictedDateObj > today && p.predictedDateObj <= target)
+        .reduce((s,p) => s + p.predictedAmount, 0);
+
+    const totalAvailable = currentBalance + futureIncome - futureFixed - futureInterest - D.goal - (D.emergencyFund || 0);
+    const dailyMax = totalAvailable / remainDays;
+    const todayKey = fmtDate(today);
+    const todaySpent = D.spendingLog.filter(x => x.date === todayKey).reduce((s,x) => s+x.amount, 0);
+    const todayRemain = dailyMax - todaySpent;
+    const totalSpent = loggedSpent;
+    const pct = Math.min(100, Math.max(0, (currentBalance / D.goal) * 100));
+
+    // 앞으로 7일 내 미완료 예정 거래 (수입 + 고정비)
+    const next7 = new Date(today); next7.setDate(next7.getDate() + 7);
+    const upcomingIncome = (D.incomeEvents || [])
+        .filter(x => !x.confirmed && new Date(x.date) >= today && new Date(x.date) <= next7)
+        .map(x => ({ name: x.name, amount: x.amount, date: new Date(x.date), type: 'income' }));
+    const upcomingFixed = (D.fixedExpenses || [])
+        .filter(x => !x.confirmed && new Date(x.date) >= today && new Date(x.date) <= next7)
+        .map(x => ({ name: x.name, amount: x.amount, date: new Date(x.date), type: 'expense' }));
+    const upcomingInterest = interestPredictions
+        .filter(p => p.predictedDateObj >= today && p.predictedDateObj <= next7)
+        .map(p => ({ name: `${p.loanName} 이자 (예측)`, amount: p.predictedAmount, date: p.predictedDateObj, type: 'expense' }));
+    const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingInterest].sort((a,b) => a.date - b.date);
+
+    return { remainDays, currentBalance, dailyMax, todaySpent, todayRemain, totalSpent, pct, upcomingItems };
+}
+
+function updateDashboard() {
+    const c = calcDashboard();
+    document.getElementById('dash-title').textContent = `🎯 ${fmtMonthDay(new Date(D.targetDate))} 까지 ${fmtMoney(D.goal)} 모으기`;
+    document.getElementById('dash-dday').textContent  = `D-${c.remainDays}`;
+    document.getElementById('dash-pct').textContent   = `${Math.round(c.pct)}%`;
+    document.getElementById('dash-balance').textContent     = fmtMoney(c.currentBalance);
+    document.getElementById('dash-month-spent').textContent = fmtMoney(c.totalSpent);
+    const remainEl = document.getElementById('dash-today-remain');
+    if (c.todayRemain < 0) {
+        remainEl.textContent = `- ${fmtMoney(Math.abs(c.todayRemain))}`;
+        remainEl.className = 'daily-budget-amount over';
+        document.getElementById('alert-over').style.display = 'block';
+    } else {
+        remainEl.textContent = fmtMoney(c.todayRemain);
+        remainEl.className = 'daily-budget-amount';
+        document.getElementById('alert-over').style.display = 'none';
+    }
+    document.getElementById('dash-today-sub').textContent  = `일 기준 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todaySpent)}`;
+    document.getElementById('dash-saved-label').textContent = `현재 ${fmtMoney(c.currentBalance)}`;
+    document.getElementById('dash-goal-label').textContent  = `목표 ${fmtMoney(D.goal)}`;
+    document.getElementById('dash-progress').style.width    = `${c.pct}%`;
+    const noticeEl = document.getElementById('notice-upcoming');
+    if (c.upcomingItems.length > 0) {
+        noticeEl.style.display = 'block';
+        document.getElementById('notice-list').innerHTML = c.upcomingItems.map(it => {
+            const sign  = it.type === 'income' ? '+' : '−';
+            const color = it.type === 'income' ? '#276749' : '#c53030';
+            const tag   = it.type === 'income' ? '수입' : '지출';
+            return `<div class="notice-row"><span>${escHtml(it.name)} <span style="opacity:0.75;font-size:0.72rem">(${it.date.getMonth()+1}/${it.date.getDate()} ${tag})</span></span><span style="color:${color};font-weight:700;">${sign}${fmtMoney(it.amount)}</span></div>`;
+        }).join('');
+    } else { noticeEl.style.display = 'none'; }
+
+    // 예정일 경과 미확인 항목 경고
+    const todayDateStr = fmtDate(new Date());
+    const overdueCount = [
+        ...(D.incomeEvents || []).filter(x => !x.confirmed && x.date < todayDateStr),
+        ...(D.fixedExpenses || []).filter(x => !x.confirmed && x.date < todayDateStr)
+    ].length;
+    const pendingEl = document.getElementById('alert-pending');
+    if (overdueCount > 0) {
+        document.getElementById('alert-pending-count').textContent = overdueCount;
+        pendingEl.style.display = 'block';
+    } else {
+        pendingEl.style.display = 'none';
+    }
+}
+
+function renderLog() {
+    const el = document.getElementById('log-list');
+    const sorted = [...D.spendingLog].sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+    if (sorted.length === 0) { el.innerHTML = '<div class="empty">아직 지출 내역이 없습니다</div>'; return; }
+    const groups = {};
+    sorted.forEach(item => { if (!groups[item.date]) groups[item.date] = []; groups[item.date].push(item); });
+    let html = '';
+    Object.entries(groups).forEach(([date, items]) => {
+        const dayTotal = items.reduce((s,x) => s+x.amount, 0);
+        html += `<div style="font-size:0.8rem;font-weight:700;color:#718096;padding:8px 0 4px;border-top:1px solid #f0f4f8;margin-top:4px;">${fmtMonthDay(new Date(date))} <span style="font-weight:400;color:#a0aec0;">합계 ${fmtMoney(dayTotal)}</span></div>`;
+        items.forEach(item => {
+            html += `<div class="list-item"><div class="info"><div class="name">${escHtml(item.desc)}</div></div><div class="right"><span class="amount">−${fmtMoney(item.amount)}</span><button class="btn-sm" onclick="deleteSpending('${item.id}')">삭제</button></div></div>`;
+        });
+    });
+    el.innerHTML = html;
+}
+
+function renderIncome() {
+    const el = document.getElementById('income-list');
+    const totalWrap = document.getElementById('income-total-wrap');
+    const events = D.incomeEvents || [];
+    if (events.length === 0) { el.innerHTML = '<div class="empty">등록된 예정 수입이 없습니다</div>'; totalWrap.style.display = 'none'; return; }
+    const sorted = [...events].sort((a,b) => a.date.localeCompare(b.date));
+    const total  = sorted.reduce((s,x) => s+x.amount, 0);
+    el.innerHTML = sorted.map(ie => {
+        if (ie.confirmed) {
+            const actual = ie.actualAmount != null ? ie.actualAmount : ie.amount;
+            const diff = actual - ie.amount;
+            const diffHtml = diff !== 0
+                ? `<span style="color:${diff > 0 ? '#276749' : '#c53030'};font-size:0.77rem;"> (${diff > 0 ? '+' : '−'}${fmtMoney(Math.abs(diff))})</span>`
+                : '';
+            return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(ie.name)}</div><div class="sub">${escHtml(ie.date)} · 예정 ${fmtMoney(ie.amount)} → 실제 ${fmtMoney(actual)}${diffHtml}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="unconfirmIncome('${ie.id}')">확인취소</button><button class="btn-sm" onclick="deleteIncome('${ie.id}')">삭제</button></div></div>`;
+        } else {
+            return `<div class="list-item"><div class="info"><div class="name">${escHtml(ie.name)}</div><div class="sub">${escHtml(ie.date)}</div></div><div class="right"><span class="amount" style="color:#276749;">+${fmtMoney(ie.amount)}</span><button class="btn-sm-confirm" onclick="confirmIncome('${ie.id}')">수입확인</button><button class="btn-sm-edit" onclick="editIncome('${ie.id}')">수정</button><button class="btn-sm" onclick="deleteIncome('${ie.id}')">삭제</button></div></div>`;
+        }
+    }).join('');
+    document.getElementById('income-total-amount').textContent = `+${fmtMoney(total)}`;
+    totalWrap.style.display = 'block';
+}
+
+function renderFixed() {
+    const el = document.getElementById('fixed-list');
+    const totalWrap = document.getElementById('fixed-total-wrap');
+    if (D.fixedExpenses.length === 0) { el.innerHTML = '<div class="empty">등록된 고정비가 없습니다</div>'; totalWrap.style.display = 'none'; return; }
+    const sorted = [...D.fixedExpenses].sort((a,b) => a.date.localeCompare(b.date));
+    const total  = sorted.reduce((s,x) => s+x.amount, 0);
+    el.innerHTML = sorted.map(fe => {
+        if (fe.confirmed) {
+            const actual = fe.actualAmount != null ? fe.actualAmount : fe.amount;
+            const saved = fe.amount - actual; // 양수 = 절약, 음수 = 초과
+            const diffHtml = saved !== 0
+                ? `<span style="color:${saved > 0 ? '#276749' : '#c53030'};font-size:0.77rem;"> (${saved > 0 ? '절약 ' : '초과 '}${fmtMoney(Math.abs(saved))})</span>`
+                : '';
+            return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(fe.name)}</div><div class="sub">${escHtml(fe.date)} · 예정 ${fmtMoney(fe.amount)} → 실제 ${fmtMoney(actual)}${diffHtml}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="unconfirmFixed('${fe.id}')">확인취소</button><button class="btn-sm" onclick="deleteFixed('${fe.id}')">삭제</button></div></div>`;
+        } else {
+            return `<div class="list-item"><div class="info"><div class="name">${escHtml(fe.name)}</div><div class="sub">${escHtml(fe.date)}</div></div><div class="right"><span class="amount">−${fmtMoney(fe.amount)}</span><button class="btn-sm-confirm" onclick="confirmFixed('${fe.id}')">지출완료</button><button class="btn-sm-edit" onclick="editFixed('${fe.id}')">수정</button><button class="btn-sm" onclick="deleteFixed('${fe.id}')">삭제</button></div></div>`;
+        }
+    }).join('');
+    document.getElementById('fixed-total-amount').textContent = `−${fmtMoney(total)}`;
+    totalWrap.style.display = 'block';
+}
+
+function renderSettings() {
+    document.getElementById('s-goal').value      = D.goal;
+    document.getElementById('s-target').value    = D.targetDate;
+    document.getElementById('s-balance').value   = D.currentBalance;
+    document.getElementById('s-emergency').value = D.emergencyFund ?? 1000000;
+}
+
+function showTab(name) {
+    ['log','income','fixed','settings'].forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = t === name ? 'block' : 'none';
+    });
+    document.querySelectorAll('#app-gk .gk-tab').forEach((el, i) => {
+        el.classList.toggle('active', ['log','income','fixed','settings'][i] === name);
+    });
+    if (name === 'settings') renderSettings();
+}
+
+function addSpending() {
+    const date   = document.getElementById('log-date').value;
+    const amount = parseInt(document.getElementById('log-amount').value);
+    const desc   = document.getElementById('log-desc').value.trim();
+    if (!date || !desc || !amount || amount <= 0) { alert('날짜, 내용, 금액을 모두 입력해 주세요.'); return; }
+    D.spendingLog.push({ id: uid(), date, desc, amount });
+    save();
+    document.getElementById('log-amount').value = '';
+    document.getElementById('log-desc').value   = '';
+    renderLog(); updateDashboard();
+}
+function deleteSpending(id) {
+    D.spendingLog = D.spendingLog.filter(x => x.id !== id);
+    save(); renderLog(); updateDashboard();
+}
+function editIncome(id) {
+    const item = (D.incomeEvents || []).find(x => x.id === id);
+    if (!item) return;
+    _editingIncomeId = id;
+    document.getElementById('income-name').value   = item.name;
+    document.getElementById('income-amount').value = item.amount;
+    document.getElementById('income-date').value   = item.date;
+    const btn = document.getElementById('income-submit-btn');
+    btn.textContent = '✏️ 수정 완료';
+    btn.style.background = '#f6ad55';
+    document.getElementById('tab-income').scrollIntoView({ behavior: 'smooth' });
+}
+function addIncome() {
+    const name   = document.getElementById('income-name').value.trim();
+    const amount = parseInt(document.getElementById('income-amount').value);
+    const date   = document.getElementById('income-date').value;
+    if (!name || !amount || amount <= 0 || !date) { alert('항목명, 금액, 날짜를 모두 입력해 주세요.'); return; }
+    if (!D.incomeEvents) D.incomeEvents = [];
+    if (_editingIncomeId) {
+        const idx = D.incomeEvents.findIndex(x => x.id === _editingIncomeId);
+        if (idx >= 0) D.incomeEvents[idx] = { id: _editingIncomeId, name, amount, date };
+        _editingIncomeId = null;
+        const btn = document.getElementById('income-submit-btn');
+        btn.textContent = '+ 수입 등록';
+        btn.style.background = '';
+    } else {
+        D.incomeEvents.push({ id: uid(), name, amount, date });
+    }
+    save();
+    document.getElementById('income-name').value   = '';
+    document.getElementById('income-amount').value = '';
+    document.getElementById('income-date').value   = '';
+    renderIncome(); updateDashboard();
+}
+function deleteIncome(id) {
+    D.incomeEvents = (D.incomeEvents || []).filter(x => x.id !== id);
+    save(); renderIncome(); updateDashboard();
+}
+function editFixed(id) {
+    const item = D.fixedExpenses.find(x => x.id === id);
+    if (!item) return;
+    _editingFixedId = id;
+    document.getElementById('fixed-name').value   = item.name;
+    document.getElementById('fixed-amount').value = item.amount;
+    document.getElementById('fixed-date').value   = item.date;
+    const btn = document.getElementById('fixed-submit-btn');
+    btn.textContent = '✏️ 수정 완료';
+    btn.style.background = '#f6ad55';
+    document.getElementById('fixed-submit-btn').scrollIntoView({ behavior: 'smooth' });
+}
+function addFixed() {
+    const name   = document.getElementById('fixed-name').value.trim();
+    const amount = parseInt(document.getElementById('fixed-amount').value);
+    const date   = document.getElementById('fixed-date').value;
+    if (!name || !amount || amount <= 0 || !date) { alert('항목명, 금액, 날짜를 모두 입력해 주세요.'); return; }
+    if (_editingFixedId) {
+        const idx = D.fixedExpenses.findIndex(x => x.id === _editingFixedId);
+        if (idx >= 0) D.fixedExpenses[idx] = { id: _editingFixedId, name, amount, date };
+        _editingFixedId = null;
+        const btn = document.getElementById('fixed-submit-btn');
+        btn.textContent = '+ 고정비 등록';
+        btn.style.background = '';
+    } else {
+        D.fixedExpenses.push({ id: uid(), name, amount, date });
+    }
+    save();
+    document.getElementById('fixed-name').value   = '';
+    document.getElementById('fixed-amount').value = '';
+    document.getElementById('fixed-date').value   = '';
+    renderFixed(); updateDashboard();
+}
+function deleteFixed(id) {
+    D.fixedExpenses = D.fixedExpenses.filter(x => x.id !== id);
+    save(); renderFixed(); updateDashboard();
+}
+
+function confirmIncome(id) {
+    const item = (D.incomeEvents || []).find(x => x.id === id);
+    if (!item) return;
+    const input = prompt(`실제 수입 금액을 입력하세요 (예정: ${item.amount.toLocaleString()}원)`, item.amount);
+    if (input === null) return;
+    const actual = parseInt(String(input).replace(/,/g, ''));
+    if (isNaN(actual) || actual < 0) { alert('올바른 금액을 입력해 주세요.'); return; }
+    item.confirmed = true;
+    item.actualAmount = actual;
+    save(); renderIncome(); updateDashboard();
+}
+function unconfirmIncome(id) {
+    const item = (D.incomeEvents || []).find(x => x.id === id);
+    if (!item) return;
+    item.confirmed = false;
+    item.actualAmount = null;
+    save(); renderIncome(); updateDashboard();
+}
+function confirmFixed(id) {
+    const item = D.fixedExpenses.find(x => x.id === id);
+    if (!item) return;
+    const input = prompt(`실제 지출 금액을 입력하세요 (예정: ${item.amount.toLocaleString()}원)`, item.amount);
+    if (input === null) return;
+    const actual = parseInt(String(input).replace(/,/g, ''));
+    if (isNaN(actual) || actual < 0) { alert('올바른 금액을 입력해 주세요.'); return; }
+    item.confirmed = true;
+    item.actualAmount = actual;
+    save(); renderFixed(); updateDashboard();
+}
+function unconfirmFixed(id) {
+    const item = D.fixedExpenses.find(x => x.id === id);
+    if (!item) return;
+    item.confirmed = false;
+    item.actualAmount = null;
+    save(); renderFixed(); updateDashboard();
+}
+function saveSettings() {
+    const goal          = parseInt(document.getElementById('s-goal').value);
+    const targetDate    = document.getElementById('s-target').value;
+    const balance       = parseInt(document.getElementById('s-balance').value) || 0;
+    const emergencyFund = parseInt(document.getElementById('s-emergency').value) || 0;
+    if (!goal || goal <= 0 || !targetDate) { alert('목표 금액과 목표 날짜를 입력해 주세요.'); return; }
+    if (balance !== D.currentBalance) D.balanceDate = todayStr();
+    D.goal = goal; D.targetDate = targetDate; D.currentBalance = balance; D.emergencyFund = emergencyFund;
+    save(); updateDashboard(); alert('✅ 저장되었습니다!');
+}
+
+// ── 이자 통계 기반 예측 ──
+
+function calcInterestPredictions() {
+    const logs = D.interestLog || [];
+    if (logs.length === 0) return [];
+
+    // 대출명별 그룹화
+    const byLoan = {};
+    logs.forEach(e => {
+        if (!byLoan[e.loanName]) byLoan[e.loanName] = [];
+        byLoan[e.loanName].push(e);
+    });
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const allPredictions = [];
+
+    Object.entries(byLoan).forEach(([loanName, entries]) => {
+        const sorted = [...entries].sort((a,b) => a.date.localeCompare(b.date));
+        const n = sorted.length;
+        const totalW = n * (n + 1) / 2;
+
+        // 납부일 예측: 날짜의 가중 평균 (최신 가중치 높음)
+        const avgDay = Math.round(
+            sorted.reduce((s, e, i) => s + new Date(e.date).getDate() * (i + 1), 0) / totalW
+        );
+
+        // 금액 선형 회귀 (월 인덱스 기준)
+        const firstDate = new Date(sorted[0].date);
+        const toMonthIdx = d => (d.getFullYear() - firstDate.getFullYear()) * 12 + (d.getMonth() - firstDate.getMonth());
+        const monthIdxs = sorted.map(e => toMonthIdx(new Date(e.date)));
+        const amounts   = sorted.map(e => e.amount);
+        const meanX = monthIdxs.reduce((s,x) => s+x, 0) / n;
+        const meanY = amounts.reduce((s,y) => s+y, 0) / n;
+        let slope = 0, intercept = meanY;
+        if (n >= 2) {
+            const num = monthIdxs.reduce((s,x,i) => s + (x - meanX) * (amounts[i] - meanY), 0);
+            const den = monthIdxs.reduce((s,x) => s + (x - meanX) ** 2, 0);
+            slope = den !== 0 ? num / den : 0;
+            intercept = meanY - slope * meanX;
+        }
+        // 가중 평균 (선형 추세가 미미할 때 사용)
+        const weightedAmt = amounts.reduce((s,a,i) => s + a * (i + 1), 0) / totalW;
+        const useLinear   = Math.abs(slope) > meanY * 0.005; // 월 0.5% 이상 변동이면 선형 추세 사용
+
+        // 신뢰도 (분산 반영)
+        const variance = n >= 2 ? amounts.reduce((s,a) => s + (a - meanY) ** 2, 0) / n : 0;
+        const cv = meanY > 0 ? Math.sqrt(variance) / meanY : 0;
+        let confidence, confidenceLabel;
+        if      (n === 1) { confidence = 40; confidenceLabel = '데이터 부족'; }
+        else if (n === 2) { confidence = 60; confidenceLabel = '참고용'; }
+        else if (n <= 4)  { confidence = Math.round(75 - cv * 20); confidenceLabel = '보통'; }
+        else if (n <= 9)  { confidence = Math.round(85 - cv * 15); confidenceLabel = '높음'; }
+        else              { confidence = Math.round(95 - cv * 10); confidenceLabel = '매우 높음'; }
+        confidence = Math.max(30, Math.min(99, confidence));
+
+        const lastDate = new Date(sorted[n-1].date);
+
+        // 향후 12개월 예측 생성
+        for (let m = 0; m < 12; m++) {
+            const predDate = new Date(today);
+            predDate.setDate(1);
+            predDate.setMonth(predDate.getMonth() + m);
+            const ym = `${predDate.getFullYear()}-${pad(predDate.getMonth()+1)}`;
+            if (sorted.some(e => e.date.startsWith(ym))) continue; // 이미 기록된 달은 건너뜀
+
+            const predMonthIdx = toMonthIdx(predDate);
+            const monthsFromLast = (predDate.getFullYear() - lastDate.getFullYear()) * 12
+                                 + (predDate.getMonth()    - lastDate.getMonth());
+            const predictedAmount = Math.max(0, Math.round(
+                useLinear ? intercept + slope * predMonthIdx
+                          : weightedAmt + slope * monthsFromLast
+            ));
+
+            const lastDayOfMonth = new Date(predDate.getFullYear(), predDate.getMonth() + 1, 0).getDate();
+            const predictedDay   = Math.min(avgDay, lastDayOfMonth);
+            const predictedDate  = `${predDate.getFullYear()}-${pad(predDate.getMonth()+1)}-${pad(predictedDay)}`;
+            const predictedDateObj = new Date(predictedDate);
+
+            if (predictedDateObj >= today) {
+                allPredictions.push({
+                    loanName, predictedDate, predictedDateObj,
+                    predictedAmount, confidence, confidenceLabel,
+                    dataPoints: n, avgDay, slope: Math.round(slope)
+                });
+            }
+        }
+    });
+
+    return allPredictions.sort((a,b) => a.predictedDate.localeCompare(b.predictedDate));
+}
+
+function renderInterestStats() {
+    const el   = document.getElementById('interest-stats');
+    const logs = D.interestLog || [];
+    if (logs.length === 0) {
+        el.innerHTML = '<div class="empty">이자 납부 기록을 추가하면 통계 및 예측이 표시됩니다</div>';
+        return;
+    }
+
+    const byLoan = {};
+    logs.forEach(e => {
+        if (!byLoan[e.loanName]) byLoan[e.loanName] = [];
+        byLoan[e.loanName].push(e);
+    });
+    const predictions = calcInterestPredictions();
+    let html = '';
+
+    Object.entries(byLoan).forEach(([loanName, entries], idx) => {
+        if (idx > 0) html += '<div class="divider" style="margin:14px 0;"></div>';
+        const sorted   = [...entries].sort((a,b) => b.date.localeCompare(a.date));
+        const loanPreds = predictions.filter(p => p.loanName === loanName);
+        const nextPred  = loanPreds[0];
+        const n = entries.length;
+
+        html += `<div style="font-weight:700;font-size:0.92rem;color:#4a5568;margin-bottom:10px;display:flex;justify-content:space-between;">`;
+        html += `<span>🏦 ${escHtml(loanName)}</span><span style="font-size:0.75rem;color:#a0aec0;font-weight:400;">기록 ${n}건</span></div>`;
+
+        if (nextPred) {
+            const slopeAbs  = Math.abs(nextPred.slope);
+            const slopeText = nextPred.slope < -100
+                ? `<span style="color:#48bb78;">감소 추세 (월 −${fmtMoney(slopeAbs)})</span>`
+                : nextPred.slope > 100
+                ? `<span style="color:#fc8181;">증가 추세 (월 +${fmtMoney(slopeAbs)})</span>`
+                : '<span style="color:#718096;">안정적</span>';
+            const barColor = nextPred.confidence >= 85 ? '#48bb78' : nextPred.confidence >= 60 ? '#f6ad55' : '#fc8181';
+            html += `<div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:10px;font-size:0.8rem;line-height:2.1;">`;
+            html += `<div style="display:flex;justify-content:space-between;"><span style="color:#718096;">예상 납부일</span><span style="font-weight:700;">매월 ${nextPred.avgDay}일</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;"><span style="color:#718096;">다음 예정</span><span style="font-weight:700;color:#c53030;">${nextPred.predictedDate} · ${fmtMoney(nextPred.predictedAmount)}</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;"><span style="color:#718096;">금액 추세</span>${slopeText}</div>`;
+            html += `<div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#718096;">예측 신뢰도</span>`;
+            html += `<span style="display:flex;align-items:center;gap:6px;">`;
+            html += `<div style="width:70px;height:5px;background:#e2e8f0;border-radius:999px;overflow:hidden;"><div style="width:${nextPred.confidence}%;height:100%;background:${barColor};border-radius:999px;"></div></div>`;
+            html += `<span style="font-weight:700;font-size:0.77rem;color:${barColor};">${nextPred.confidenceLabel}</span></span></div>`;
+            html += `</div>`;
+
+            // 향후 3개월 예측 목록
+            html += `<div style="font-size:0.77rem;font-weight:700;color:#718096;margin-bottom:4px;">향후 예측</div>`;
+            loanPreds.slice(0, 3).forEach(p => {
+                const pBarColor = p.confidence >= 85 ? '#48bb78' : p.confidence >= 60 ? '#f6ad55' : '#fc8181';
+                html += `<div class="list-item" style="padding:7px 0;">`;
+                html += `<div class="info"><div class="name" style="font-size:0.83rem;">${p.predictedDate}</div>`;
+                html += `<div class="sub">신뢰도 <span style="color:${pBarColor};font-weight:700;">${p.confidence}%</span></div></div>`;
+                html += `<div class="right"><span style="color:#e53e3e;font-weight:700;font-size:0.88rem;">~${fmtMoney(p.predictedAmount)}</span></div></div>`;
+            });
+        }
+
+        // 납부 기록 내역
+        html += `<div style="font-size:0.77rem;font-weight:700;color:#718096;margin:10px 0 4px;">납부 기록</div>`;
+        sorted.forEach(e => {
+            html += `<div class="list-item" style="padding:7px 0;">`;
+            html += `<div class="info"><div class="name" style="font-size:0.83rem;">${escHtml(e.date)}</div></div>`;
+            html += `<div class="right"><span class="amount" style="font-size:0.88rem;">−${fmtMoney(e.amount)}</span>`;
+            html += `<button class="btn-sm" onclick="deleteInterestLog('${e.id}')">삭제</button></div></div>`;
+        });
+    });
+
+    el.innerHTML = html;
+}
+
+function addInterestLog() {
+    const loanName = document.getElementById('interest-loan-name').value.trim();
+    const date     = document.getElementById('interest-date').value;
+    const amount   = parseInt(document.getElementById('interest-amount').value);
+    if (!loanName || !date || !amount || amount <= 0) { alert('대출명, 납부일, 금액을 모두 입력해 주세요.'); return; }
+    if (!D.interestLog) D.interestLog = [];
+    D.interestLog.push({ id: uid(), loanName, date, amount });
+    save();
+    document.getElementById('interest-loan-name').value = '';
+    document.getElementById('interest-amount').value    = '';
+    renderInterestStats(); updateDashboard();
+}
+
+function deleteInterestLog(id) {
+    D.interestLog = (D.interestLog || []).filter(x => x.id !== id);
+    save(); renderInterestStats(); updateDashboard();
+}
+
+window.showTab        = showTab;
+window.addSpending    = addSpending;
+window.deleteSpending = deleteSpending;
+window.addIncome      = addIncome;
+window.editIncome     = editIncome;
+window.deleteIncome   = deleteIncome;
+window.addFixed       = addFixed;
+window.editFixed      = editFixed;
+window.deleteFixed    = deleteFixed;
+window.saveSettings   = saveSettings;
+window.addInterestLog    = addInterestLog;
+window.deleteInterestLog = deleteInterestLog;
+window.confirmIncome    = confirmIncome;
+window.unconfirmIncome  = unconfirmIncome;
+window.confirmFixed     = confirmFixed;
+window.unconfirmFixed   = unconfirmFixed;
+
+// ── DOMContentLoaded ──
+document.addEventListener('DOMContentLoaded', async () => {
+    document.getElementById('targetDate').value    = todayStr();
+    document.getElementById('log-date').value      = todayStr();
+    document.getElementById('interest-date').value = todayStr();
+
+    await Promise.all([
+        jk_load(),
+        loadFromFirestore().then(() => {
+            renderLog(); renderIncome(); renderFixed(); renderInterestStats(); updateDashboard();
+            document.getElementById('log-desc').addEventListener('keydown',   e => { if (e.key === 'Enter') addSpending(); });
+            document.getElementById('log-amount').addEventListener('keydown', e => { if (e.key === 'Enter') addSpending(); });
+        })
+    ]);
+});
+</script>
+
 </body>
 </html>
