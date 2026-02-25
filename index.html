@@ -795,9 +795,6 @@ function jk_renderTable() {
         const safeDate     = escHtml(r.date);
         const safeSober    = escHtml(r.sober);
         const safeExercise = escHtml(r.exercise);
-        const safeScreen   = escHtml(r.screen).replace(/'/g, '&#39;');
-        const safeAi       = escHtml(r.ai).replace(/'/g, '&#39;');
-        const safeReason   = escHtml(r.reason || '').replace(/'/g, '&#39;');
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="font-weight:600;color:#4b5563;">${safeDate}</td>
@@ -806,7 +803,7 @@ function jk_renderTable() {
             <td>${escHtml(r.screen)}</td>
             <td style="text-align:left;font-size:0.9rem;">${escHtml(r.ai)}</td>
             <td>
-                <button class="btn-edit" onclick="jk_editItem('${safeDate}','${safeSober}','${safeExercise}','${safeScreen}','${safeAi}','${safeReason}')">수정</button>
+                <button class="btn-edit" onclick="jk_editItem('${safeDate}')">수정</button>
                 <button class="btn-del"  onclick="jk_deleteRecord('${safeDate}')">삭제</button>
             </td>`;
         tbody.appendChild(tr);
@@ -859,14 +856,16 @@ function jk_addRecord() {
     jk_renderTable();
 }
 
-function jk_editItem(date, sober, exercise, screen, ai, reason) {
-    document.getElementById('targetDate').value  = date;
-    document.getElementById('sober').value       = sober;
-    document.getElementById('exercise').value    = exercise;
-    document.getElementById('screen').value      = screen;
-    document.getElementById('ai').value          = ai;
-    document.getElementById('reason').value      = sober === 'X' ? (reason || '') : '';
-    document.getElementById('reason-container').style.display = sober === 'X' ? 'block' : 'none';
+function jk_editItem(date) {
+    const r = D_jk.records.find(r => r.date === date);
+    if (!r) return;
+    document.getElementById('targetDate').value  = r.date;
+    document.getElementById('sober').value       = r.sober;
+    document.getElementById('exercise').value    = r.exercise;
+    document.getElementById('screen').value      = r.screen  || '';
+    document.getElementById('ai').value          = r.ai      || '';
+    document.getElementById('reason').value      = r.sober === 'X' ? (r.reason || '') : '';
+    document.getElementById('reason-container').style.display = r.sober === 'X' ? 'block' : 'none';
     const btn = document.getElementById('save-btn');
     btn.innerText = '수정 완료';
     btn.classList.add('edit-mode');
