@@ -874,7 +874,7 @@ function jk_editItem(date, sober, exercise, screen, ai, reason) {
 }
 
 function jk_deleteRecord(date) {
-    if (confirm('기록을 삭제하시겠습니까?')) {
+    if (confirm('정말 삭제하시겠습니까?')) {
         D_jk.records = D_jk.records.filter(r => r.date !== date);
         jk_save();
         jk_renderTable();
@@ -1120,6 +1120,7 @@ function addSpending() {
     renderLog(); updateDashboard();
 }
 function deleteSpending(id) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
     D.spendingLog = D.spendingLog.filter(x => x.id !== id);
     save(); renderLog(); updateDashboard();
 }
@@ -1158,6 +1159,7 @@ function addIncome() {
     renderIncome(); updateDashboard();
 }
 function deleteIncome(id) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
     D.incomeEvents = (D.incomeEvents || []).filter(x => x.id !== id);
     save(); renderIncome(); updateDashboard();
 }
@@ -1195,6 +1197,7 @@ function addFixed() {
     renderFixed(); updateDashboard();
 }
 function deleteFixed(id) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
     D.fixedExpenses = D.fixedExpenses.filter(x => x.id !== id);
     save(); renderFixed(); updateDashboard();
 }
@@ -1527,7 +1530,7 @@ function editLoan(id) {
 }
 
 function deleteLoan(id) {
-    if (!confirm('대출을 삭제하면 해당 대출의 납부 기록도 함께 삭제됩니다. 계속하시겠습니까?')) return;
+    if (!confirm('정말 삭제하시겠습니까?\n(해당 대출의 납부 기록도 함께 삭제됩니다)')) return;
     D.loans = (D.loans || []).filter(x => x.id !== id);
     D.loanPayments = (D.loanPayments || []).filter(x => x.loanId !== id);
     save(); renderLoans(); updateDashboard();
@@ -1560,6 +1563,7 @@ function addLoanPayment() {
 }
 
 function deleteLoanPayment(id) {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
     D.loanPayments = (D.loanPayments || []).filter(x => x.id !== id);
     save(); renderLoans();
 }
@@ -1709,7 +1713,7 @@ function editSubscription(id) {
 }
 
 function deleteSubscription(id) {
-    if (!confirm('구독 서비스를 삭제하시겠습니까?')) return;
+    if (!confirm('정말 삭제하시겠습니까?')) return;
     D.subscriptions = (D.subscriptions || []).filter(x => x.id !== id);
     save(); renderSubscriptions();
 }
