@@ -79,6 +79,31 @@
             padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: inherit;
         }
 
+        /* ══ 금주 마일스톤 CSS ══ */
+        #app-jk .milestone-bar {
+            display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        #app-jk .milestone-chip {
+            flex: 1; min-width: 120px;
+            background: white; border-radius: 12px;
+            padding: 10px 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            display: flex; align-items: center; gap: 10px;
+        }
+        #app-jk .milestone-chip.done {
+            background: linear-gradient(135deg, #0284c7, #0ea5e9);
+            color: white;
+        }
+        #app-jk .milestone-chip.done .mc-label,
+        #app-jk .milestone-chip.done .mc-date { color: rgba(255,255,255,0.9); }
+        #app-jk .mc-icon { font-size: 1.4rem; flex-shrink: 0; }
+        #app-jk .mc-label { font-size: 0.72rem; color: #6b7280; font-weight: 600; margin-bottom: 2px; }
+        #app-jk .mc-date  { font-size: 0.82rem; font-weight: 700; color: #1f2937; }
+        #app-jk .mc-dday  { font-size: 0.7rem; font-weight: 700; margin-top: 1px; }
+        #app-jk .mc-dday.soon   { color: #f59e0b; }
+        #app-jk .mc-dday.future { color: #9ca3af; }
+        #app-jk .mc-dday.done   { color: rgba(255,255,255,0.85); }
+
         /* ══ 가계부 앱 CSS ══ */
         #app-gk { padding: 16px; }
         #app-gk .container { max-width: 600px; margin: 0 auto; }
@@ -355,6 +380,7 @@
                 <span class="streak-unit" id="streak-text">일차 금주 중</span>
             </div>
         </div>
+        <div class="milestone-bar" id="jk-milestones"></div>
         <div class="input-card">
             <div class="form-grid">
                 <input type="date" id="targetDate" onchange="jk_resetInputs()">
@@ -784,6 +810,74 @@ function jk_updateSoberCounter() {
         countElem.style.color = '#0284c7';
         textElem.innerText = '일차 금주 중';
     }
+    jk_renderMilestones(streak);
+}
+
+function jk_renderMilestones(streak) {
+    const el = document.getElementById('jk-milestones');
+    if (!el) return;
+
+    // 현재 연속 스트릭의 시작일 계산
+    const sorted = [...D_jk.records].sort((a, b) => b.date.localeCompare(a.date));
+    let startDate = null;
+    if (streak > 0) {
+        // 가장 오래된 연속 O 기록 찾기
+        let count = 0;
+        for (const r of sorted) {
+            if (r.sober === 'O') count++;
+            else break;
+        }
+        // count번째 기록의 날짜가 연속 시작일
+        const startRecord = sorted[count - 1];
+        startDate = startRecord ? new Date(startRecord.date) : null;
+    }
+
+    const MILESTONES = [
+        { day: 30,  icon: '🌱', label: '30일' },
+        { day: 50,  icon: '⭐', label: '50일' },
+        { day: 100, icon: '🏆', label: '100일' },
+    ];
+
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    el.innerHTML = MILESTONES.map(m => {
+        const isDone = streak >= m.day;
+
+        let dateStr = '-';
+        let ddayHtml = '';
+
+        if (startDate) {
+            // 목표 달성일 = 시작일 + (m.day - 1)일
+            const targetDate = new Date(startDate);
+            targetDate.setDate(targetDate.getDate() + m.day - 1);
+            const yyyy = targetDate.getFullYear();
+            const mm   = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const dd   = String(targetDate.getDate()).padStart(2, '0');
+            dateStr = `${yyyy}.${mm}.${dd}`;
+
+            if (isDone) {
+                ddayHtml = `<div class="mc-dday done">달성 완료 🎉</div>`;
+            } else {
+                const daysLeft = Math.ceil((targetDate - today) / 86400000);
+                if (daysLeft <= 7) {
+                    ddayHtml = `<div class="mc-dday soon">D-${daysLeft} 🔥</div>`;
+                } else {
+                    ddayHtml = `<div class="mc-dday future">D-${daysLeft}</div>`;
+                }
+            }
+        } else {
+            dateStr = '기록 없음';
+        }
+
+        return `<div class="milestone-chip${isDone ? ' done' : ''}">
+            <div class="mc-icon">${m.icon}</div>
+            <div>
+                <div class="mc-label">${m.label} 달성 예정</div>
+                <div class="mc-date">${dateStr}</div>
+                ${ddayHtml}
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function jk_renderTable() {
