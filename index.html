@@ -716,7 +716,7 @@
             <div class="card">
                 <div class="info-box">
                     <p>💡 <strong>일일 지출 가능액 계산 방식</strong></p>
-                    <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 고정비 − 이자 예측액 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
+                    <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 고정비 − 목표일 전 활성 구독료 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
                     <p style="margin-top:4px;">💡 이자 납부 기록이 쌓일수록 예측 정확도가 높아집니다 (선형 회귀 + 가중 평균)</p>
                     <p style="margin-top:6px;">총 가용금액 − 이미 기록한 지출 = 남은 가용금액 ÷ 남은 날수 = <strong>오늘 권장 지출</strong></p>
                 </div>
@@ -1043,7 +1043,26 @@ function calcDashboard() {
         .filter(x => !x.confirmed && new Date(x.date) > today && new Date(x.date) <= target)
         .reduce((s,x) => s + x.amount, 0);
 
-    const totalAvailable = currentBalance + futureIncome - futureFixed - D.goal - (D.emergencyFund || 0);
+    // 목표일 전까지 활성 구독료 합산
+    const futureSubscriptions = (D.subscriptions || [])
+        .filter(s => s.active)
+        .reduce((sum, sub) => {
+            if (sub.cycle === 'monthly' && sub.billingDay) {
+                let d = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
+                if (d <= today) d = new Date(today.getFullYear(), today.getMonth() + 1, sub.billingDay);
+                let count = 0;
+                while (d <= target) { count++; d = new Date(d.getFullYear(), d.getMonth() + 1, sub.billingDay); }
+                return sum + sub.amount * count;
+            } else if (sub.cycle === 'yearly' && sub.billingDate) {
+                const ref = new Date(sub.billingDate);
+                let d = new Date(today.getFullYear(), ref.getMonth(), ref.getDate());
+                if (d <= today) d = new Date(today.getFullYear() + 1, ref.getMonth(), ref.getDate());
+                return sum + (d <= target ? sub.amount : 0);
+            }
+            return sum;
+        }, 0);
+
+    const totalAvailable = currentBalance + futureIncome - futureFixed - futureSubscriptions - D.goal - (D.emergencyFund || 0);
     const dailyMax = totalAvailable / remainDays;
     const todayKey = fmtDate(today);
     const todaySpent = D.spendingLog.filter(x => x.date === todayKey).reduce((s,x) => s+x.amount, 0);
@@ -1068,7 +1087,23 @@ function calcDashboard() {
             return null;
         })
         .filter(Boolean);
-    const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans].sort((a,b) => a.date - b.date);
+    const upcomingSubscriptions = (D.subscriptions || [])
+        .filter(s => s.active)
+        .map(sub => {
+            let d;
+            if (sub.cycle === 'monthly' && sub.billingDay) {
+                d = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
+                if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, sub.billingDay);
+            } else if (sub.cycle === 'yearly' && sub.billingDate) {
+                const ref = new Date(sub.billingDate);
+                d = new Date(today.getFullYear(), ref.getMonth(), ref.getDate());
+                if (d < today) d = new Date(today.getFullYear() + 1, ref.getMonth(), ref.getDate());
+            }
+            if (d && d >= today && d <= next7) return { name: `${sub.name} 구독료`, amount: sub.amount, date: d, type: 'expense' };
+            return null;
+        })
+        .filter(Boolean);
+    const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a,b) => a.date - b.date);
 
     return { remainDays, currentBalance, dailyMax, todaySpent, todayRemain, totalSpent, pct, upcomingItems };
 }
