@@ -1822,20 +1822,44 @@ function editLoan(id) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
     _editingLoanId = id;
-    document.getElementById('loan-name').value         = loan.name;
-    document.getElementById('loan-balance').value      = loan.remainingBalance || '';
-    document.getElementById('loan-rate').value         = loan.interestRate != null ? loan.interestRate : '';
-    document.getElementById('loan-repay-type').value   = loan.repaymentType || '';
-    document.getElementById('loan-grace-date').value   = loan.gracePeriodEndDate || '';
-    document.getElementById('loan-end-date').value     = loan.loanEndDate || '';
-    document.getElementById('loan-payday').value       = loan.paymentDay || '';
-    document.getElementById('loan-memo').value         = loan.memo || '';
+    document.getElementById('loan-name').value       = loan.name;
+    document.getElementById('loan-balance').value    = loan.remainingBalance || '';
+    document.getElementById('loan-rate').value       = loan.interestRate != null ? loan.interestRate : '';
+    document.getElementById('loan-repay-type').value = loan.repaymentType || '';
+    document.getElementById('loan-payday').value     = loan.paymentDay || '';
+    document.getElementById('loan-memo').value       = loan.memo || '';
+
+    // 날짜 필드: 저장된 날짜 우선, 없으면 기존 개월수에서 역산
+    if (loan.loanEndDate) {
+        document.getElementById('loan-end-date').value = loan.loanEndDate;
+    } else if (loan.remainingMonths) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + loan.remainingMonths);
+        document.getElementById('loan-end-date').value = fmtDate(d);
+    } else {
+        document.getElementById('loan-end-date').value = '';
+    }
+
+    if (loan.gracePeriodEndDate) {
+        document.getElementById('loan-grace-date').value = loan.gracePeriodEndDate;
+    } else if (loan.gracePeriod) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + loan.gracePeriod);
+        document.getElementById('loan-grace-date').value = fmtDate(d);
+    } else {
+        document.getElementById('loan-grace-date').value = '';
+    }
+
     autoCalcLoanPayment();
     const btn = document.getElementById('loan-submit-btn');
     btn.textContent = '✏️ 수정 완료';
     btn.style.background = '#f6ad55';
     document.getElementById('loan-form-title').textContent = '대출 수정';
-    document.getElementById('tab-loan').scrollIntoView({ behavior: 'smooth' });
+
+    // 폼 카드 상단으로 정확히 스크롤
+    const formCard = document.getElementById('loan-form-title').closest('.card');
+    const navH = document.querySelector('.main-nav')?.offsetHeight || 60;
+    window.scrollTo({ top: formCard.getBoundingClientRect().top + window.scrollY - navH - 12, behavior: 'smooth' });
 }
 
 function deleteLoan(id) {
