@@ -329,7 +329,11 @@
                 padding: 14px 12px;
                 padding-left: max(12px, env(safe-area-inset-left));
                 padding-right: max(12px, env(safe-area-inset-right));
+                overflow-x: hidden;
             }
+            #app-jk .container { width: 100%; }
+            /* 마일스톤 칩 min-width 해제 → 3개가 화면을 넘치는 원인 */
+            #app-jk .milestone-chip { min-width: 0; }
             #app-jk .header-card { padding: 20px 16px; margin-bottom: 14px; }
             #app-jk .sub-title { font-size: 1rem; }
             #app-jk .main-streak { font-size: 3rem; }
