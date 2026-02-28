@@ -148,6 +148,18 @@
             background: #fff5f5; border-left: 4px solid #fc8181; border-radius: 10px;
             padding: 10px 14px; margin-bottom: 14px; font-size: 0.83rem; color: #c53030;
         }
+        #app-gk .overdraft-reminder {
+            background: #ebf8ff; border-left: 4px solid #4299e1; border-radius: 10px;
+            padding: 12px 14px; margin-bottom: 14px; font-size: 0.83rem; color: #2b6cb0;
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+        #app-gk .overdraft-reminder-text { flex: 1; }
+        #app-gk .overdraft-reminder-btn {
+            background: #4299e1; color: #fff; border: none; border-radius: 7px;
+            padding: 5px 12px; font-size: 0.78rem; font-weight: 700;
+            cursor: pointer; white-space: nowrap; font-family: inherit;
+        }
+        #app-gk .overdraft-reminder-btn:hover { background: #3182ce; }
         #app-gk .gk-tabs { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; }
         #app-gk .gk-tab {
             padding: 8px 18px; border-radius: 999px; border: none; cursor: pointer;
@@ -506,6 +518,13 @@
         </div>
         <div class="alert-banner" id="alert-pending" style="display:none">
             ⚠️ 예정일이 지난 미확인 항목이 <span id="alert-pending-count">0</span>건 있습니다. 실제 금액을 확인해 주세요.
+        </div>
+        <div class="overdraft-reminder" id="alert-overdraft-reminder" style="display:none">
+            <div class="overdraft-reminder-text">
+                🏦 <strong>월말 알림</strong> — 마이너스 통장 잔액을 최신으로 업데이트해 주세요.<br>
+                <span style="font-size:0.75rem;opacity:0.8;">대출 탭 → 마이너스 통장 항목 수정</span>
+            </div>
+            <button class="overdraft-reminder-btn" onclick="dismissOverdraftReminder()">확인</button>
         </div>
 
         <div class="gk-tabs">
@@ -1087,7 +1106,8 @@ const DEFAULT = {
     interestLog: [],     // 레거시 (미사용)
     subscriptions: [],   // [{id, name, category, cycle, amount, billingDay, billingDate, active}]
     loans: [],           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
-    loanPayments: []     // [{id, loanId, loanName, date, principal, interest, memo}]
+    loanPayments: [],    // [{id, loanId, loanName, date, principal, interest, memo}]
+    overdraftReminderMonth: ''  // 'YYYY-MM' - 마지막으로 알림 확인한 월
 };
 let D = { ...DEFAULT };
 
@@ -1239,6 +1259,20 @@ function updateDashboard() {
         pendingEl.style.display = 'block';
     } else {
         pendingEl.style.display = 'none';
+    }
+
+    // 마이너스 통장 월말 업데이트 알림
+    const hasOverdraft = (D.loans || []).some(l => l.repaymentType === 'overdraft');
+    const reminderEl = document.getElementById('alert-overdraft-reminder');
+    if (hasOverdraft) {
+        const now = new Date();
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const isNearMonthEnd = now.getDate() >= lastDayOfMonth - 2;  // 말일 3일 전부터
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const alreadyDismissed = (D.overdraftReminderMonth || '') === currentMonth;
+        reminderEl.style.display = (isNearMonthEnd && !alreadyDismissed) ? 'flex' : 'none';
+    } else {
+        reminderEl.style.display = 'none';
     }
 }
 
@@ -1453,6 +1487,13 @@ function unconfirmFixed(id) {
     item.actualAmount = null;
     save(); renderFixed(); updateDashboard();
 }
+function dismissOverdraftReminder() {
+    const now = new Date();
+    D.overdraftReminderMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    save();
+    document.getElementById('alert-overdraft-reminder').style.display = 'none';
+}
+
 function saveSettings() {
     const goal          = parseInt(document.getElementById('s-goal').value);
     const targetDate    = document.getElementById('s-target').value;
@@ -2136,7 +2177,8 @@ window.deleteIncome   = deleteIncome;
 window.addFixed       = addFixed;
 window.editFixed      = editFixed;
 window.deleteFixed    = deleteFixed;
-window.saveSettings   = saveSettings;
+window.saveSettings              = saveSettings;
+window.dismissOverdraftReminder  = dismissOverdraftReminder;
 window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
