@@ -281,12 +281,8 @@
         #app-gk .loan-meta-value { font-size: 0.88rem; font-weight: 700; color: #2d3748; }
         #app-gk .loan-next-pay { font-size: 0.77rem; color: #c53030; font-weight: 600; margin-bottom: 10px; }
         #app-gk .loan-next-pay.far { color: #718096; font-weight: 400; }
-        #app-gk .loan-action-row { display: flex; gap: 6px; margin-top: 10px; }
-        #app-gk .loan-action-row button { flex: 1; padding: 8px 0; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; font-family: inherit; }
-        #app-gk .btn-loan-pay { background: #ebf8ff; color: #2b6cb0; }
-        #app-gk .btn-loan-pay:hover { background: #bee3f8; }
-        #app-gk .btn-loan-done { background: #f0fff4; color: #276749; }
-        #app-gk .btn-loan-done:hover { background: #c6f6d5; }
+        #app-gk .btn-schedule-pay { background: #ebf8ff; color: #2b6cb0; border: none; border-radius: 6px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+        #app-gk .btn-schedule-pay:hover { background: #bee3f8; }
         #app-gk .pay-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
         #app-gk .pay-item:last-child { border-bottom: none; }
         #app-gk .pay-item-date { font-size: 0.8rem; font-weight: 600; color: #4a5568; }
@@ -1735,12 +1731,12 @@ function renderLoans() {
 
         const predHtml = schedule ? `
             <div class="loan-pred-box">
-                ${(isOverdraft ? schedule.slice(0, 3) : schedule.slice(0, 3)).map(m => {
+                ${schedule.slice(0, 3).map(m => {
                     const [y, mo] = m.date.split('.');
                     const dateLabel = `${y}년 ${parseInt(mo)}월${loan.paymentDay ? ' ' + loan.paymentDay + '일' : ''}`;
                     return `<div class="loan-pred-row">
                         <span class="loan-pred-label">${dateLabel}${m.isGrace ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 4px;border-radius:3px;margin-left:3px;">거치</span>' : ''}${m.isOverdraft ? ' <span style="font-size:0.65rem;background:#e9d8fd;color:#553c9a;padding:1px 4px;border-radius:3px;margin-left:3px;">이자</span>' : ''}</span>
-                        <span style="font-weight:700;">${fmtMoney(m.payment)}</span>
+                        <span style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;">${fmtMoney(m.payment)}</span><button class="btn-schedule-pay" onclick="loanSchedulePaid('${loan.id}',${m.principal},${m.payment})">완료</button></span>
                     </div>`;
                 }).join('')}
                 ${isOverdraft
@@ -1755,7 +1751,7 @@ function renderLoans() {
             <button id="schedule-btn-${loan.id}" class="btn-toggle-schedule" onclick="toggleLoanSchedule('${loan.id}')">▼ 상환 일정 보기</button>
             <div id="schedule-wrap-${loan.id}" class="loan-schedule-wrap">
                 <table class="loan-schedule-table">
-                    <thead><tr><th>납부월</th><th>원금</th><th>이자</th><th>납부액</th><th>잔여금</th></tr></thead>
+                    <thead><tr><th>납부월</th><th>원금</th><th>이자</th><th>납부액</th><th>잔여금</th><th></th></tr></thead>
                     <tbody>
                         ${schedule.map(m => `<tr class="${m.isGrace ? 'loan-grace-row' : ''}">
                             <td>${m.date}${m.isGrace ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 4px;border-radius:3px;">거치</span>' : ''}</td>
@@ -1763,6 +1759,7 @@ function renderLoans() {
                             <td class="col-interest">${fmtMoney(m.interest)}</td>
                             <td class="col-payment">${fmtMoney(m.payment)}</td>
                             <td class="col-balance">${fmtMoney(m.balance)}</td>
+                            <td><button class="btn-schedule-pay" onclick="loanSchedulePaid('${loan.id}',${m.principal},${m.payment})">완료</button></td>
                         </tr>`).join('')}
                     </tbody>
                 </table>
@@ -1807,10 +1804,6 @@ function renderLoans() {
             </div>
             <div class="${nextClass}">${nextStr}</div>
             ${predHtml}
-            <div class="loan-action-row">
-                <button class="btn-loan-pay" onclick="loanMonthlyPaid('${loan.id}')">💸 이번달 납부 완료</button>
-                <button class="btn-loan-done" onclick="loanFullyPaid('${loan.id}')">✅ 전액 상환 완료</button>
-            </div>
         </div>`;
     }).join('');
 
@@ -1918,30 +1911,17 @@ function deleteLoan(id) {
     save(); renderLoans(); updateDashboard();
 }
 
-function loanMonthlyPaid(id) {
+function loanSchedulePaid(id, principal, payment) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
-    const schedule = calcRepaymentSchedule(loan);
-    const payment  = (schedule && schedule.length > 0) ? schedule[0] : null;
-    const amount   = payment ? payment.payment : (loan.monthlyPayment || 0);
-    const principal = payment ? (payment.principal || 0) : 0;
-    if (!amount) { alert('납부액을 계산할 수 없습니다. 대출 정보를 확인해 주세요.'); return; }
-    if (!confirm(`이번달 납부액 ${fmtMoney(amount)}원을 완료 처리합니다.\n(잔여 대출금에서 원금 ${fmtMoney(principal)}원 차감)`)) return;
+    const msg = principal > 0
+        ? `납부액 ${fmtMoney(payment)}원 상환 완료 처리합니다.\n잔여 대출금에서 원금 ${fmtMoney(principal)}원이 차감됩니다.`
+        : `이자 ${fmtMoney(payment)}원 납부 완료 처리합니다.`;
+    if (!confirm(msg)) return;
     if (principal > 0) {
         loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
     }
     save(); renderLoans(); updateDashboard();
-    alert('✅ 이번달 납부가 완료 처리되었습니다!');
-}
-
-function loanFullyPaid(id) {
-    const loan = (D.loans || []).find(x => x.id === id);
-    if (!loan) return;
-    if (!confirm(`"${loan.name}" 대출을 전액 상환 완료 처리합니다.\n대출 목록에서 제거됩니다.`)) return;
-    D.loans = (D.loans || []).filter(x => x.id !== id);
-    D.loanPayments = (D.loanPayments || []).filter(x => x.loanId !== id);
-    save(); renderLoans(); updateDashboard();
-    alert('🎉 대출 상환 완료! 수고하셨습니다!');
 }
 
 
@@ -2116,8 +2096,7 @@ window.dismissOverdraftReminder  = dismissOverdraftReminder;
 window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
-window.loanMonthlyPaid    = loanMonthlyPaid;
-window.loanFullyPaid      = loanFullyPaid;
+window.loanSchedulePaid   = loanSchedulePaid;
 window.toggleLoanSchedule = toggleLoanSchedule;
 window.loanRepayTypeChange = loanRepayTypeChange;
 window.autoCalcLoanPayment = autoCalcLoanPayment;
