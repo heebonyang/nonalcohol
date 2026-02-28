@@ -689,41 +689,6 @@
                 <div id="loan-list"><div class="empty">등록된 대출이 없습니다</div></div>
             </div>
 
-            <!-- 납부 기록 추가 -->
-            <div class="card" id="loan-pay-form-card" style="display:none">
-                <h2>납부 기록 추가</h2>
-                <div class="form-group">
-                    <label>대출</label>
-                    <select id="pay-loan-select"></select>
-                </div>
-                <div class="gk-row">
-                    <div class="form-group">
-                        <label>납부일</label>
-                        <input type="date" id="pay-date">
-                    </div>
-                    <div class="form-group">
-                        <label>원금 (원)</label>
-                        <input type="number" id="pay-principal" placeholder="0" min="0">
-                    </div>
-                </div>
-                <div class="gk-row">
-                    <div class="form-group">
-                        <label>이자 (원)</label>
-                        <input type="number" id="pay-interest" placeholder="0" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>메모 (선택)</label>
-                        <input type="text" id="pay-memo" placeholder="">
-                    </div>
-                </div>
-                <button class="btn btn-success" onclick="addLoanPayment()">+ 납부 기록</button>
-            </div>
-
-            <!-- 납부 내역 -->
-            <div class="card" id="loan-pay-history-card" style="display:none">
-                <h2>납부 내역</h2>
-                <div id="loan-pay-list"></div>
-            </div>
         </div>
 
         <div id="tab-subscription" style="display:none">
@@ -811,7 +776,6 @@
                 <div class="info-box">
                     <p>💡 <strong>일일 지출 가능액 계산 방식</strong></p>
                     <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 고정비 − 목표일 전 활성 구독료 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
-                    <p style="margin-top:4px;">💡 이자 납부 기록이 쌓일수록 예측 정확도가 높아집니다 (선형 회귀 + 가중 평균)</p>
                     <p style="margin-top:6px;">총 가용금액 − 이미 기록한 지출 = 남은 가용금액 ÷ 남은 날수 = <strong>오늘 권장 지출</strong></p>
                 </div>
             </div>
@@ -1724,18 +1688,13 @@ function getLoanNextPayDate(loan) {
 
 function renderLoans() {
     const loans = D.loans || [];
-    const payments = D.loanPayments || [];
     const summaryCard = document.getElementById('loan-summary-card');
     const el = document.getElementById('loan-list');
-    const payFormCard = document.getElementById('loan-pay-form-card');
-    const payHistCard = document.getElementById('loan-pay-history-card');
 
     // 대출 없을 때
     if (loans.length === 0) {
         summaryCard.style.display = 'none';
         el.innerHTML = '<div class="empty">등록된 대출이 없습니다</div>';
-        payFormCard.style.display = 'none';
-        payHistCard.style.display = 'none';
         return;
     }
 
@@ -1746,11 +1705,6 @@ function renderLoans() {
     document.getElementById('loan-total-balance').textContent = fmtMoney(totalBalance);
     document.getElementById('loan-monthly-sum').textContent   = fmtMoney(monthlySum);
     document.getElementById('loan-count').textContent         = `${loans.length}건`;
-
-    // 납부 기록 폼의 대출 선택지 갱신
-    const sel = document.getElementById('pay-loan-select');
-    sel.innerHTML = loans.map(l => `<option value="${l.id}">${escHtml(l.name)}</option>`).join('');
-    payFormCard.style.display = 'block';
 
     // 대출 목록
     const today = new Date(); today.setHours(0,0,0,0);
@@ -1850,31 +1804,6 @@ function renderLoans() {
         </div>`;
     }).join('');
 
-    // 납부 내역
-    if (payments.length === 0) {
-        payHistCard.style.display = 'none';
-    } else {
-        payHistCard.style.display = 'block';
-        const sorted = [...payments].sort((a, b) => b.date.localeCompare(a.date));
-        document.getElementById('loan-pay-list').innerHTML = sorted.map(p => {
-            const total = (p.principal || 0) + (p.interest || 0);
-            const detail = [
-                p.principal ? `원금 ${fmtMoney(p.principal)}` : '',
-                p.interest  ? `이자 ${fmtMoney(p.interest)}` : '',
-                p.memo      ? p.memo : ''
-            ].filter(Boolean).join(' · ');
-            return `<div class="pay-item">
-                <div>
-                    <div class="pay-item-date">${escHtml(p.date)} · ${escHtml(p.loanName)}</div>
-                    ${detail ? `<div class="pay-item-detail">${escHtml(detail)}</div>` : ''}
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <span class="pay-item-amount">−${fmtMoney(total)}</span>
-                    <button class="btn-sm" onclick="deleteLoanPayment('${p.id}')">삭제</button>
-                </div>
-            </div>`;
-        }).join('');
-    }
 }
 
 function addLoan() {
@@ -1979,37 +1908,6 @@ function deleteLoan(id) {
     save(); renderLoans(); updateDashboard();
 }
 
-function addLoanPayment() {
-    const loanId = document.getElementById('pay-loan-select').value;
-    const loan   = (D.loans || []).find(x => x.id === loanId);
-    if (!loan) { alert('대출을 선택해 주세요.'); return; }
-    const date      = document.getElementById('pay-date').value;
-    const principal = parseInt(document.getElementById('pay-principal').value) || 0;
-    const interest  = parseInt(document.getElementById('pay-interest').value)  || 0;
-    const memo      = document.getElementById('pay-memo').value.trim();
-    if (!date) { alert('납부일을 입력해 주세요.'); return; }
-    if (principal + interest <= 0) { alert('원금 또는 이자 금액을 입력해 주세요.'); return; }
-
-    if (!D.loanPayments) D.loanPayments = [];
-    D.loanPayments.push({ id: uid(), loanId, loanName: loan.name, date, principal, interest, memo });
-
-    // 잔여 대출금에서 원금만큼 차감
-    if (principal > 0) {
-        loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
-    }
-
-    save();
-    document.getElementById('pay-principal').value = '';
-    document.getElementById('pay-interest').value  = '';
-    document.getElementById('pay-memo').value      = '';
-    renderLoans();
-}
-
-function deleteLoanPayment(id) {
-    if (!confirm('정말 삭제하시겠습니까?')) return;
-    D.loanPayments = (D.loanPayments || []).filter(x => x.id !== id);
-    save(); renderLoans();
-}
 
 // ── 구독 관리 ──
 function subCycleChange() {
@@ -2182,8 +2080,6 @@ window.dismissOverdraftReminder  = dismissOverdraftReminder;
 window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
-window.addLoanPayment     = addLoanPayment;
-window.deleteLoanPayment  = deleteLoanPayment;
 window.toggleLoanSchedule = toggleLoanSchedule;
 window.loanRepayTypeChange = loanRepayTypeChange;
 window.autoCalcLoanPayment = autoCalcLoanPayment;
@@ -2202,7 +2098,6 @@ window.subCycleChange     = subCycleChange;
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('targetDate').value = todayStr();
     document.getElementById('log-date').value   = todayStr();
-    document.getElementById('pay-date').value   = todayStr();
 
     await Promise.all([
         jk_load(),
