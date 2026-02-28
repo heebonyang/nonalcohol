@@ -1153,11 +1153,14 @@ function calcDashboard() {
         .map(x => ({ name: x.name, amount: x.amount, date: new Date(x.date), type: 'expense' }));
     const upcomingLoans = (D.loans || [])
         .map(loan => {
-            if (!loan.paymentDay || !loan.monthlyPayment) return null;
+            if (!loan.paymentDay) return null;
             let d = new Date(today.getFullYear(), today.getMonth(), loan.paymentDay);
             if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, loan.paymentDay);
-            if (d <= next7) return { name: `${loan.name} 대출 납부`, amount: loan.monthlyPayment, date: d, type: 'expense' };
-            return null;
+            if (d > next7) return null;
+            const schedule = calcRepaymentSchedule(loan);
+            const payment = (schedule && schedule.length > 0) ? schedule[0].payment : (loan.monthlyPayment || 0);
+            if (!payment) return null;
+            return { name: `${loan.name} 납부`, amount: payment, date: d, type: 'expense' };
         })
         .filter(Boolean);
     const upcomingSubscriptions = (D.subscriptions || [])
