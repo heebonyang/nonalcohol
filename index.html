@@ -626,13 +626,13 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>거치기간 (개월, 이자만 납부)</label>
+                        <label>거치기한 (개월, 이자만 납부)</label>
                         <input type="number" id="loan-grace" placeholder="0" min="0" value="0" oninput="autoCalcLoanPayment()">
                     </div>
                 </div>
                 <div class="gk-row">
                     <div class="form-group">
-                        <label>상환기간 (개월)</label>
+                        <label>대출기한 (개월)</label>
                         <input type="number" id="loan-months" placeholder="예: 360" min="1" oninput="autoCalcLoanPayment()">
                     </div>
                     <div class="form-group">
@@ -1465,7 +1465,7 @@ function autoCalcLoanPayment() {
 
     if (grace > 0) {
         rows += `<div class="loan-preview-row">
-            <span class="loan-preview-label">거치기간 월 납부액 (이자만, ${grace}개월)</span>
+            <span class="loan-preview-label">거치기한 월 납부액 (이자만, ${grace}개월)</span>
             <span class="loan-preview-val red">${fmtMoney(graceInterest)}</span>
         </div>`;
     }
@@ -1478,7 +1478,7 @@ function autoCalcLoanPayment() {
         const firstPrin = repMonthly - firstInt;
         const totalInt  = repMonthly * months - balance + (grace > 0 ? graceInterest * grace : 0);
         rows += `<div class="loan-preview-row">
-            <span class="loan-preview-label">상환기간 월 납부액 (고정, ${months}개월)</span>
+            <span class="loan-preview-label">대출기한 월 납부액 (고정, ${months}개월)</span>
             <span class="loan-preview-val">${fmtMoney(repMonthly)}</span>
         </div>
         <div class="loan-preview-row">
@@ -1497,7 +1497,7 @@ function autoCalcLoanPayment() {
         const totalInt  = Math.round(r * (balance * months - prin1 * months * (months - 1) / 2))
                           + (grace > 0 ? graceInterest * grace : 0);
         rows += `<div class="loan-preview-row">
-            <span class="loan-preview-label">상환기간 첫 달 납부액</span>
+            <span class="loan-preview-label">대출기한 첫 달 납부액</span>
             <span class="loan-preview-val">${fmtMoney(repMonthly)}</span>
         </div>
         <div class="loan-preview-row">
@@ -1532,7 +1532,7 @@ function calcRepaymentSchedule(loan) {
     let payDate  = new Date(today.getFullYear(), today.getMonth(), payDay);
     if (payDate <= today) payDate = new Date(today.getFullYear(), today.getMonth() + 1, payDay);
 
-    // 거치기간: 이자만 납부
+    // 거치기한: 이자만 납부
     for (let i = 0; i < grace; i++) {
         const interest = Math.round(balance * r);
         schedule.push({
@@ -1545,7 +1545,7 @@ function calcRepaymentSchedule(loan) {
         payDate = new Date(payDate.getFullYear(), payDate.getMonth() + 1, payDay);
     }
 
-    // 상환기간
+    // 대출기한
     let fixedPayment = 0;
     if (loan.repaymentType === 'annuity') {
         fixedPayment = r === 0
@@ -1645,7 +1645,7 @@ function renderLoans() {
         const predHtml = schedule ? `
             <div class="loan-pred-box">
                 <div class="loan-pred-row">
-                    <span class="loan-pred-label">이번 달 납부액${thisMonth.isGrace ? ' <span style="font-size:0.68rem;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;">거치기간</span>' : ''}</span>
+                    <span class="loan-pred-label">이번 달 납부액${thisMonth.isGrace ? ' <span style="font-size:0.68rem;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;">거치기한</span>' : ''}</span>
                     <span>
                         <span style="color:#718096;font-size:0.72rem;">${thisMonth.isGrace ? `이자만 ` : `원금 ${fmtMoney(thisMonth.principal)} + 이자 `}${fmtMoney(thisMonth.interest)}</span>
                         &nbsp;= <strong>${fmtMoney(thisMonth.payment)}</strong>
@@ -1705,11 +1705,11 @@ function renderLoans() {
                     <div class="loan-meta-value">매월 ${loan.paymentDay || '-'}일</div>
                 </div>
                 ${loan.remainingMonths ? `<div class="loan-meta-item">
-                    <div class="loan-meta-label">상환기간</div>
+                    <div class="loan-meta-label">대출기한</div>
                     <div class="loan-meta-value">${loan.remainingMonths}개월</div>
                 </div>` : ''}
                 ${loan.gracePeriod ? `<div class="loan-meta-item">
-                    <div class="loan-meta-label">거치기간</div>
+                    <div class="loan-meta-label">거치기한</div>
                     <div class="loan-meta-value" style="color:#d69e2e;">${loan.gracePeriod}개월</div>
                 </div>` : ''}
             </div>
