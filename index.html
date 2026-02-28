@@ -281,6 +281,12 @@
         #app-gk .loan-meta-value { font-size: 0.88rem; font-weight: 700; color: #2d3748; }
         #app-gk .loan-next-pay { font-size: 0.77rem; color: #c53030; font-weight: 600; margin-bottom: 10px; }
         #app-gk .loan-next-pay.far { color: #718096; font-weight: 400; }
+        #app-gk .loan-action-row { display: flex; gap: 6px; margin-top: 10px; }
+        #app-gk .loan-action-row button { flex: 1; padding: 8px 0; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+        #app-gk .btn-loan-pay { background: #ebf8ff; color: #2b6cb0; }
+        #app-gk .btn-loan-pay:hover { background: #bee3f8; }
+        #app-gk .btn-loan-done { background: #f0fff4; color: #276749; }
+        #app-gk .btn-loan-done:hover { background: #c6f6d5; }
         #app-gk .pay-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
         #app-gk .pay-item:last-child { border-bottom: none; }
         #app-gk .pay-item-date { font-size: 0.8rem; font-weight: 600; color: #4a5568; }
@@ -1801,6 +1807,10 @@ function renderLoans() {
             </div>
             <div class="${nextClass}">${nextStr}</div>
             ${predHtml}
+            <div class="loan-action-row">
+                <button class="btn-loan-pay" onclick="loanMonthlyPaid('${loan.id}')">💸 이번달 납부 완료</button>
+                <button class="btn-loan-done" onclick="loanFullyPaid('${loan.id}')">✅ 전액 상환 완료</button>
+            </div>
         </div>`;
     }).join('');
 
@@ -1902,10 +1912,36 @@ function editLoan(id) {
 }
 
 function deleteLoan(id) {
-    if (!confirm('정말 삭제하시겠습니까?\n(해당 대출의 납부 기록도 함께 삭제됩니다)')) return;
+    if (!confirm('정말 삭제하시겠습니까?')) return;
     D.loans = (D.loans || []).filter(x => x.id !== id);
     D.loanPayments = (D.loanPayments || []).filter(x => x.loanId !== id);
     save(); renderLoans(); updateDashboard();
+}
+
+function loanMonthlyPaid(id) {
+    const loan = (D.loans || []).find(x => x.id === id);
+    if (!loan) return;
+    const schedule = calcRepaymentSchedule(loan);
+    const payment  = (schedule && schedule.length > 0) ? schedule[0] : null;
+    const amount   = payment ? payment.payment : (loan.monthlyPayment || 0);
+    const principal = payment ? (payment.principal || 0) : 0;
+    if (!amount) { alert('납부액을 계산할 수 없습니다. 대출 정보를 확인해 주세요.'); return; }
+    if (!confirm(`이번달 납부액 ${fmtMoney(amount)}원을 완료 처리합니다.\n(잔여 대출금에서 원금 ${fmtMoney(principal)}원 차감)`)) return;
+    if (principal > 0) {
+        loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
+    }
+    save(); renderLoans(); updateDashboard();
+    alert('✅ 이번달 납부가 완료 처리되었습니다!');
+}
+
+function loanFullyPaid(id) {
+    const loan = (D.loans || []).find(x => x.id === id);
+    if (!loan) return;
+    if (!confirm(`"${loan.name}" 대출을 전액 상환 완료 처리합니다.\n대출 목록에서 제거됩니다.`)) return;
+    D.loans = (D.loans || []).filter(x => x.id !== id);
+    D.loanPayments = (D.loanPayments || []).filter(x => x.loanId !== id);
+    save(); renderLoans(); updateDashboard();
+    alert('🎉 대출 상환 완료! 수고하셨습니다!');
 }
 
 
@@ -2080,6 +2116,8 @@ window.dismissOverdraftReminder  = dismissOverdraftReminder;
 window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
+window.loanMonthlyPaid    = loanMonthlyPaid;
+window.loanFullyPaid      = loanFullyPaid;
 window.toggleLoanSchedule = toggleLoanSchedule;
 window.loanRepayTypeChange = loanRepayTypeChange;
 window.autoCalcLoanPayment = autoCalcLoanPayment;
