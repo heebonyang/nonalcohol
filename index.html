@@ -350,8 +350,8 @@
                 grid-column: 1 / -1; width: 100%;
                 padding: 14px; font-size: 1rem;
             }
-            /* iOS Safari 자동 줌 방지 */
-            #app-jk input, #app-jk select { font-size: 16px; }
+            /* iOS Safari 자동 줌 방지 + 그리드 셀 넘침 방지 */
+            #app-jk input, #app-jk select { font-size: 16px; width: 100%; min-width: 0; }
 
             /* 테이블: 가로 스크롤 */
             #app-jk .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 16px; }
