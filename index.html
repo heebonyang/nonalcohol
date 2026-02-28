@@ -626,14 +626,14 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>거치기한 (개월, 이자만 납부)</label>
-                        <input type="number" id="loan-grace" placeholder="0" min="0" value="0" oninput="autoCalcLoanPayment()">
+                        <label>거치기한 (이자만 납부 종료일)</label>
+                        <input type="date" id="loan-grace-date" oninput="autoCalcLoanPayment()">
                     </div>
                 </div>
                 <div class="gk-row">
                     <div class="form-group">
-                        <label>대출기한 (개월)</label>
-                        <input type="number" id="loan-months" placeholder="예: 360" min="1" oninput="autoCalcLoanPayment()">
+                        <label>대출기한 (최종 상환일)</label>
+                        <input type="date" id="loan-end-date" oninput="autoCalcLoanPayment()">
                     </div>
                     <div class="form-group">
                         <label>매월 납부일 (일)</label>
@@ -815,6 +815,15 @@ function fmtDate(d) {
 }
 function pad(n) { return String(n).padStart(2, '0'); }
 function fmtMoney(n) { return Math.round(n).toLocaleString('ko-KR') + '원'; }
+function fmtYearMonth(dateStr) {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}년 ${d.getMonth()+1}월`;
+}
+function monthDiff(from, to) {
+    const diff = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+    return Math.max(0, diff);
+}
 function fmtMonthDay(d) { return `${d.getMonth()+1}월 ${d.getDate()}일`; }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function escHtml(str) {
@@ -1448,15 +1457,24 @@ function loanRepayTypeChange() {
 }
 
 function autoCalcLoanPayment() {
-    const type    = document.getElementById('loan-repay-type').value;
-    const balance = parseInt(document.getElementById('loan-balance').value)  || 0;
-    const rate    = parseFloat(document.getElementById('loan-rate').value)   || 0;
-    const grace   = parseInt(document.getElementById('loan-grace').value)    || 0;
-    const months  = parseInt(document.getElementById('loan-months').value)   || 0;
-    const preview = document.getElementById('loan-calc-preview');
-    const body    = document.getElementById('loan-preview-body');
+    const type         = document.getElementById('loan-repay-type').value;
+    const balance      = parseInt(document.getElementById('loan-balance').value)  || 0;
+    const rate         = parseFloat(document.getElementById('loan-rate').value)   || 0;
+    const graceDateVal = document.getElementById('loan-grace-date').value;
+    const endDateVal   = document.getElementById('loan-end-date').value;
+    const preview      = document.getElementById('loan-calc-preview');
+    const body         = document.getElementById('loan-preview-body');
 
-    if (!balance || !rate || !months || !type) { preview.style.display = 'none'; return; }
+    if (!balance || !rate || !endDateVal || !type) { preview.style.display = 'none'; return; }
+
+    const today     = new Date(); today.setHours(0,0,0,0);
+    const graceDate = graceDateVal ? new Date(graceDateVal) : null;
+    const endDate   = new Date(endDateVal);
+    const grace     = graceDate ? monthDiff(today, graceDate) : 0;
+    const refDate   = (graceDate && grace > 0) ? graceDate : today;
+    const months    = monthDiff(refDate, endDate);
+
+    if (months <= 0) { preview.style.display = 'none'; return; }
 
     const r = rate / 100 / 12;
     const graceInterest = Math.round(balance * r);
@@ -1520,14 +1538,27 @@ function autoCalcLoanPayment() {
 }
 
 function calcRepaymentSchedule(loan) {
-    if (!loan.repaymentType || !loan.remainingMonths || loan.interestRate == null || !loan.remainingBalance) return null;
+    if (!loan.repaymentType || loan.interestRate == null || !loan.remainingBalance) return null;
+
+    // 날짜 기반으로 동적 계산 (저장된 날짜 우선)
+    const today = new Date(); today.setHours(0,0,0,0);
+    let grace, n;
+    if (loan.loanEndDate) {
+        const graceDate = loan.gracePeriodEndDate ? new Date(loan.gracePeriodEndDate) : null;
+        const endDate   = new Date(loan.loanEndDate);
+        grace           = graceDate ? monthDiff(today, graceDate) : 0;
+        const refDate   = (graceDate && grace > 0) ? graceDate : today;
+        n               = monthDiff(refDate, endDate);
+    } else {
+        grace = loan.gracePeriod || 0;
+        n     = loan.remainingMonths;
+    }
+    if (!n) return null;
+
     const r     = loan.interestRate / 100 / 12;
-    const n     = loan.remainingMonths;
-    const grace = loan.gracePeriod || 0;
     let balance = loan.remainingBalance;
     const schedule = [];
 
-    const today  = new Date();
     const payDay = loan.paymentDay || 1;
     let payDate  = new Date(today.getFullYear(), today.getMonth(), payDay);
     if (payDate <= today) payDate = new Date(today.getFullYear(), today.getMonth() + 1, payDay);
@@ -1704,13 +1735,13 @@ function renderLoans() {
                     <div class="loan-meta-label">납부일</div>
                     <div class="loan-meta-value">매월 ${loan.paymentDay || '-'}일</div>
                 </div>
-                ${loan.remainingMonths ? `<div class="loan-meta-item">
+                ${loan.loanEndDate ? `<div class="loan-meta-item">
                     <div class="loan-meta-label">대출기한</div>
-                    <div class="loan-meta-value">${loan.remainingMonths}개월</div>
+                    <div class="loan-meta-value">${fmtYearMonth(loan.loanEndDate)}</div>
                 </div>` : ''}
-                ${loan.gracePeriod ? `<div class="loan-meta-item">
+                ${loan.gracePeriodEndDate ? `<div class="loan-meta-item">
                     <div class="loan-meta-label">거치기한</div>
-                    <div class="loan-meta-value" style="color:#d69e2e;">${loan.gracePeriod}개월</div>
+                    <div class="loan-meta-value" style="color:#d69e2e;">${fmtYearMonth(loan.gracePeriodEndDate)}</div>
                 </div>` : ''}
             </div>
             <div class="${nextClass}">${nextStr}</div>
@@ -1750,8 +1781,14 @@ function addLoan() {
     const remainingBalance = parseInt(document.getElementById('loan-balance').value) || 0;
     const interestRate     = parseFloat(document.getElementById('loan-rate').value) || null;
     const repaymentType    = document.getElementById('loan-repay-type').value || null;
-    const gracePeriod      = parseInt(document.getElementById('loan-grace').value) || 0;
-    const remainingMonths  = parseInt(document.getElementById('loan-months').value) || null;
+    const gracePeriodEndDate = document.getElementById('loan-grace-date').value || null;
+    const loanEndDate        = document.getElementById('loan-end-date').value || null;
+    const _today = new Date(); _today.setHours(0,0,0,0);
+    const _graceDate = gracePeriodEndDate ? new Date(gracePeriodEndDate) : null;
+    const _endDate   = loanEndDate ? new Date(loanEndDate) : null;
+    const gracePeriod     = _graceDate ? monthDiff(_today, _graceDate) : 0;
+    const _refDate        = (_graceDate && gracePeriod > 0) ? _graceDate : _today;
+    const remainingMonths = _endDate ? monthDiff(_refDate, _endDate) : null;
     const monthlyPayment   = parseInt(document.getElementById('loan-monthly').value) || 0;
     const paymentDay       = parseInt(document.getElementById('loan-payday').value) || null;
     const memo             = document.getElementById('loan-memo').value.trim();
@@ -1761,21 +1798,20 @@ function addLoan() {
 
     if (_editingLoanId) {
         const idx = D.loans.findIndex(x => x.id === _editingLoanId);
-        if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, interestRate, repaymentType, gracePeriod, remainingMonths, monthlyPayment, paymentDay, memo };
+        if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, memo };
         _editingLoanId = null;
         const btn = document.getElementById('loan-submit-btn');
         btn.textContent = '+ 대출 추가';
         btn.style.background = '';
         document.getElementById('loan-form-title').textContent = '대출 추가';
     } else {
-        D.loans.push({ id: uid(), name, remainingBalance, interestRate, repaymentType, gracePeriod, remainingMonths, monthlyPayment, paymentDay, memo });
+        D.loans.push({ id: uid(), name, remainingBalance, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, memo });
     }
 
     save();
-    ['loan-name','loan-balance','loan-rate','loan-payday','loan-memo','loan-months'].forEach(id => {
+    ['loan-name','loan-balance','loan-rate','loan-payday','loan-memo','loan-grace-date','loan-end-date'].forEach(id => {
         document.getElementById(id).value = '';
     });
-    document.getElementById('loan-grace').value = '0';
     document.getElementById('loan-repay-type').value = '';
     document.getElementById('loan-monthly').value = '';
     document.getElementById('loan-calc-preview').style.display = 'none';
@@ -1790,8 +1826,8 @@ function editLoan(id) {
     document.getElementById('loan-balance').value      = loan.remainingBalance || '';
     document.getElementById('loan-rate').value         = loan.interestRate != null ? loan.interestRate : '';
     document.getElementById('loan-repay-type').value   = loan.repaymentType || '';
-    document.getElementById('loan-grace').value        = loan.gracePeriod || 0;
-    document.getElementById('loan-months').value       = loan.remainingMonths || '';
+    document.getElementById('loan-grace-date').value   = loan.gracePeriodEndDate || '';
+    document.getElementById('loan-end-date').value     = loan.loanEndDate || '';
     document.getElementById('loan-payday').value       = loan.paymentDay || '';
     document.getElementById('loan-memo').value         = loan.memo || '';
     autoCalcLoanPayment();
