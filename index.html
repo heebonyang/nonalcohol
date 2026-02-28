@@ -275,6 +275,23 @@
         #app-gk .pay-item-detail { font-size: 0.72rem; color: #a0aec0; margin-top: 1px; }
         #app-gk .pay-item-amount { font-size: 0.88rem; font-weight: 700; color: #e53e3e; }
 
+        /* ══ 대출 계산 미리보기 CSS ══ */
+        #app-gk .loan-calc-preview {
+            background: #f0fff4; border: 1.5px solid #9ae6b4;
+            border-radius: 10px; padding: 12px 14px; margin: 10px 0;
+        }
+        #app-gk .loan-preview-title { font-size: 0.8rem; font-weight: 700; color: #276749; margin-bottom: 8px; }
+        #app-gk .loan-preview-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.8rem; padding: 3px 0; border-bottom: 1px solid #c6f6d5;
+        }
+        #app-gk .loan-preview-row:last-child { border-bottom: none; }
+        #app-gk .loan-preview-label { color: #4a5568; }
+        #app-gk .loan-preview-val { font-weight: 700; color: #2d3748; }
+        #app-gk .loan-preview-val.red { color: #e53e3e; }
+        #app-gk .loan-preview-sub { font-size: 0.72rem; color: #718096; }
+        #app-gk .loan-grace-row td { background: #fefcbf !important; color: #744210; }
+
         /* ══ 상환 일정 CSS ══ */
         #app-gk .loan-repay-badge {
             font-size: 0.67rem; padding: 2px 7px; border-radius: 999px;
@@ -591,7 +608,7 @@
                 </div>
                 <div class="gk-row">
                     <div class="form-group">
-                        <label>잔여 대출금 (원)</label>
+                        <label>대출 원금 / 잔여금 (원)</label>
                         <input type="number" id="loan-balance" placeholder="0" min="0" oninput="autoCalcLoanPayment()">
                     </div>
                     <div class="form-group">
@@ -609,20 +626,26 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>남은 기간 (개월)</label>
-                        <input type="number" id="loan-months" placeholder="예: 36" min="1" oninput="autoCalcLoanPayment()">
+                        <label>거치기간 (개월, 이자만 납부)</label>
+                        <input type="number" id="loan-grace" placeholder="0" min="0" value="0" oninput="autoCalcLoanPayment()">
                     </div>
                 </div>
                 <div class="gk-row">
                     <div class="form-group">
-                        <label>월 납부액 (원)</label>
-                        <input type="number" id="loan-monthly" placeholder="원리금균등 시 자동계산" min="0">
+                        <label>상환기간 (개월)</label>
+                        <input type="number" id="loan-months" placeholder="예: 360" min="1" oninput="autoCalcLoanPayment()">
                     </div>
                     <div class="form-group">
                         <label>매월 납부일 (일)</label>
                         <input type="number" id="loan-payday" placeholder="25" min="1" max="31">
                     </div>
                 </div>
+                <!-- 자동 계산 미리보기 -->
+                <div id="loan-calc-preview" class="loan-calc-preview" style="display:none">
+                    <div class="loan-preview-title">📊 예상 납부 정보</div>
+                    <div id="loan-preview-body"></div>
+                </div>
+                <input type="hidden" id="loan-monthly">
                 <div class="form-group">
                     <label>메모 (선택)</label>
                     <input type="text" id="loan-memo" placeholder="예: 2028년 12월 만기">
@@ -1426,36 +1449,109 @@ function loanRepayTypeChange() {
 
 function autoCalcLoanPayment() {
     const type    = document.getElementById('loan-repay-type').value;
-    if (type !== 'annuity') return;
-    const balance = parseInt(document.getElementById('loan-balance').value) || 0;
-    const rate    = parseFloat(document.getElementById('loan-rate').value)  || 0;
-    const months  = parseInt(document.getElementById('loan-months').value)  || 0;
-    if (balance <= 0 || months <= 0) return;
-    const r       = rate / 100 / 12;
-    const payment = r === 0
-        ? Math.round(balance / months)
-        : Math.round(balance * (r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1));
-    document.getElementById('loan-monthly').value = payment;
+    const balance = parseInt(document.getElementById('loan-balance').value)  || 0;
+    const rate    = parseFloat(document.getElementById('loan-rate').value)   || 0;
+    const grace   = parseInt(document.getElementById('loan-grace').value)    || 0;
+    const months  = parseInt(document.getElementById('loan-months').value)   || 0;
+    const preview = document.getElementById('loan-calc-preview');
+    const body    = document.getElementById('loan-preview-body');
+
+    if (!balance || !rate || !months || !type) { preview.style.display = 'none'; return; }
+
+    const r = rate / 100 / 12;
+    const graceInterest = Math.round(balance * r);
+    let rows = '';
+    let repMonthly = 0;
+
+    if (grace > 0) {
+        rows += `<div class="loan-preview-row">
+            <span class="loan-preview-label">거치기간 월 납부액 (이자만, ${grace}개월)</span>
+            <span class="loan-preview-val red">${fmtMoney(graceInterest)}</span>
+        </div>`;
+    }
+
+    if (type === 'annuity') {
+        repMonthly = r === 0
+            ? Math.round(balance / months)
+            : Math.round(balance * (r * Math.pow(1+r, months)) / (Math.pow(1+r, months) - 1));
+        const firstInt  = Math.round(balance * r);
+        const firstPrin = repMonthly - firstInt;
+        const totalInt  = repMonthly * months - balance + (grace > 0 ? graceInterest * grace : 0);
+        rows += `<div class="loan-preview-row">
+            <span class="loan-preview-label">상환기간 월 납부액 (고정, ${months}개월)</span>
+            <span class="loan-preview-val">${fmtMoney(repMonthly)}</span>
+        </div>
+        <div class="loan-preview-row">
+            <span class="loan-preview-label">└ 첫 달 원금 / 이자</span>
+            <span class="loan-preview-sub">${fmtMoney(firstPrin)} / <span style="color:#e53e3e">${fmtMoney(firstInt)}</span></span>
+        </div>
+        <div class="loan-preview-row">
+            <span class="loan-preview-label">총 납부 이자 합계</span>
+            <span class="loan-preview-val red">${fmtMoney(Math.max(0, totalInt))}</span>
+        </div>`;
+    } else if (type === 'principal_equal') {
+        const prin1     = Math.round(balance / months);
+        const int1      = Math.round(balance * r);
+        const intLast   = Math.round(prin1 * r);
+        repMonthly      = prin1 + int1;
+        const totalInt  = Math.round(r * (balance * months - prin1 * months * (months - 1) / 2))
+                          + (grace > 0 ? graceInterest * grace : 0);
+        rows += `<div class="loan-preview-row">
+            <span class="loan-preview-label">상환기간 첫 달 납부액</span>
+            <span class="loan-preview-val">${fmtMoney(repMonthly)}</span>
+        </div>
+        <div class="loan-preview-row">
+            <span class="loan-preview-label">└ 매달 원금 / 첫 달 이자</span>
+            <span class="loan-preview-sub">${fmtMoney(prin1)} / <span style="color:#e53e3e">${fmtMoney(int1)}</span></span>
+        </div>
+        <div class="loan-preview-row">
+            <span class="loan-preview-label">마지막 달 납부액 (약)</span>
+            <span class="loan-preview-val">${fmtMoney(prin1 + intLast)}</span>
+        </div>
+        <div class="loan-preview-row">
+            <span class="loan-preview-label">총 납부 이자 합계</span>
+            <span class="loan-preview-val red">${fmtMoney(Math.max(0, totalInt))}</span>
+        </div>`;
+    }
+
+    document.getElementById('loan-monthly').value = repMonthly;
+    body.innerHTML = rows;
+    preview.style.display = 'block';
 }
 
 function calcRepaymentSchedule(loan) {
     if (!loan.repaymentType || !loan.remainingMonths || loan.interestRate == null || !loan.remainingBalance) return null;
-    const r = loan.interestRate / 100 / 12;
-    const n = loan.remainingMonths;
+    const r     = loan.interestRate / 100 / 12;
+    const n     = loan.remainingMonths;
+    const grace = loan.gracePeriod || 0;
     let balance = loan.remainingBalance;
     const schedule = [];
 
+    const today  = new Date();
+    const payDay = loan.paymentDay || 1;
+    let payDate  = new Date(today.getFullYear(), today.getMonth(), payDay);
+    if (payDate <= today) payDate = new Date(today.getFullYear(), today.getMonth() + 1, payDay);
+
+    // 거치기간: 이자만 납부
+    for (let i = 0; i < grace; i++) {
+        const interest = Math.round(balance * r);
+        schedule.push({
+            month: i + 1,
+            date: `${payDate.getFullYear()}.${pad(payDate.getMonth() + 1)}`,
+            principal: 0, interest,
+            payment: interest, balance,
+            isGrace: true
+        });
+        payDate = new Date(payDate.getFullYear(), payDate.getMonth() + 1, payDay);
+    }
+
+    // 상환기간
     let fixedPayment = 0;
     if (loan.repaymentType === 'annuity') {
         fixedPayment = r === 0
             ? Math.round(balance / n)
             : Math.round(balance * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
     }
-
-    const today  = new Date();
-    const payDay = loan.paymentDay || 1;
-    let payDate  = new Date(today.getFullYear(), today.getMonth(), payDay);
-    if (payDate <= today) payDate = new Date(today.getFullYear(), today.getMonth() + 1, payDay);
 
     for (let i = 0; i < n && balance > 0; i++) {
         const interest = Math.round(balance * r);
@@ -1468,12 +1564,11 @@ function calcRepaymentSchedule(loan) {
         }
         balance = Math.max(0, balance - principal);
         schedule.push({
-            month: i + 1,
+            month: grace + i + 1,
             date: `${payDate.getFullYear()}.${pad(payDate.getMonth() + 1)}`,
-            principal,
-            interest,
-            payment: principal + interest,
-            balance
+            principal, interest,
+            payment: principal + interest, balance,
+            isGrace: false
         });
         payDate = new Date(payDate.getFullYear(), payDate.getMonth() + 1, payDay);
     }
@@ -1550,9 +1645,9 @@ function renderLoans() {
         const predHtml = schedule ? `
             <div class="loan-pred-box">
                 <div class="loan-pred-row">
-                    <span class="loan-pred-label">이번 달 납부액</span>
+                    <span class="loan-pred-label">이번 달 납부액${thisMonth.isGrace ? ' <span style="font-size:0.68rem;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;">거치기간</span>' : ''}</span>
                     <span>
-                        <span style="color:#718096;font-size:0.72rem;">원금 ${fmtMoney(thisMonth.principal)} + 이자 ${fmtMoney(thisMonth.interest)}</span>
+                        <span style="color:#718096;font-size:0.72rem;">${thisMonth.isGrace ? `이자만 ` : `원금 ${fmtMoney(thisMonth.principal)} + 이자 `}${fmtMoney(thisMonth.interest)}</span>
                         &nbsp;= <strong>${fmtMoney(thisMonth.payment)}</strong>
                     </span>
                 </div>
@@ -1570,9 +1665,9 @@ function renderLoans() {
                 <table class="loan-schedule-table">
                     <thead><tr><th>납부월</th><th>원금</th><th>이자</th><th>납부액</th><th>잔여금</th></tr></thead>
                     <tbody>
-                        ${schedule.map(m => `<tr>
-                            <td>${m.date}</td>
-                            <td>${fmtMoney(m.principal)}</td>
+                        ${schedule.map(m => `<tr class="${m.isGrace ? 'loan-grace-row' : ''}">
+                            <td>${m.date}${m.isGrace ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 4px;border-radius:3px;">거치</span>' : ''}</td>
+                            <td>${m.isGrace ? '<span style="color:#a0aec0">-</span>' : fmtMoney(m.principal)}</td>
                             <td class="col-interest">${fmtMoney(m.interest)}</td>
                             <td class="col-payment">${fmtMoney(m.payment)}</td>
                             <td class="col-balance">${fmtMoney(m.balance)}</td>
@@ -1610,8 +1705,12 @@ function renderLoans() {
                     <div class="loan-meta-value">매월 ${loan.paymentDay || '-'}일</div>
                 </div>
                 ${loan.remainingMonths ? `<div class="loan-meta-item">
-                    <div class="loan-meta-label">남은 기간</div>
+                    <div class="loan-meta-label">상환기간</div>
                     <div class="loan-meta-value">${loan.remainingMonths}개월</div>
+                </div>` : ''}
+                ${loan.gracePeriod ? `<div class="loan-meta-item">
+                    <div class="loan-meta-label">거치기간</div>
+                    <div class="loan-meta-value" style="color:#d69e2e;">${loan.gracePeriod}개월</div>
                 </div>` : ''}
             </div>
             <div class="${nextClass}">${nextStr}</div>
@@ -1651,6 +1750,7 @@ function addLoan() {
     const remainingBalance = parseInt(document.getElementById('loan-balance').value) || 0;
     const interestRate     = parseFloat(document.getElementById('loan-rate').value) || null;
     const repaymentType    = document.getElementById('loan-repay-type').value || null;
+    const gracePeriod      = parseInt(document.getElementById('loan-grace').value) || 0;
     const remainingMonths  = parseInt(document.getElementById('loan-months').value) || null;
     const monthlyPayment   = parseInt(document.getElementById('loan-monthly').value) || 0;
     const paymentDay       = parseInt(document.getElementById('loan-payday').value) || null;
@@ -1661,21 +1761,24 @@ function addLoan() {
 
     if (_editingLoanId) {
         const idx = D.loans.findIndex(x => x.id === _editingLoanId);
-        if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, interestRate, repaymentType, remainingMonths, monthlyPayment, paymentDay, memo };
+        if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, interestRate, repaymentType, gracePeriod, remainingMonths, monthlyPayment, paymentDay, memo };
         _editingLoanId = null;
         const btn = document.getElementById('loan-submit-btn');
         btn.textContent = '+ 대출 추가';
         btn.style.background = '';
         document.getElementById('loan-form-title').textContent = '대출 추가';
     } else {
-        D.loans.push({ id: uid(), name, remainingBalance, interestRate, repaymentType, remainingMonths, monthlyPayment, paymentDay, memo });
+        D.loans.push({ id: uid(), name, remainingBalance, interestRate, repaymentType, gracePeriod, remainingMonths, monthlyPayment, paymentDay, memo });
     }
 
     save();
-    ['loan-name','loan-balance','loan-rate','loan-monthly','loan-payday','loan-memo','loan-months'].forEach(id => {
+    ['loan-name','loan-balance','loan-rate','loan-payday','loan-memo','loan-months'].forEach(id => {
         document.getElementById(id).value = '';
     });
+    document.getElementById('loan-grace').value = '0';
     document.getElementById('loan-repay-type').value = '';
+    document.getElementById('loan-monthly').value = '';
+    document.getElementById('loan-calc-preview').style.display = 'none';
     renderLoans(); updateDashboard();
 }
 
@@ -1683,14 +1786,15 @@ function editLoan(id) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
     _editingLoanId = id;
-    document.getElementById('loan-name').value    = loan.name;
-    document.getElementById('loan-balance').value = loan.remainingBalance || '';
-    document.getElementById('loan-rate').value        = loan.interestRate != null ? loan.interestRate : '';
-    document.getElementById('loan-repay-type').value  = loan.repaymentType || '';
-    document.getElementById('loan-months').value      = loan.remainingMonths || '';
-    document.getElementById('loan-monthly').value     = loan.monthlyPayment || '';
-    document.getElementById('loan-payday').value      = loan.paymentDay || '';
-    document.getElementById('loan-memo').value        = loan.memo || '';
+    document.getElementById('loan-name').value         = loan.name;
+    document.getElementById('loan-balance').value      = loan.remainingBalance || '';
+    document.getElementById('loan-rate').value         = loan.interestRate != null ? loan.interestRate : '';
+    document.getElementById('loan-repay-type').value   = loan.repaymentType || '';
+    document.getElementById('loan-grace').value        = loan.gracePeriod || 0;
+    document.getElementById('loan-months').value       = loan.remainingMonths || '';
+    document.getElementById('loan-payday').value       = loan.paymentDay || '';
+    document.getElementById('loan-memo').value         = loan.memo || '';
+    autoCalcLoanPayment();
     const btn = document.getElementById('loan-submit-btn');
     btn.textContent = '✏️ 수정 완료';
     btn.style.background = '#f6ad55';
