@@ -326,27 +326,21 @@
             font-weight: 600; width: 100%; margin-top: 4px;
         }
         #app-gk .btn-toggle-schedule:hover { background: #e2e8f0; }
-        #app-gk .loan-schedule-wrap { display: none; overflow-x: auto; margin-top: 8px; }
+        #app-gk .loan-schedule-wrap { display: none; margin-top: 8px; }
         #app-gk .loan-schedule-wrap.open { display: block; }
-        #app-gk .loan-schedule-table {
-            width: 100%; border-collapse: collapse;
-            font-size: 0.74rem; min-width: 320px;
-        }
-        #app-gk .loan-schedule-table th {
-            background: #f7fafc; padding: 6px 8px; color: #718096;
-            font-size: 0.68rem; border-bottom: 1px solid #e2e8f0;
-            text-align: right; white-space: nowrap;
-        }
-        #app-gk .loan-schedule-table th:first-child { text-align: left; }
-        #app-gk .loan-schedule-table td {
-            padding: 5px 8px; border-bottom: 1px solid #f0f4f8;
-            text-align: right; color: #4a5568;
-        }
-        #app-gk .loan-schedule-table td:first-child { text-align: left; color: #718096; font-weight: 600; }
-        #app-gk .loan-schedule-table tr:last-child td { border-bottom: none; }
-        #app-gk .loan-schedule-table .col-payment { font-weight: 700; color: #2d3748; }
-        #app-gk .loan-schedule-table .col-balance { color: #a0aec0; }
-        #app-gk .loan-schedule-table .col-interest { color: #e53e3e; }
+        #app-gk .loan-schedule-list { display: flex; flex-direction: column; gap: 6px; }
+        #app-gk .loan-schedule-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 11px; font-size: 0.78rem; }
+        #app-gk .loan-schedule-item.sch-done { background: #f0fff4; border-color: #c6f6d5; }
+        #app-gk .loan-sch-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        #app-gk .loan-sch-date { font-weight: 700; color: #2d3748; }
+        #app-gk .loan-sch-expected { font-weight: 700; color: #e53e3e; }
+        #app-gk .loan-sch-breakdown { color: #718096; font-size: 0.71rem; }
+        #app-gk .loan-sch-action { display: flex; gap: 5px; align-items: center; margin-top: 6px; }
+        #app-gk .loan-actual-input { flex: 1; border: 1px solid #cbd5e0; border-radius: 6px; padding: 5px 8px; font-size: 0.78rem; font-family: inherit; background: white; color: #2d3748; min-width: 0; }
+        #app-gk .btn-sch-complete { background: #48bb78; color: white; border: none; border-radius: 6px; padding: 5px 11px; font-size: 0.75rem; font-family: inherit; cursor: pointer; white-space: nowrap; font-weight: 600; }
+        #app-gk .btn-sch-complete:hover { background: #38a169; }
+        #app-gk .loan-sch-done-badge { background: #c6f6d5; color: #276749; border-radius: 5px; padding: 2px 8px; font-size: 0.72rem; font-weight: 600; }
+        #app-gk .loan-sch-footer { text-align: center; font-size: 0.71rem; color: #a0aec0; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; }
 
         /* ══ 모바일 반응형 ══ */
         @media (max-width: 600px) {
@@ -1729,40 +1723,41 @@ function renderLoans() {
         const payoffEntry   = (!isOverdraft && schedule) ? schedule[schedule.length - 1] : null;
         const payoffStr     = payoffEntry ? payoffEntry.date.replace('.', '년 ') + '월' : null;
 
-        const predHtml = schedule ? `
-            <div class="loan-pred-box">
-                ${schedule.slice(0, 3).map(m => {
-                    const [y, mo] = m.date.split('.');
-                    const dateLabel = `${y}년 ${parseInt(mo)}월${loan.paymentDay ? ' ' + loan.paymentDay + '일' : ''}`;
-                    return `<div class="loan-pred-row">
-                        <span class="loan-pred-label">${dateLabel}${m.isGrace ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 4px;border-radius:3px;margin-left:3px;">거치</span>' : ''}${m.isOverdraft ? ' <span style="font-size:0.65rem;background:#e9d8fd;color:#553c9a;padding:1px 4px;border-radius:3px;margin-left:3px;">이자</span>' : ''}</span>
-                        <span style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;">${fmtMoney(m.payment)}</span><button class="btn-schedule-pay" onclick="loanSchedulePaid('${loan.id}',${m.principal},${m.payment})">완료</button></span>
-                    </div>`;
-                }).join('')}
-                ${isOverdraft
-                    ? `<div class="loan-pred-row" style="margin-top:5px;padding-top:5px;border-top:1px solid #e2e8f0;">
-                           <span class="loan-pred-label" style="font-size:0.72rem;color:#a0aec0;">현 잔액(${fmtMoney(loan.remainingBalance)}) 유지 시 예측</span>
-                       </div>`
-                    : `<div class="loan-pred-row" style="margin-top:5px;padding-top:5px;border-top:1px solid #e2e8f0;">
-                           <span class="loan-pred-label" style="font-size:0.72rem;color:#a0aec0;">완납 예정</span>
-                           <span style="font-size:0.77rem;font-weight:700;color:#718096;">${payoffStr}</span>
-                       </div>`}
-            </div>
+        const completedMap = {};
+        (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
+        const footerStr = isOverdraft
+            ? `현 잔액(${fmtMoney(loan.remainingBalance)}) 유지 시 예측`
+            : payoffStr ? `완납 예정: ${payoffStr}` : '';
+        const scheduleHtml = schedule ? `
             <button id="schedule-btn-${loan.id}" class="btn-toggle-schedule" onclick="toggleLoanSchedule('${loan.id}')">▼ 상환 일정 보기</button>
             <div id="schedule-wrap-${loan.id}" class="loan-schedule-wrap">
-                <table class="loan-schedule-table">
-                    <thead><tr><th>납부월</th><th>원금</th><th>이자</th><th>납부액</th><th>잔여금</th><th></th></tr></thead>
-                    <tbody>
-                        ${schedule.map(m => `<tr class="${m.isGrace ? 'loan-grace-row' : ''}">
-                            <td>${m.date}${m.isGrace ? ' <span style="font-size:0.65rem;background:#fef3c7;color:#92400e;padding:1px 4px;border-radius:3px;">거치</span>' : ''}</td>
-                            <td>${m.isGrace ? '<span style="color:#a0aec0">-</span>' : fmtMoney(m.principal)}</td>
-                            <td class="col-interest">${fmtMoney(m.interest)}</td>
-                            <td class="col-payment">${fmtMoney(m.payment)}</td>
-                            <td class="col-balance">${fmtMoney(m.balance)}</td>
-                            <td><button class="btn-schedule-pay" onclick="loanSchedulePaid('${loan.id}',${m.principal},${m.payment})">완료</button></td>
-                        </tr>`).join('')}
-                    </tbody>
-                </table>
+                <div class="loan-schedule-list">
+                    ${schedule.map(m => {
+                        const isDone = m.date in completedMap;
+                        const actualAmt = completedMap[m.date];
+                        const [y, mo] = m.date.split('.');
+                        const dateStr = `${y}년 ${parseInt(mo)}월${loan.paymentDay ? ' ' + loan.paymentDay + '일' : ''}`;
+                        const badge = m.isGrace ? ' <span style="font-size:0.62rem;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;margin-left:4px;">거치</span>' : m.isOverdraft ? ' <span style="font-size:0.62rem;background:#e9d8fd;color:#553c9a;padding:1px 5px;border-radius:4px;margin-left:4px;">이자</span>' : '';
+                        const breakdown = (m.isGrace || m.isOverdraft) ? `이자 ${fmtMoney(m.interest)}` : `원금 ${fmtMoney(m.principal)} + 이자 ${fmtMoney(m.interest)}`;
+                        const balanceStr = m.balance > 0 ? ` · 잔여 ${fmtMoney(m.balance)}` : ' · 완납';
+                        if (isDone) {
+                            return `<div class="loan-schedule-item sch-done">
+                                <div class="loan-sch-top"><span class="loan-sch-date">${dateStr}${badge}</span><span class="loan-sch-done-badge">✓ 완료 ${fmtMoney(actualAmt)}</span></div>
+                                <div class="loan-sch-breakdown">${breakdown}${balanceStr}</div>
+                            </div>`;
+                        }
+                        const inputId = 'sch-inp-' + loan.id + '-' + m.date.replace('.', '-');
+                        return `<div class="loan-schedule-item">
+                            <div class="loan-sch-top"><span class="loan-sch-date">${dateStr}${badge}</span><span class="loan-sch-expected">${fmtMoney(m.payment)}</span></div>
+                            <div class="loan-sch-breakdown">${breakdown}${balanceStr}</div>
+                            <div class="loan-sch-action">
+                                <input type="number" class="loan-actual-input" id="${inputId}" value="${m.payment}" placeholder="실제 납부액">
+                                <button class="btn-sch-complete" onclick="loanSchedulePaid('${loan.id}','${m.date}',${m.principal},'${inputId}')">완료</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>
+                ${footerStr ? `<div class="loan-sch-footer">${footerStr}</div>` : ''}
             </div>` : '';
 
         return `<div class="loan-card">
@@ -1803,7 +1798,7 @@ function renderLoans() {
                 </div>` : ''}
             </div>
             <div class="${nextClass}">${nextStr}</div>
-            ${predHtml}
+            ${scheduleHtml}
         </div>`;
     }).join('');
 
@@ -1911,13 +1906,19 @@ function deleteLoan(id) {
     save(); renderLoans(); updateDashboard();
 }
 
-function loanSchedulePaid(id, principal, payment) {
+function loanSchedulePaid(id, date, principal, inputId) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
+    const inputEl = document.getElementById(inputId);
+    const actualAmount = parseInt(inputEl ? inputEl.value : 0) || 0;
+    if (!actualAmount || actualAmount <= 0) { alert('실제 납부액을 입력해 주세요.'); return; }
     const msg = principal > 0
-        ? `납부액 ${fmtMoney(payment)}원 상환 완료 처리합니다.\n잔여 대출금에서 원금 ${fmtMoney(principal)}원이 차감됩니다.`
-        : `이자 ${fmtMoney(payment)}원 납부 완료 처리합니다.`;
+        ? `납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n원금 ${fmtMoney(principal)}원이 잔여 대출금에서 차감됩니다.`
+        : `이자 납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}`;
     if (!confirm(msg)) return;
+    if (!loan.completedSchedule) loan.completedSchedule = [];
+    loan.completedSchedule = loan.completedSchedule.filter(c => c.date !== date);
+    loan.completedSchedule.push({ date, actualAmount });
     if (principal > 0) {
         loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
     }
