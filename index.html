@@ -784,8 +784,8 @@
             <div class="card">
                 <div class="info-box">
                     <p>💡 <strong>일일 지출 가능액 계산 방식</strong></p>
-                    <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 고정비 − 목표일 전 활성 구독료 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
-                    <p style="margin-top:6px;">총 가용금액 − 이미 기록한 지출 = 남은 가용금액 ÷ 남은 날수 = <strong>오늘 권장 지출</strong></p>
+                    <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 고정비 − 목표일 전 활성 구독료 − 목표일 전 미완료 대출 납부금 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
+                    <p style="margin-top:6px;">총 가용금액 ÷ 남은 날수 = <strong>일 기준 지출</strong> → 일 기준 − 오늘 지출 = <strong>오늘 남은 가능액</strong></p>
                 </div>
             </div>
         </div>
@@ -1139,7 +1139,15 @@ function calcDashboard() {
             return sum;
         }, 0);
 
-    const totalAvailable = currentBalance + futureIncome - futureFixed - futureSubscriptions - D.goal - (D.emergencyFund || 0);
+    // 목표일 전까지 미완료 대출 납부금 합산 (원금 + 이자)
+    const futureLoans = (D.loans || []).reduce((sum, loan) => {
+        const { payments } = calcPaymentsUntilDday(loan);
+        const completedDates = new Set((loan.completedSchedule || []).map(c => c.date));
+        const pending = payments.filter(m => !completedDates.has(m.date));
+        return sum + pending.reduce((s, m) => s + m.payment, 0);
+    }, 0);
+
+    const totalAvailable = currentBalance + futureIncome - futureFixed - futureSubscriptions - futureLoans - D.goal - (D.emergencyFund || 0);
     const dailyMax = totalAvailable / remainDays;
     const todayKey = fmtDate(today);
     const todaySpent = D.spendingLog.filter(x => x.date === todayKey).reduce((s,x) => s+x.amount, 0);
@@ -1185,7 +1193,7 @@ function calcDashboard() {
         .filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a,b) => a.date - b.date);
 
-    return { remainDays, currentBalance, dailyMax, todaySpent, todayRemain, totalSpent, pct, upcomingItems };
+    return { remainDays, currentBalance, dailyMax, todaySpent, todayRemain, totalSpent, pct, upcomingItems, futureLoans, futureSubscriptions };
 }
 
 function updateDashboard() {
@@ -1205,7 +1213,10 @@ function updateDashboard() {
         remainEl.className = 'daily-budget-amount';
         document.getElementById('alert-over').style.display = 'none';
     }
-    document.getElementById('dash-today-sub').textContent  = `일 기준 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todaySpent)}`;
+    const subParts = [`일 기준 ${fmtMoney(c.dailyMax)}`, `오늘 지출 ${fmtMoney(c.todaySpent)}`];
+    if (c.futureLoans > 0) subParts.push(`대출 납부 예정 ${fmtMoney(c.futureLoans)}`);
+    if (c.futureSubscriptions > 0) subParts.push(`구독료 예정 ${fmtMoney(c.futureSubscriptions)}`);
+    document.getElementById('dash-today-sub').textContent = subParts.join(' · ');
     document.getElementById('dash-saved-label').textContent = `현재 ${fmtMoney(c.currentBalance)}`;
     document.getElementById('dash-goal-label').textContent  = `목표 ${fmtMoney(D.goal)}`;
     document.getElementById('dash-progress').style.width    = `${c.pct}%`;
