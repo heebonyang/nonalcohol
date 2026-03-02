@@ -1786,9 +1786,9 @@ function renderLoans() {
                     ? `이자 ${fmtMoney(it.interest)}`
                     : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
                 if (it.isDone) {
-                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><span class="amount" style="color:#48bb78;">완료</span></div></div>`;
+                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">확인취소</button><button class="btn-sm" onclick="deleteLoan('${it.loanId}')">삭제</button></div></div>`;
                 }
-                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown}</div></div><div class="right"><span class="amount">−${fmtMoney(it.payment)}</span><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button></div></div>`;
+                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown}</div></div><div class="right"><span class="amount">−${fmtMoney(it.payment)}</span><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button><button class="btn-sm-edit" onclick="editLoan('${it.loanId}')">수정</button><button class="btn-sm" onclick="deleteLoan('${it.loanId}')">삭제</button></div></div>`;
             }).join('');
             const pendingTotal = allItems.filter(it => !it.isDone).reduce((s, it) => s + it.payment, 0);
             if (pendingTotal > 0) {
@@ -1999,6 +1999,17 @@ function deleteLoan(id) {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     D.loans = (D.loans || []).filter(x => x.id !== id);
     D.loanPayments = (D.loanPayments || []).filter(x => x.loanId !== id);
+    save(); renderLoans(); updateDashboard();
+}
+
+function loanNoticeUnconfirm(id, date, principal, actualAmount) {
+    const loan = (D.loans || []).find(x => x.id === id);
+    if (!loan) return;
+    if (!confirm(`납부 완료를 취소하시겠습니까?\n실제 납부액 ${fmtMoney(actualAmount)}이 복원됩니다.${principal > 0 ? `\n원금 ${fmtMoney(principal)}이 잔여 대출금에 다시 추가됩니다.` : ''}`)) return;
+    loan.completedSchedule = (loan.completedSchedule || []).filter(c => c.date !== date);
+    if (principal > 0) {
+        loan.remainingBalance = (loan.remainingBalance || 0) + principal;
+    }
     save(); renderLoans(); updateDashboard();
 }
 
@@ -2214,7 +2225,8 @@ window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
 window.loanSchedulePaid   = loanSchedulePaid;
-window.loanNoticeComplete = loanNoticeComplete;
+window.loanNoticeComplete  = loanNoticeComplete;
+window.loanNoticeUnconfirm = loanNoticeUnconfirm;
 window.toggleLoanSchedule = toggleLoanSchedule;
 window.loanRepayTypeChange = loanRepayTypeChange;
 window.autoCalcLoanPayment = autoCalcLoanPayment;
