@@ -604,6 +604,12 @@
         </div>
 
         <div id="tab-loan" style="display:none">
+            <!-- D-day 납부 예정 알림 -->
+            <div class="notice" id="loan-notice" style="display:none">
+                <h3>🏦 D-day까지 납부 예정</h3>
+                <div id="loan-notice-list"></div>
+            </div>
+
             <!-- 대출 현황 요약 -->
             <div class="card" id="loan-summary-card" style="display:none">
                 <h2>대출 현황</h2>
@@ -1723,10 +1729,13 @@ function renderLoans() {
     const loans = D.loans || [];
     const summaryCard = document.getElementById('loan-summary-card');
     const el = document.getElementById('loan-list');
+    const noticeEl = document.getElementById('loan-notice');
+    const noticeListEl = document.getElementById('loan-notice-list');
 
     // 대출 없을 때
     if (loans.length === 0) {
         summaryCard.style.display = 'none';
+        if (noticeEl) noticeEl.style.display = 'none';
         el.innerHTML = '<div class="empty">등록된 대출이 없습니다</div>';
         return;
     }
@@ -1744,6 +1753,35 @@ function renderLoans() {
     document.getElementById('loan-count').textContent         = `${loans.length}건`;
     document.getElementById('loan-dday-label').textContent    = `D-${remainDays}까지 이자`;
     document.getElementById('loan-dday-interest').textContent = fmtMoney(totalDdayInterest);
+
+    // D-day 납부 예정 notice
+    if (noticeEl && noticeListEl) {
+        const allPending = loans.flatMap(loan => {
+            const { payments } = calcPaymentsUntilDday(loan);
+            const completedDates = new Set((loan.completedSchedule || []).map(c => c.date));
+            return payments
+                .filter(m => !completedDates.has(m.date))
+                .map(m => {
+                    const [y, mo] = m.date.split('.').map(Number);
+                    const payDay = loan.paymentDay || 1;
+                    const d = new Date(y, mo - 1, payDay);
+                    return { loanName: loan.name, date: d, payment: m.payment, interest: m.interest, principal: m.principal, isGrace: m.isGrace, isOverdraft: m.isOverdraft };
+                });
+        }).sort((a, b) => a.date - b.date);
+
+        if (allPending.length > 0) {
+            noticeListEl.innerHTML = allPending.map(it => {
+                const mo = it.date.getMonth() + 1, day = it.date.getDate();
+                const breakdown = (it.isGrace || it.isOverdraft)
+                    ? `이자 ${fmtMoney(it.interest)}`
+                    : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
+                return `<div class="notice-row"><span>${escHtml(it.loanName)} <span style="opacity:0.75;font-size:0.72rem">(${mo}/${day} · ${breakdown})</span></span><span style="color:#c53030;font-weight:700;">−${fmtMoney(it.payment)}</span></div>`;
+            }).join('');
+            noticeEl.style.display = 'block';
+        } else {
+            noticeEl.style.display = 'none';
+        }
+    }
 
     // 대출 목록
     const today = new Date(); today.setHours(0,0,0,0);
