@@ -523,6 +523,7 @@
         </div>
         <div class="alert-banner" id="alert-pending" style="display:none">
             ⚠️ 예정일이 지난 미확인 항목이 <span id="alert-pending-count">0</span>건 있습니다. 실제 금액을 확인해 주세요.
+            <div id="alert-pending-list" style="margin-top:6px;display:flex;flex-direction:column;gap:3px;"></div>
         </div>
         <div class="overdraft-reminder" id="alert-overdraft-reminder" style="display:none">
             <div class="overdraft-reminder-text">
@@ -1246,13 +1247,18 @@ function updateDashboard() {
 
     // 예정일 경과 미확인 항목 경고
     const todayDateStr = fmtDate(new Date());
-    const overdueCount = [
-        ...(D.incomeEvents || []).filter(x => !x.confirmed && x.date < todayDateStr),
-        ...(D.fixedExpenses || []).filter(x => !x.confirmed && x.date < todayDateStr)
-    ].length;
+    const overdueItems = [
+        ...(D.incomeEvents || []).filter(x => !x.confirmed && x.date < todayDateStr).map(x => ({ name: x.name, date: x.date, amount: x.amount, type: 'income' })),
+        ...(D.fixedExpenses || []).filter(x => !x.confirmed && x.date < todayDateStr).map(x => ({ name: x.name, date: x.date, amount: x.amount, type: 'expense' }))
+    ].sort((a, b) => a.date.localeCompare(b.date));
     const pendingEl = document.getElementById('alert-pending');
-    if (overdueCount > 0) {
-        document.getElementById('alert-pending-count').textContent = overdueCount;
+    if (overdueItems.length > 0) {
+        document.getElementById('alert-pending-count').textContent = overdueItems.length;
+        document.getElementById('alert-pending-list').innerHTML = overdueItems.map(it => {
+            const sign  = it.type === 'income' ? '+' : '−';
+            const color = it.type === 'income' ? '#276749' : '#9b2c2c';
+            return `<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:1px 0;"><span>${escHtml(it.name)} <span style="opacity:0.7">(${it.date})</span></span><span style="color:${color};font-weight:700;">${sign}${fmtMoney(it.amount)}</span></div>`;
+        }).join('');
         pendingEl.style.display = 'block';
     } else {
         pendingEl.style.display = 'none';
