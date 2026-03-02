@@ -260,7 +260,7 @@
         #app-gk .sub-item-inner { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 
         /* ══ 대출 관리 CSS ══ */
-        #app-gk .loan-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+        #app-gk .loan-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 4px; }
         #app-gk .loan-summary-box {
             background: linear-gradient(135deg, #e53e3e 0%, #c05621 100%);
             border-radius: 12px; padding: 12px 8px; color: white; text-align: center;
@@ -342,6 +342,15 @@
         #app-gk .loan-sch-done-badge { background: #c6f6d5; color: #276749; border-radius: 5px; padding: 2px 8px; font-size: 0.72rem; font-weight: 600; }
         #app-gk .loan-sch-footer { text-align: center; font-size: 0.71rem; color: #a0aec0; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; }
 
+        /* ══ D-day 납부 예정 CSS ══ */
+        #app-gk .loan-dday-section { margin-top: 10px; padding-top: 10px; border-top: 1.5px solid #fed7d7; }
+        #app-gk .loan-dday-title { font-size: 0.78rem; font-weight: 700; color: #2d3748; margin-bottom: 8px; }
+        #app-gk .loan-dday-title span { color: #e53e3e; font-weight: 800; }
+        #app-gk .loan-dday-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 11px; font-size: 0.78rem; margin-bottom: 6px; }
+        #app-gk .loan-dday-item:last-child { margin-bottom: 0; }
+        #app-gk .loan-dday-item.sch-done { background: #f0fff4; border-color: #c6f6d5; }
+        #app-gk .loan-dday-empty { font-size: 0.75rem; color: #a0aec0; text-align: center; padding: 8px 0; }
+
         /* ══ 모바일 반응형 ══ */
         @media (max-width: 600px) {
             /* 탭: 좌우 safe-area 패딩 포함 */
@@ -407,8 +416,8 @@
             #app-gk .form-group input[type="month"] { font-size: 16px; }
 
             /* 구독/대출 요약 그리드: 좁은 화면에서 2열 유지 */
-            #app-gk .sub-summary-grid,
-            #app-gk .loan-summary-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            #app-gk .sub-summary-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            #app-gk .loan-summary-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
             #app-gk .sub-summary-label,
             #app-gk .loan-summary-label { font-size: 0.62rem; }
             #app-gk .sub-summary-value,
@@ -610,6 +619,10 @@
                     <div class="loan-summary-box">
                         <div class="loan-summary-label">대출 건수</div>
                         <div class="loan-summary-value" id="loan-count">0건</div>
+                    </div>
+                    <div class="loan-summary-box">
+                        <div class="loan-summary-label" id="loan-dday-label">D-day까지 이자</div>
+                        <div class="loan-summary-value" id="loan-dday-interest">0원</div>
                     </div>
                 </div>
             </div>
@@ -1666,6 +1679,19 @@ function calcRepaymentSchedule(loan) {
     return schedule;
 }
 
+function calcPaymentsUntilDday(loan) {
+    const dday = new Date(D.targetDate); dday.setHours(23, 59, 59, 999);
+    const full = calcRepaymentSchedule(loan);
+    if (!full) return { payments: [], totalInterest: 0 };
+    const payDay = loan.paymentDay || 1;
+    const payments = full.filter(item => {
+        const [y, m] = item.date.split('.').map(Number);
+        return new Date(y, m - 1, payDay) <= dday;
+    });
+    const totalInterest = payments.reduce((s, p) => s + p.interest, 0);
+    return { payments, totalInterest };
+}
+
 function toggleLoanSchedule(id) {
     const wrap = document.getElementById(`schedule-wrap-${id}`);
     const btn  = document.getElementById(`schedule-btn-${id}`);
@@ -1697,10 +1723,16 @@ function renderLoans() {
     // 요약
     const totalBalance  = loans.reduce((s, l) => s + (l.remainingBalance || 0), 0);
     const monthlySum    = loans.reduce((s, l) => s + (l.monthlyPayment  || 0), 0);
+    const today2 = new Date(); today2.setHours(0,0,0,0);
+    const ddayDate = new Date(D.targetDate); ddayDate.setHours(0,0,0,0);
+    const remainDays = Math.max(0, Math.ceil((ddayDate - today2) / 86400000));
+    const totalDdayInterest = loans.reduce((sum, loan) => sum + calcPaymentsUntilDday(loan).totalInterest, 0);
     summaryCard.style.display = 'block';
     document.getElementById('loan-total-balance').textContent = fmtMoney(totalBalance);
     document.getElementById('loan-monthly-sum').textContent   = fmtMoney(monthlySum);
     document.getElementById('loan-count').textContent         = `${loans.length}건`;
+    document.getElementById('loan-dday-label').textContent    = `D-${remainDays}까지 이자`;
+    document.getElementById('loan-dday-interest').textContent = fmtMoney(totalDdayInterest);
 
     // 대출 목록
     const today = new Date(); today.setHours(0,0,0,0);
@@ -1718,47 +1750,42 @@ function renderLoans() {
                          : null;
         const isOverdraft = loan.repaymentType === 'overdraft';
 
-        // 상환 일정 계산
-        const schedule      = calcRepaymentSchedule(loan);
-        const payoffEntry   = (!isOverdraft && schedule) ? schedule[schedule.length - 1] : null;
-        const payoffStr     = payoffEntry ? payoffEntry.date.replace('.', '년 ') + '월' : null;
-
         const completedMap = {};
         (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
-        const footerStr = isOverdraft
-            ? `현 잔액(${fmtMoney(loan.remainingBalance)}) 유지 시 예측`
-            : payoffStr ? `완납 예정: ${payoffStr}` : '';
-        const scheduleHtml = schedule ? `
-            <button id="schedule-btn-${loan.id}" class="btn-toggle-schedule" onclick="toggleLoanSchedule('${loan.id}')">▼ 상환 일정 보기</button>
-            <div id="schedule-wrap-${loan.id}" class="loan-schedule-wrap">
-                <div class="loan-schedule-list">
-                    ${schedule.map(m => {
-                        const isDone = m.date in completedMap;
-                        const actualAmt = completedMap[m.date];
-                        const [y, mo] = m.date.split('.');
-                        const dateStr = `${y}년 ${parseInt(mo)}월${loan.paymentDay ? ' ' + loan.paymentDay + '일' : ''}`;
-                        const badge = m.isGrace ? ' <span style="font-size:0.62rem;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;margin-left:4px;">거치</span>' : m.isOverdraft ? ' <span style="font-size:0.62rem;background:#e9d8fd;color:#553c9a;padding:1px 5px;border-radius:4px;margin-left:4px;">이자</span>' : '';
-                        const breakdown = (m.isGrace || m.isOverdraft) ? `이자 ${fmtMoney(m.interest)}` : `원금 ${fmtMoney(m.principal)} + 이자 ${fmtMoney(m.interest)}`;
-                        const balanceStr = m.balance > 0 ? ` · 잔여 ${fmtMoney(m.balance)}` : ' · 완납';
-                        if (isDone) {
-                            return `<div class="loan-schedule-item sch-done">
-                                <div class="loan-sch-top"><span class="loan-sch-date">${dateStr}${badge}</span><span class="loan-sch-done-badge">✓ 완료 ${fmtMoney(actualAmt)}</span></div>
-                                <div class="loan-sch-breakdown">${breakdown}${balanceStr}</div>
-                            </div>`;
-                        }
-                        const inputId = 'sch-inp-' + loan.id + '-' + m.date.replace('.', '-');
-                        return `<div class="loan-schedule-item">
-                            <div class="loan-sch-top"><span class="loan-sch-date">${dateStr}${badge}</span><span class="loan-sch-expected">${fmtMoney(m.payment)}</span></div>
-                            <div class="loan-sch-breakdown">${breakdown}${balanceStr}</div>
-                            <div class="loan-sch-action">
-                                <input type="number" class="loan-actual-input" id="${inputId}" value="${m.payment}" placeholder="실제 납부액">
-                                <button class="btn-sch-complete" onclick="loanSchedulePaid('${loan.id}','${m.date}',${m.principal},'${inputId}')">완료</button>
-                            </div>
+
+        // D-day까지 납부 예정 섹션
+        const { payments: ddayPayments, totalInterest: ddayInterest } = calcPaymentsUntilDday(loan);
+        const ddayHtml = (() => {
+            const itemsHtml = ddayPayments.length === 0
+                ? `<div class="loan-dday-empty">D-day 내 납부 예정 없음</div>`
+                : ddayPayments.map(m => {
+                    const isDone = m.date in completedMap;
+                    const actualAmt = completedMap[m.date];
+                    const [y, mo] = m.date.split('.');
+                    const dateStr = `${y}년 ${parseInt(mo)}월${loan.paymentDay ? ' ' + loan.paymentDay + '일' : ''}`;
+                    const badge = m.isGrace ? ' <span style="font-size:0.62rem;background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;margin-left:4px;">거치</span>' : m.isOverdraft ? ' <span style="font-size:0.62rem;background:#e9d8fd;color:#553c9a;padding:1px 5px;border-radius:4px;margin-left:4px;">이자</span>' : '';
+                    const breakdown = (m.isGrace || m.isOverdraft) ? `이자 ${fmtMoney(m.interest)}` : `원금 ${fmtMoney(m.principal)} + 이자 ${fmtMoney(m.interest)}`;
+                    if (isDone) {
+                        return `<div class="loan-dday-item sch-done">
+                            <div class="loan-sch-top"><span class="loan-sch-date">${dateStr}${badge}</span><span class="loan-sch-done-badge">✓ 완료 ${fmtMoney(actualAmt)}</span></div>
+                            <div class="loan-sch-breakdown">${breakdown}</div>
                         </div>`;
-                    }).join('')}
-                </div>
-                ${footerStr ? `<div class="loan-sch-footer">${footerStr}</div>` : ''}
-            </div>` : '';
+                    }
+                    const inputId = 'sch-inp-' + loan.id + '-' + m.date.replace('.', '-');
+                    return `<div class="loan-dday-item">
+                        <div class="loan-sch-top"><span class="loan-sch-date">${dateStr}${badge}</span><span class="loan-sch-expected">${fmtMoney(m.payment)}</span></div>
+                        <div class="loan-sch-breakdown">${breakdown}</div>
+                        <div class="loan-sch-action">
+                            <input type="number" class="loan-actual-input" id="${inputId}" value="${m.payment}" placeholder="실제 납부액">
+                            <button class="btn-sch-complete" onclick="loanSchedulePaid('${loan.id}','${m.date}',${m.principal},'${inputId}')">완료</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            return `<div class="loan-dday-section">
+                <div class="loan-dday-title">D-${remainDays}까지 납부 예정 · 이자 합계 <span>${fmtMoney(ddayInterest)}</span></div>
+                ${itemsHtml}
+            </div>`;
+        })();
 
         return `<div class="loan-card">
             <div class="loan-card-header">
@@ -1798,7 +1825,7 @@ function renderLoans() {
                 </div>` : ''}
             </div>
             <div class="${nextClass}">${nextStr}</div>
-            ${scheduleHtml}
+            ${ddayHtml}
         </div>`;
     }).join('');
 
