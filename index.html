@@ -604,10 +604,17 @@
         </div>
 
         <div id="tab-loan" style="display:none">
-            <!-- D-day 납부 예정 알림 -->
-            <div class="notice" id="loan-notice" style="display:none">
-                <h3>🏦 D-day까지 납부 예정</h3>
-                <div id="loan-notice-list"></div>
+            <!-- D-day 납부 예정 목록 -->
+            <div class="card" id="loan-schedule-card" style="display:none">
+                <h2 id="loan-schedule-card-title">D-day까지 납부 예정</h2>
+                <div id="loan-schedule-list"></div>
+                <div id="loan-schedule-total-wrap" style="display:none">
+                    <div class="divider"></div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;color:#4a5568;padding-top:8px;">
+                        <span>납부 예정 합계</span>
+                        <span id="loan-schedule-total" style="color:#e53e3e;"></span>
+                    </div>
+                </div>
             </div>
 
             <!-- 대출 현황 요약 -->
@@ -1729,13 +1736,14 @@ function renderLoans() {
     const loans = D.loans || [];
     const summaryCard = document.getElementById('loan-summary-card');
     const el = document.getElementById('loan-list');
-    const noticeEl = document.getElementById('loan-notice');
-    const noticeListEl = document.getElementById('loan-notice-list');
+    const scheduleCardEl = document.getElementById('loan-schedule-card');
+    const scheduleListEl = document.getElementById('loan-schedule-list');
+    const scheduleTotalWrap = document.getElementById('loan-schedule-total-wrap');
 
     // 대출 없을 때
     if (loans.length === 0) {
         summaryCard.style.display = 'none';
-        if (noticeEl) noticeEl.style.display = 'none';
+        if (scheduleCardEl) scheduleCardEl.style.display = 'none';
         el.innerHTML = '<div class="empty">등록된 대출이 없습니다</div>';
         return;
     }
@@ -1754,32 +1762,44 @@ function renderLoans() {
     document.getElementById('loan-dday-label').textContent    = `D-${remainDays}까지 이자`;
     document.getElementById('loan-dday-interest').textContent = fmtMoney(totalDdayInterest);
 
-    // D-day 납부 예정 notice
-    if (noticeEl && noticeListEl) {
-        const allPending = loans.flatMap(loan => {
+    // D-day 납부 예정 카드
+    if (scheduleCardEl && scheduleListEl) {
+        const allItems = loans.flatMap(loan => {
             const { payments } = calcPaymentsUntilDday(loan);
-            const completedDates = new Set((loan.completedSchedule || []).map(c => c.date));
-            return payments
-                .filter(m => !completedDates.has(m.date))
-                .map(m => {
-                    const [y, mo] = m.date.split('.').map(Number);
-                    const payDay = loan.paymentDay || 1;
-                    const d = new Date(y, mo - 1, payDay);
-                    return { loanName: loan.name, date: d, payment: m.payment, interest: m.interest, principal: m.principal, isGrace: m.isGrace, isOverdraft: m.isOverdraft };
-                });
+            const completedMap = {};
+            (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
+            return payments.map(m => {
+                const [y, mo] = m.date.split('.').map(Number);
+                const payDay = loan.paymentDay || 1;
+                const d = new Date(y, mo - 1, payDay);
+                const isDone = m.date in completedMap;
+                return { loanId: loan.id, loanName: loan.name, rawDate: m.date, date: d, payment: m.payment, interest: m.interest, principal: m.principal, isGrace: m.isGrace, isOverdraft: m.isOverdraft, isDone, actualAmount: completedMap[m.date] };
+            });
         }).sort((a, b) => a.date - b.date);
 
-        if (allPending.length > 0) {
-            noticeListEl.innerHTML = allPending.map(it => {
+        if (allItems.length > 0) {
+            document.getElementById('loan-schedule-card-title').textContent = `D-${remainDays}까지 납부 예정`;
+            scheduleListEl.innerHTML = allItems.map(it => {
                 const mo = it.date.getMonth() + 1, day = it.date.getDate();
+                const dateStr = `${mo}/${day}`;
                 const breakdown = (it.isGrace || it.isOverdraft)
                     ? `이자 ${fmtMoney(it.interest)}`
                     : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
-                return `<div class="notice-row"><span>${escHtml(it.loanName)} <span style="opacity:0.75;font-size:0.72rem">(${mo}/${day} · ${breakdown})</span></span><span style="color:#c53030;font-weight:700;">−${fmtMoney(it.payment)}</span></div>`;
+                if (it.isDone) {
+                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><span class="amount" style="color:#48bb78;">완료</span></div></div>`;
+                }
+                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown}</div></div><div class="right"><span class="amount">−${fmtMoney(it.payment)}</span><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button></div></div>`;
             }).join('');
-            noticeEl.style.display = 'block';
+            const pendingTotal = allItems.filter(it => !it.isDone).reduce((s, it) => s + it.payment, 0);
+            if (pendingTotal > 0) {
+                document.getElementById('loan-schedule-total').textContent = fmtMoney(pendingTotal);
+                scheduleTotalWrap.style.display = 'block';
+            } else {
+                scheduleTotalWrap.style.display = 'none';
+            }
+            scheduleCardEl.style.display = 'block';
         } else {
-            noticeEl.style.display = 'none';
+            scheduleCardEl.style.display = 'none';
         }
     }
 
@@ -1982,6 +2002,26 @@ function deleteLoan(id) {
     save(); renderLoans(); updateDashboard();
 }
 
+function loanNoticeComplete(id, date, principal, expectedAmount) {
+    const loan = (D.loans || []).find(x => x.id === id);
+    if (!loan) return;
+    const input = prompt(`실제 납부액을 입력하세요 (예정: ${expectedAmount.toLocaleString()}원)`, expectedAmount);
+    if (input === null) return;
+    const actualAmount = parseInt(input) || 0;
+    if (!actualAmount || actualAmount <= 0) { alert('실제 납부액을 입력해 주세요.'); return; }
+    const msg = principal > 0
+        ? `납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n원금 ${fmtMoney(principal)}원이 잔여 대출금에서 차감됩니다.`
+        : `이자 납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}`;
+    if (!confirm(msg)) return;
+    if (!loan.completedSchedule) loan.completedSchedule = [];
+    loan.completedSchedule = loan.completedSchedule.filter(c => c.date !== date);
+    loan.completedSchedule.push({ date, actualAmount });
+    if (principal > 0) {
+        loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
+    }
+    save(); renderLoans(); updateDashboard();
+}
+
 function loanSchedulePaid(id, date, principal, inputId) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
@@ -2174,6 +2214,7 @@ window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
 window.loanSchedulePaid   = loanSchedulePaid;
+window.loanNoticeComplete = loanNoticeComplete;
 window.toggleLoanSchedule = toggleLoanSchedule;
 window.loanRepayTypeChange = loanRepayTypeChange;
 window.autoCalcLoanPayment = autoCalcLoanPayment;
