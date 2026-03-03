@@ -381,10 +381,8 @@
                 gap: 8px;
                 overflow: hidden;
             }
-            /* 날짜·스크린·AI·저장 버튼은 전체 너비 */
-            #app-jk #targetDate,
-            #app-jk #screen,
-            #app-jk #ai { grid-column: 1 / -1; width: 100%; }
+            /* 날짜·저장 버튼은 전체 너비 */
+            #app-jk #targetDate { grid-column: 1 / -1; width: 100%; }
             #app-jk .btn-save {
                 grid-column: 1 / -1; width: 100%;
                 padding: 14px; font-size: 1rem;
@@ -467,8 +465,6 @@
                     <option value="O">운동 O</option>
                     <option value="X">운동 X</option>
                 </select>
-                <input type="text" id="screen" placeholder="스크린 타임">
-                <input type="text" id="ai" placeholder="AI 공부 내용">
                 <button class="btn-save" id="save-btn" onclick="jk_addRecord()">기록하기</button>
             </div>
             <div class="reason-container" id="reason-container">
@@ -480,7 +476,7 @@
                 <thead>
                     <tr>
                         <th>날짜</th><th>금주 여부</th><th>운동</th>
-                        <th>스크린 타임</th><th>AI 공부 내용</th><th>관리</th>
+                        <th>관리</th>
                     </tr>
                 </thead>
                 <tbody id="data-list"></tbody>
@@ -984,8 +980,6 @@ function jk_renderTable() {
             <td style="font-weight:600;color:#4b5563;">${safeDate}</td>
             <td><span class="${r.sober === 'O' ? 'status-o' : 'status-x'}">${safeSober}</span>${reasonHtml}</td>
             <td class="${r.exercise === 'O' ? 'status-o' : 'status-x'}">${safeExercise}</td>
-            <td>${escHtml(r.screen)}</td>
-            <td style="text-align:left;font-size:0.9rem;">${escHtml(r.ai)}</td>
             <td>
                 <button class="btn-edit" onclick="jk_editItem('${safeDate}')">수정</button>
                 <button class="btn-del"  onclick="jk_deleteRecord('${safeDate}')">삭제</button>
@@ -1004,8 +998,6 @@ function jk_toggleReason() {
 function jk_resetInputs() {
     document.getElementById('sober').value    = 'O';
     document.getElementById('exercise').value = 'O';
-    document.getElementById('screen').value   = '';
-    document.getElementById('ai').value       = '';
     document.getElementById('reason').value   = '';
     jk_toggleReason();
     const btn = document.getElementById('save-btn');
@@ -1017,13 +1009,11 @@ function jk_addRecord() {
     const date     = document.getElementById('targetDate').value;
     const sober    = document.getElementById('sober').value;
     const exercise = document.getElementById('exercise').value;
-    const screen   = document.getElementById('screen').value;
-    const ai       = document.getElementById('ai').value;
     const reason   = sober === 'O' ? '' : document.getElementById('reason').value;
     if (!date) { alert('날짜를 선택해 주세요.'); return; }
 
     const idx = D_jk.records.findIndex(r => r.date === date);
-    const newRecord = { date, sober, exercise, screen, ai, reason };
+    const newRecord = { date, sober, exercise, reason };
     if (idx >= 0) {
         D_jk.records[idx] = newRecord;
     } else {
@@ -1033,8 +1023,6 @@ function jk_addRecord() {
 
     document.getElementById('save-btn').innerText = '기록하기';
     document.getElementById('save-btn').classList.remove('edit-mode');
-    document.getElementById('screen').value = '';
-    document.getElementById('ai').value     = '';
     document.getElementById('reason').value = '';
     jk_toggleReason();
     jk_renderTable();
@@ -1046,8 +1034,6 @@ function jk_editItem(date) {
     document.getElementById('targetDate').value  = r.date;
     document.getElementById('sober').value       = r.sober;
     document.getElementById('exercise').value    = r.exercise;
-    document.getElementById('screen').value      = r.screen  || '';
-    document.getElementById('ai').value          = r.ai      || '';
     document.getElementById('reason').value      = r.sober === 'X' ? (r.reason || '') : '';
     document.getElementById('reason-container').style.display = r.sober === 'X' ? 'block' : 'none';
     const btn = document.getElementById('save-btn');
