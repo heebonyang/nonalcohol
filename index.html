@@ -704,6 +704,10 @@
                 </div>
                 <button class="btn btn-primary" id="sub-submit-btn" onclick="addSubscription()">+ 구독 추가</button>
             </div>
+            <div class="card" id="sub-schedule-card" style="display:none">
+                <h2 id="sub-schedule-card-title">D-day까지 결제 예정</h2>
+                <div id="sub-schedule-list"></div>
+            </div>
             <div class="card">
                 <h2>등록된 구독 서비스</h2>
                 <div id="sub-list"><div class="empty">등록된 구독 서비스가 없습니다</div></div>
@@ -1050,21 +1054,26 @@ function calcDashboard() {
         .filter(x => !x.confirmed && new Date(x.date) > today && new Date(x.date) <= target)
         .reduce((s,x) => s + x.amount, 0);
 
-    // 목표일 전까지 활성 구독료 합산
+    // 목표일 전까지 활성 구독료 합산 (완료된 결제일 제외)
     const futureSubscriptions = (D.subscriptions || [])
         .filter(s => s.active)
         .reduce((sum, sub) => {
+            const completed = new Set((sub.completedPayments || []).map(c => c.date));
             if (sub.cycle === 'monthly' && sub.billingDay) {
                 let d = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
                 if (d <= today) d = new Date(today.getFullYear(), today.getMonth() + 1, sub.billingDay);
-                let count = 0;
-                while (d <= target) { count++; d = new Date(d.getFullYear(), d.getMonth() + 1, sub.billingDay); }
-                return sum + sub.amount * count;
+                let total = 0;
+                while (d <= target) {
+                    if (!completed.has(fmtDate(d))) total += sub.amount;
+                    d = new Date(d.getFullYear(), d.getMonth() + 1, sub.billingDay);
+                }
+                return sum + total;
             } else if (sub.cycle === 'yearly' && sub.billingDate) {
                 const ref = new Date(sub.billingDate);
                 let d = new Date(today.getFullYear(), ref.getMonth(), ref.getDate());
                 if (d <= today) d = new Date(today.getFullYear() + 1, ref.getMonth(), ref.getDate());
-                return sum + (d <= target ? sub.amount : 0);
+                if (d <= target) return sum + (completed.has(fmtDate(d)) ? 0 : sub.amount);
+                return sum;
             }
             return sum;
         }, 0);
@@ -1108,6 +1117,7 @@ function calcDashboard() {
     const upcomingSubscriptions = (D.subscriptions || [])
         .filter(s => s.active)
         .map(sub => {
+            const completed = new Set((sub.completedPayments || []).map(c => c.date));
             let d;
             if (sub.cycle === 'monthly' && sub.billingDay) {
                 d = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
@@ -1117,7 +1127,7 @@ function calcDashboard() {
                 d = new Date(today.getFullYear(), ref.getMonth(), ref.getDate());
                 if (d < today) d = new Date(today.getFullYear() + 1, ref.getMonth(), ref.getDate());
             }
-            if (d && d >= today && d <= next7) return { name: `${sub.name} 구독료`, amount: sub.amount, date: d, type: 'expense' };
+            if (d && d >= today && d <= next7 && !completed.has(fmtDate(d))) return { name: `${sub.name} 구독료`, amount: sub.amount, date: d, type: 'expense' };
             return null;
         })
         .filter(Boolean);
@@ -1197,7 +1207,7 @@ function updateDashboard() {
 
 function renderLog() {
     const el = document.getElementById('log-list');
-    const sorted = [...D.spendingLog].filter(x => !x.desc.startsWith('[대출')).sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+    const sorted = [...D.spendingLog].filter(x => !x.desc.startsWith('[대출') && !x.desc.startsWith('[구독')).sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
     if (sorted.length === 0) { el.innerHTML = '<div class="empty">아직 지출 내역이 없습니다</div>'; return; }
     const groups = {};
     sorted.forEach(item => { if (!groups[item.date]) groups[item.date] = []; groups[item.date].push(item); });
@@ -1983,13 +1993,64 @@ function calcSubSummary() {
 function renderSubscriptions() {
     const subs = D.subscriptions || [];
     const el = document.getElementById('sub-list');
+    const scheduleCardEl = document.getElementById('sub-schedule-card');
+    const scheduleListEl = document.getElementById('sub-schedule-list');
 
     if (subs.length === 0) {
         el.innerHTML = '<div class="empty">등록된 구독 서비스가 없습니다</div>';
+        if (scheduleCardEl) scheduleCardEl.style.display = 'none';
         return;
     }
 
     const today = new Date(); today.setHours(0,0,0,0);
+    const ddayDate = new Date(D.targetDate); ddayDate.setHours(23,59,59,999);
+    const remainDays = Math.max(0, Math.ceil((ddayDate - today) / 86400000));
+
+    // D-day 결제 예정 카드
+    if (scheduleCardEl && scheduleListEl) {
+        document.getElementById('sub-schedule-card-title').textContent = `D-${remainDays}까지 결제 예정`;
+        const allItems = [];
+        subs.filter(s => s.active).forEach(sub => {
+            const completedMap = {};
+            (sub.completedPayments || []).forEach(c => { completedMap[c.date] = c; });
+            const icon = CATEGORY_ICONS[sub.category] || '🌐';
+            if (sub.cycle === 'monthly' && sub.billingDay) {
+                let d = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
+                if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, sub.billingDay);
+                while (d <= ddayDate) {
+                    const dateStr = fmtDate(d);
+                    const isDone = dateStr in completedMap;
+                    const actualAmount = isDone ? completedMap[dateStr].actualAmount : null;
+                    allItems.push({ sub, dateStr, isDone, actualAmount, icon, date: new Date(d) });
+                    d = new Date(d.getFullYear(), d.getMonth() + 1, sub.billingDay);
+                }
+            } else if (sub.cycle === 'yearly' && sub.billingDate) {
+                const ref = new Date(sub.billingDate);
+                let d = new Date(today.getFullYear(), ref.getMonth(), ref.getDate());
+                if (d < today) d = new Date(today.getFullYear() + 1, ref.getMonth(), ref.getDate());
+                if (d <= ddayDate) {
+                    const dateStr = fmtDate(d);
+                    const isDone = dateStr in completedMap;
+                    const actualAmount = isDone ? completedMap[dateStr].actualAmount : null;
+                    allItems.push({ sub, dateStr, isDone, actualAmount, icon, date: d });
+                }
+            }
+        });
+        allItems.sort((a, b) => a.date - b.date);
+        if (allItems.length === 0) {
+            scheduleCardEl.style.display = 'none';
+        } else {
+            scheduleCardEl.style.display = '';
+            scheduleListEl.innerHTML = allItems.map(it => {
+                if (it.isDone) {
+                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${it.icon} ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="subPayUnconfirm('${it.sub.id}','${it.dateStr}',${it.actualAmount})">확인취소</button></div></div>`;
+                } else {
+                    return `<div class="list-item"><div class="info"><div class="name">${it.icon} ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)}</div></div><div class="right"><span class="amount">−${fmtMoney(it.sub.amount)}</span><button class="btn-sm-confirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">지출완료</button><button class="btn-sm-edit" onclick="editSubscription('${it.sub.id}')">수정</button><button class="btn-sm" onclick="deleteSubscription('${it.sub.id}')">삭제</button></div></div>`;
+                }
+            }).join('');
+        }
+    }
+
     const sorted = [...subs].sort((a, b) => {
         if (a.active !== b.active) return a.active ? -1 : 1;
         return getNextBillingDate(a) - getNextBillingDate(b);
@@ -2098,6 +2159,35 @@ function toggleSubscription(id) {
     save(); renderSubscriptions();
 }
 
+function subPayComplete(id, dateStr, expectedAmount) {
+    const sub = (D.subscriptions || []).find(x => x.id === id);
+    if (!sub) return;
+    const input = prompt(`실제 결제금액을 입력하세요 (예정: ${expectedAmount.toLocaleString()}원)`, expectedAmount);
+    if (input === null) return;
+    const actualAmount = parseInt(input) || 0;
+    if (!actualAmount || actualAmount <= 0) { alert('실제 결제금액을 입력해 주세요.'); return; }
+    if (!confirm(`지출 완료 처리합니다.\n${sub.name} · ${dateStr}\n실제 결제금액: ${fmtMoney(actualAmount)}\n\n지출 내역에 자동 기록됩니다.`)) return;
+    if (!sub.completedPayments) sub.completedPayments = [];
+    sub.completedPayments = sub.completedPayments.filter(c => c.date !== dateStr);
+    const spendId = uid();
+    if (!D.spendingLog) D.spendingLog = [];
+    D.spendingLog.push({ id: spendId, date: dateStr, desc: `[구독] ${sub.name}`, amount: actualAmount });
+    sub.completedPayments.push({ date: dateStr, actualAmount, spendingLogId: spendId });
+    save(); renderSubscriptions(); renderLog(); updateDashboard();
+}
+
+function subPayUnconfirm(id, dateStr, actualAmount) {
+    const sub = (D.subscriptions || []).find(x => x.id === id);
+    if (!sub) return;
+    if (!confirm(`지출 완료를 취소하시겠습니까?\n${sub.name} · ${dateStr}\n${fmtMoney(actualAmount)} 지출 기록이 삭제됩니다.`)) return;
+    const entry = (sub.completedPayments || []).find(c => c.date === dateStr);
+    if (entry && entry.spendingLogId) {
+        D.spendingLog = (D.spendingLog || []).filter(x => x.id !== entry.spendingLogId);
+    }
+    sub.completedPayments = (sub.completedPayments || []).filter(c => c.date !== dateStr);
+    save(); renderSubscriptions(); renderLog(); updateDashboard();
+}
+
 window.showTab        = showTab;
 window.addSpending    = addSpending;
 window.deleteSpending = deleteSpending;
@@ -2128,6 +2218,8 @@ window.editSubscription   = editSubscription;
 window.deleteSubscription = deleteSubscription;
 window.toggleSubscription = toggleSubscription;
 window.subCycleChange     = subCycleChange;
+window.subPayComplete     = subPayComplete;
+window.subPayUnconfirm    = subPayUnconfirm;
 
 // ── DOMContentLoaded ──
 document.addEventListener('DOMContentLoaded', async () => {
