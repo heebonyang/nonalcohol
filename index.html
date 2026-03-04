@@ -2156,7 +2156,7 @@ function toggleSubscription(id) {
     const sub = (D.subscriptions || []).find(x => x.id === id);
     if (!sub) return;
     sub.active = !sub.active;
-    save(); renderSubscriptions();
+    save(); renderSubscriptions(); updateDashboard();
 }
 
 function subPayComplete(id, dateStr, expectedAmount) {
