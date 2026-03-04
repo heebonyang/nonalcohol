@@ -1197,7 +1197,7 @@ function updateDashboard() {
 
 function renderLog() {
     const el = document.getElementById('log-list');
-    const sorted = [...D.spendingLog].sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+    const sorted = [...D.spendingLog].filter(x => !x.desc.startsWith('[대출')).sort((a,b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
     if (sorted.length === 0) { el.innerHTML = '<div class="empty">아직 지출 내역이 없습니다</div>'; return; }
     const groups = {};
     sorted.forEach(item => { if (!groups[item.date]) groups[item.date] = []; groups[item.date].push(item); });
