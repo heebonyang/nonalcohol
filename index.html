@@ -1877,11 +1877,16 @@ function loanNoticeUnconfirm(id, date, principal, actualAmount) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
     if (!confirm(`납부 완료를 취소하시겠습니까?\n실제 납부액 ${fmtMoney(actualAmount)}이 복원됩니다.${principal > 0 ? `\n원금 ${fmtMoney(principal)}이 잔여 대출금에 다시 추가됩니다.` : ''}`)) return;
+    // 연동된 지출 항목 제거
+    const entry = (loan.completedSchedule || []).find(c => c.date === date);
+    if (entry && entry.spendingLogId) {
+        D.spendingLog = (D.spendingLog || []).filter(x => x.id !== entry.spendingLogId);
+    }
     loan.completedSchedule = (loan.completedSchedule || []).filter(c => c.date !== date);
     if (principal > 0) {
         loan.remainingBalance = (loan.remainingBalance || 0) + principal;
     }
-    save(); renderLoans(); updateDashboard();
+    save(); renderLoans(); renderLog(); updateDashboard();
 }
 
 function loanNoticeComplete(id, date, principal, expectedAmount) {
@@ -1892,16 +1897,26 @@ function loanNoticeComplete(id, date, principal, expectedAmount) {
     const actualAmount = parseInt(input) || 0;
     if (!actualAmount || actualAmount <= 0) { alert('실제 납부액을 입력해 주세요.'); return; }
     const msg = principal > 0
-        ? `납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n원금 ${fmtMoney(principal)}원이 잔여 대출금에서 차감됩니다.`
-        : `이자 납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}`;
+        ? `납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n원금 ${fmtMoney(principal)}원이 잔여 대출금에서 차감됩니다.\n\n지출 내역에 자동 기록됩니다.`
+        : `이자 납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n\n지출 내역에 자동 기록됩니다.`;
     if (!confirm(msg)) return;
     if (!loan.completedSchedule) loan.completedSchedule = [];
     loan.completedSchedule = loan.completedSchedule.filter(c => c.date !== date);
-    loan.completedSchedule.push({ date, actualAmount });
+    // 지출 자동 기록
+    const [y, mo] = date.split('.').map(Number);
+    const payDay = loan.paymentDay || 1;
+    const spendDate = `${y}-${String(mo).padStart(2,'0')}-${String(payDay).padStart(2,'0')}`;
+    const spendDesc = principal > 0
+        ? `[대출] ${loan.name} 원리금 납부`
+        : `[대출이자] ${loan.name}`;
+    const spendId = uid();
+    if (!D.spendingLog) D.spendingLog = [];
+    D.spendingLog.push({ id: spendId, date: spendDate, desc: spendDesc, amount: actualAmount });
+    loan.completedSchedule.push({ date, actualAmount, spendingLogId: spendId });
     if (principal > 0) {
         loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
     }
-    save(); renderLoans(); updateDashboard();
+    save(); renderLoans(); renderLog(); updateDashboard();
 }
 
 function loanSchedulePaid(id, date, principal, inputId) {
@@ -1911,16 +1926,26 @@ function loanSchedulePaid(id, date, principal, inputId) {
     const actualAmount = parseInt(inputEl ? inputEl.value : 0) || 0;
     if (!actualAmount || actualAmount <= 0) { alert('실제 납부액을 입력해 주세요.'); return; }
     const msg = principal > 0
-        ? `납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n원금 ${fmtMoney(principal)}원이 잔여 대출금에서 차감됩니다.`
-        : `이자 납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}`;
+        ? `납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n원금 ${fmtMoney(principal)}원이 잔여 대출금에서 차감됩니다.\n\n지출 내역에 자동 기록됩니다.`
+        : `이자 납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n\n지출 내역에 자동 기록됩니다.`;
     if (!confirm(msg)) return;
     if (!loan.completedSchedule) loan.completedSchedule = [];
     loan.completedSchedule = loan.completedSchedule.filter(c => c.date !== date);
-    loan.completedSchedule.push({ date, actualAmount });
+    // 지출 자동 기록
+    const [y, mo] = date.split('.').map(Number);
+    const payDay = loan.paymentDay || 1;
+    const spendDate = `${y}-${String(mo).padStart(2,'0')}-${String(payDay).padStart(2,'0')}`;
+    const spendDesc = principal > 0
+        ? `[대출] ${loan.name} 원리금 납부`
+        : `[대출이자] ${loan.name}`;
+    const spendId = uid();
+    if (!D.spendingLog) D.spendingLog = [];
+    D.spendingLog.push({ id: spendId, date: spendDate, desc: spendDesc, amount: actualAmount });
+    loan.completedSchedule.push({ date, actualAmount, spendingLogId: spendId });
     if (principal > 0) {
         loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
     }
-    save(); renderLoans(); updateDashboard();
+    save(); renderLoans(); renderLog(); updateDashboard();
 }
 
 
