@@ -327,8 +327,7 @@
         #app-gk .btn-sch-complete:hover { background: #38a169; }
         #app-gk .loan-sch-done-badge { background: #c6f6d5; color: #276749; border-radius: 5px; padding: 2px 8px; font-size: 0.72rem; font-weight: 600; }
         #app-gk .loan-sch-footer { text-align: center; font-size: 0.71rem; color: #a0aec0; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; }
-        #app-gk .loan-round { font-size: 0.68em; color: #718096; background: #edf2f7; border-radius: 3px; padding: 1px 5px; margin-left: 4px; font-weight: 500; vertical-align: middle; }
-        #app-gk .loan-overdue { font-size: 0.68em; color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 3px; padding: 1px 5px; margin-left: 3px; font-weight: 600; vertical-align: middle; }
+        #app-gk .loan-overdue {font-size: 0.68em; color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 3px; padding: 1px 5px; margin-left: 3px; font-weight: 600; vertical-align: middle; }
 
         /* ══ 모바일 반응형 ══ */
         @media (max-width: 600px) {
@@ -1692,7 +1691,6 @@ function renderLoans() {
             const completedMap = {};
             (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
             const payDay = loan.paymentDay || 1;
-            const completedCount = (loan.completedSchedule || []).length;
             // 이번 달 납부일이 지났는데 미확인 → 연체 항목으로 유지
             const pastDueItems = [];
             const thisMonthPayDate = new Date(nowForPastDue.getFullYear(), nowForPastDue.getMonth(), payDay);
@@ -1718,7 +1716,7 @@ function renderLoans() {
                     return { loanId: loan.id, loanName: loan.name, rawDate: m.date, date: d, payment: m.payment, interest: m.interest, principal: m.principal, isGrace: m.isGrace, isOverdraft: m.isOverdraft, isDone, isPastDue: false, actualAmount: completedMap[m.date] };
                 });
             const combined = [...pastDueItems, ...futureItems].sort((a, b) => a.date - b.date);
-            return combined.map((item, idx) => ({ ...item, round: completedCount + idx + 1 }));
+            return combined;
         }).sort((a, b) => a.date - b.date);
 
         if (allItems.length > 0) {
@@ -1726,15 +1724,14 @@ function renderLoans() {
             scheduleListEl.innerHTML = allItems.map(it => {
                 const mo = it.date.getMonth() + 1, day = it.date.getDate();
                 const dateStr = `${mo}/${day}`;
-                const roundBadge = `<span class="loan-round">${it.round}회차</span>`;
                 const pastDueBadge = it.isPastDue ? `<span class="loan-overdue">연체</span>` : '';
                 const breakdown = (it.isGrace || it.isOverdraft)
                     ? `이자 ${fmtMoney(it.interest)}`
                     : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
                 if (it.isDone) {
-                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)} ${roundBadge}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">확인취소</button><button class="btn-sm" onclick="deleteLoan('${it.loanId}')">삭제</button></div></div>`;
+                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">확인취소</button><button class="btn-sm" onclick="deleteLoan('${it.loanId}')">삭제</button></div></div>`;
                 }
-                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)} ${roundBadge}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown}</div></div><div class="right"><span class="amount">−${fmtMoney(it.payment)}</span><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button><button class="btn-sm-edit" onclick="editLoan('${it.loanId}')">수정</button><button class="btn-sm" onclick="deleteLoan('${it.loanId}')">삭제</button></div></div>`;
+                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown}</div></div><div class="right"><span class="amount">−${fmtMoney(it.payment)}</span><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button><button class="btn-sm-edit" onclick="editLoan('${it.loanId}')">수정</button><button class="btn-sm" onclick="deleteLoan('${it.loanId}')">삭제</button></div></div>`;
             }).join('');
             const pendingTotal = allItems.filter(it => !it.isDone).reduce((s, it) => s + it.payment, 0);
             if (pendingTotal > 0) {
