@@ -1557,7 +1557,7 @@ function calcRepaymentSchedule(loan) {
     const today = new Date(); today.setHours(0,0,0,0);
     const payDay = loan.paymentDay || 1;
     let payDate  = new Date(today.getFullYear(), today.getMonth(), payDay);
-    if (payDate <= today) payDate = new Date(today.getFullYear(), today.getMonth() + 1, payDay);
+    if (payDate < today) payDate = new Date(today.getFullYear(), today.getMonth() + 1, payDay);
 
     // 마이너스 통장: 현 잔액 기준 12개월 이자만 예측
     if (loan.repaymentType === 'overdraft') {
