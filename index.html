@@ -665,30 +665,12 @@
                     <label>서비스명</label>
                     <input type="text" id="sub-name" placeholder="예: Netflix, 유튜브 프리미엄">
                 </div>
-                <div class="gk-row">
-                    <div class="form-group">
-                        <label>카테고리</label>
-                        <select id="sub-category">
-                            <option value="streaming">📺 스트리밍</option>
-                            <option value="music">🎵 음악</option>
-                            <option value="software">💻 소프트웨어</option>
-                            <option value="game">🎮 게임</option>
-                            <option value="cloud">☁️ 클라우드</option>
-                            <option value="food">🍔 음식/배달</option>
-                            <option value="shopping">🛒 쇼핑</option>
-                            <option value="telecom">📱 통신비(핸드폰)</option>
-                            <option value="fitness">🏋️ 피트니스</option>
-                            <option value="education">📚 교육</option>
-                            <option value="etc">🌐 기타</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>결제 주기</label>
-                        <select id="sub-cycle" onchange="subCycleChange()">
-                            <option value="monthly">매월</option>
-                            <option value="yearly">매년</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>결제 주기</label>
+                    <select id="sub-cycle" onchange="subCycleChange()">
+                        <option value="monthly">매월</option>
+                        <option value="yearly">매년</option>
+                    </select>
                 </div>
                 <div class="gk-row">
                     <div class="form-group">
@@ -1000,11 +982,6 @@ let _editingIncomeId = null;
 let _editingFixedId  = null;
 let _editingSubId    = null;
 let _editingLoanId   = null;
-const CATEGORY_ICONS = {
-    streaming: '📺', music: '🎵', software: '💻', game: '🎮',
-    cloud: '☁️', food: '🍔', shopping: '🛒', telecom: '📱',
-    fitness: '🏋️', education: '📚', etc: '🌐'
-};
 const DEFAULT = {
     goal: 5000000, targetDate: '2026-04-14', currentBalance: 0,
     balanceDate: todayStr(),
@@ -2022,7 +1999,6 @@ function renderSubscriptions() {
         subs.filter(s => s.active).forEach(sub => {
             const completedMap = {};
             (sub.completedPayments || []).forEach(c => { completedMap[c.date] = c; });
-            const icon = CATEGORY_ICONS[sub.category] || '🌐';
             if (sub.cycle === 'monthly' && sub.billingDay) {
                 let d = new Date(today.getFullYear(), today.getMonth(), sub.billingDay);
                 if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, sub.billingDay);
@@ -2030,7 +2006,7 @@ function renderSubscriptions() {
                     const dateStr = fmtDate(d);
                     const isDone = dateStr in completedMap;
                     const actualAmount = isDone ? completedMap[dateStr].actualAmount : null;
-                    allItems.push({ sub, dateStr, isDone, actualAmount, icon, date: new Date(d) });
+                    allItems.push({ sub, dateStr, isDone, actualAmount, date: new Date(d) });
                     d = new Date(d.getFullYear(), d.getMonth() + 1, sub.billingDay);
                 }
             } else if (sub.cycle === 'yearly' && sub.billingDate) {
@@ -2041,7 +2017,7 @@ function renderSubscriptions() {
                     const dateStr = fmtDate(d);
                     const isDone = dateStr in completedMap;
                     const actualAmount = isDone ? completedMap[dateStr].actualAmount : null;
-                    allItems.push({ sub, dateStr, isDone, actualAmount, icon, date: d });
+                    allItems.push({ sub, dateStr, isDone, actualAmount, date: d });
                 }
             }
         });
@@ -2052,9 +2028,9 @@ function renderSubscriptions() {
             scheduleCardEl.style.display = '';
             scheduleListEl.innerHTML = allItems.map(it => {
                 if (it.isDone) {
-                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${it.icon} ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="subPayUnconfirm('${it.sub.id}','${it.dateStr}',${it.actualAmount})">확인취소</button></div></div>`;
+                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="subPayUnconfirm('${it.sub.id}','${it.dateStr}',${it.actualAmount})">확인취소</button></div></div>`;
                 } else {
-                    return `<div class="list-item"><div class="info"><div class="name">${it.icon} ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)}</div></div><div class="right"><span class="amount">−${fmtMoney(it.sub.amount)}</span><button class="btn-sm-confirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">지출완료</button><button class="btn-sm-edit" onclick="editSubscription('${it.sub.id}')">수정</button><button class="btn-sm" onclick="deleteSubscription('${it.sub.id}')">삭제</button></div></div>`;
+                    return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)}</div></div><div class="right"><span class="amount">−${fmtMoney(it.sub.amount)}</span><button class="btn-sm-confirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">지출완료</button><button class="btn-sm-edit" onclick="editSubscription('${it.sub.id}')">수정</button><button class="btn-sm" onclick="deleteSubscription('${it.sub.id}')">삭제</button></div></div>`;
                 }
             }).join('');
         }
@@ -2066,7 +2042,6 @@ function renderSubscriptions() {
     });
 
     el.innerHTML = sorted.map(sub => {
-        const icon      = CATEGORY_ICONS[sub.category] || '🌐';
         const nextDate  = getNextBillingDate(sub);
         const daysLeft  = Math.ceil((nextDate - today) / 86400000);
         const isSoon    = daysLeft <= 7 && sub.active;
@@ -2084,7 +2059,7 @@ function renderSubscriptions() {
                     <span class="sub-toggle-slider"></span>
                 </label>
                 <div class="info" style="min-width:0;">
-                    <div class="name">${icon} ${escHtml(sub.name)}<span class="sub-badge ${cycleBadge}">${cycleLabel}</span></div>
+                    <div class="name">${escHtml(sub.name)}<span class="sub-badge ${cycleBadge}">${cycleLabel}</span></div>
                     <div class="${dateClass}">${nextStr}${daysText} · ${fmtMoney(sub.amount)}</div>
                 </div>
             </div>
@@ -2097,9 +2072,8 @@ function renderSubscriptions() {
 }
 
 function addSubscription() {
-    const name     = document.getElementById('sub-name').value.trim();
-    const category = document.getElementById('sub-category').value;
-    const cycle    = document.getElementById('sub-cycle').value;
+    const name  = document.getElementById('sub-name').value.trim();
+    const cycle = document.getElementById('sub-cycle').value;
     const amount   = parseInt(document.getElementById('sub-amount').value);
     if (!name || !amount || amount <= 0) { alert('서비스명과 금액을 입력해 주세요.'); return; }
 
@@ -2116,14 +2090,14 @@ function addSubscription() {
 
     if (_editingSubId) {
         const idx = D.subscriptions.findIndex(x => x.id === _editingSubId);
-        if (idx >= 0) D.subscriptions[idx] = { ...D.subscriptions[idx], name, category, cycle, amount, billingDay, billingDate };
+        if (idx >= 0) D.subscriptions[idx] = { ...D.subscriptions[idx], name, cycle, amount, billingDay, billingDate };
         _editingSubId = null;
         const btn = document.getElementById('sub-submit-btn');
         btn.textContent = '+ 구독 추가';
         btn.style.background = '';
         document.getElementById('sub-form-title').textContent = '구독 서비스 추가';
     } else {
-        D.subscriptions.push({ id: uid(), name, category, cycle, amount, billingDay, billingDate, active: true });
+        D.subscriptions.push({ id: uid(), name, cycle, amount, billingDay, billingDate, active: true });
     }
 
     save();
@@ -2138,9 +2112,8 @@ function editSubscription(id) {
     const sub = (D.subscriptions || []).find(x => x.id === id);
     if (!sub) return;
     _editingSubId = id;
-    document.getElementById('sub-name').value     = sub.name;
-    document.getElementById('sub-category').value = sub.category;
-    document.getElementById('sub-cycle').value    = sub.cycle;
+    document.getElementById('sub-name').value  = sub.name;
+    document.getElementById('sub-cycle').value = sub.cycle;
     document.getElementById('sub-amount').value   = sub.amount;
     subCycleChange();
     if (sub.cycle === 'monthly') {
