@@ -503,7 +503,7 @@
         <div class="gk-tabs">
             <button class="gk-tab active" onclick="showTab('log')">📝 지출 기록</button>
             <button class="gk-tab" onclick="showTab('income')">💰 예정 수입</button>
-            <button class="gk-tab" onclick="showTab('fixed')">🔒 예정 고정비</button>
+            <button class="gk-tab" onclick="showTab('fixed')">🔒 예정 지출</button>
             <button class="gk-tab" onclick="showTab('subscription')">📱 구독</button>
             <button class="gk-tab" onclick="showTab('loan')">🏦 대출</button>
             <button class="gk-tab" onclick="showTab('settings')">⚙️ 설정</button>
@@ -550,7 +550,7 @@
 
         <div id="tab-fixed" style="display:none">
             <div class="card">
-                <h2>예정 고정비 추가</h2>
+                <h2>예정 지출 추가</h2>
                 <div class="form-group"><label>항목명</label><input type="text" id="fixed-name" placeholder="예: 월세, 이자, 보험료"></div>
                 <div class="gk-row">
                     <div class="form-group"><label>금액 (원)</label><input type="number" id="fixed-amount" placeholder="0" min="0"></div>
@@ -559,12 +559,12 @@
                 <button class="btn btn-primary" id="fixed-submit-btn" onclick="addFixed()">+ 고정비 등록</button>
             </div>
             <div class="card">
-                <h2>등록된 예정 고정비</h2>
+                <h2>등록된 예정 지출</h2>
                 <div id="fixed-list"><div class="empty">등록된 고정비가 없습니다</div></div>
                 <div id="fixed-total-wrap" style="display:none">
                     <div class="divider"></div>
                     <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;color:#4a5568;padding-top:8px;">
-                        <span>예정 고정비 합계</span>
+                        <span>예정 지출 합계</span>
                         <span id="fixed-total-amount" style="color:#e53e3e;"></span>
                     </div>
                 </div>
@@ -729,7 +729,7 @@
             <div class="card">
                 <div class="info-box">
                     <p>💡 <strong>일일 지출 가능액 계산 방식</strong></p>
-                    <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 고정비 − 목표일 전 활성 구독료 − 목표일 전 미완료 대출 납부금 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
+                    <p>현재잔액 + 목표일 전 예정 수입 − 목표일 전 예정 지출 − 목표일 전 활성 구독료 − 목표일 전 미완료 대출 납부금 − 목표금액 − 비상금 = 앞으로 쓸 수 있는 총 금액</p>
                     <p style="margin-top:6px;">총 가용금액 ÷ 남은 날수 = <strong>일 기준 지출</strong> → 일 기준 − 오늘 지출 = <strong>오늘 남은 가능액</strong></p>
                 </div>
             </div>
