@@ -585,6 +585,12 @@
                 </div>
             </div>
 
+            <!-- 대출 목록 -->
+            <div class="card">
+                <h2>등록된 대출</h2>
+                <div id="loan-list"><div class="empty">등록된 대출이 없습니다</div></div>
+            </div>
+
             <!-- 대출 추가/수정 폼 -->
             <div class="card">
                 <h2 id="loan-form-title">대출 추가</h2>
@@ -650,15 +656,17 @@
                 <button class="btn btn-primary" id="loan-submit-btn" onclick="addLoan()">+ 대출 추가</button>
             </div>
 
-            <!-- 대출 목록 -->
-            <div class="card">
-                <h2>등록된 대출</h2>
-                <div id="loan-list"><div class="empty">등록된 대출이 없습니다</div></div>
-            </div>
-
         </div>
 
         <div id="tab-subscription" style="display:none">
+            <div class="card" id="sub-schedule-card" style="display:none">
+                <h2 id="sub-schedule-card-title">D-day까지 결제 예정</h2>
+                <div id="sub-schedule-list"></div>
+            </div>
+            <div class="card">
+                <h2>등록된 구독 서비스</h2>
+                <div id="sub-list"><div class="empty">등록된 구독 서비스가 없습니다</div></div>
+            </div>
             <div class="card">
                 <h2 id="sub-form-title">구독 서비스 추가</h2>
                 <div class="form-group">
@@ -687,14 +695,6 @@
                     </div>
                 </div>
                 <button class="btn btn-primary" id="sub-submit-btn" onclick="addSubscription()">+ 구독 추가</button>
-            </div>
-            <div class="card" id="sub-schedule-card" style="display:none">
-                <h2 id="sub-schedule-card-title">D-day까지 결제 예정</h2>
-                <div id="sub-schedule-list"></div>
-            </div>
-            <div class="card">
-                <h2>등록된 구독 서비스</h2>
-                <div id="sub-list"><div class="empty">등록된 구독 서비스가 없습니다</div></div>
             </div>
         </div>
 
