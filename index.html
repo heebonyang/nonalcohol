@@ -1716,7 +1716,7 @@ function renderLoans() {
                 if (it.isDone) {
                     return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">확인취소</button></div></div>`;
                 }
-                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown}</div></div><div class="right"><span class="amount">−${fmtMoney(it.payment)}</span><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button><button class="btn-sm-edit" onclick="editLoan('${it.loanId}')">수정</button></div></div>`;
+                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown}</div></div><div class="right"><span class="amount">−${fmtMoney(it.payment)}</span><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button></div></div>`;
             }).join('');
             const pendingTotal = allItems.filter(it => !it.isDone).reduce((s, it) => s + it.payment, 0);
             if (pendingTotal > 0) {
