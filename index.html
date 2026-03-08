@@ -1658,7 +1658,7 @@ function renderLoans() {
     }
 
     const today2 = new Date(); today2.setHours(0,0,0,0);
-    const ddayDate = new Date(D.targetDate); ddayDate.setHours(0,0,0,0);
+    const ddayDate = new Date(D.targetDate); ddayDate.setHours(23,59,59,999);
     const remainDays = Math.max(0, Math.ceil((ddayDate - today2) / 86400000));
 
     // D-day 납부 예정 카드
