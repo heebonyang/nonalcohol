@@ -1709,9 +1709,17 @@ function renderLoans() {
         }
     }
 
-    // 대출 목록
+    // 대출 목록 (당일 기준 다음 납부일 오름차순 정렬)
     const today = new Date(); today.setHours(0,0,0,0);
-    el.innerHTML = loans.map(loan => {
+    const sortedLoans = [...loans].sort((a, b) => {
+        const da = getLoanNextPayDate(a);
+        const db = getLoanNextPayDate(b);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da - db;
+    });
+    el.innerHTML = sortedLoans.map(loan => {
         const nextDate = getLoanNextPayDate(loan);
         const daysLeft = nextDate ? Math.ceil((nextDate - today) / 86400000) : null;
         const isSoon   = daysLeft !== null && daysLeft <= 7;
