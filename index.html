@@ -533,6 +533,15 @@
                 </div>
             </div>
 
+            <!-- ① 카드빚 현황 -->
+            <div class="goal-section" id="dash-card-debt-section" style="display:none; margin-top:10px;">
+                <div class="goal-title">💳 카드빚 현황</div>
+                <div style="text-align:center;">
+                    <div style="font-size:0.75rem; opacity:0.75; margin-bottom:4px;">현재 잔액</div>
+                    <div id="dash-card-debt-amount" style="font-size:2rem; font-weight:800; line-height:1.1; color:#fbb6ce;">-</div>
+                </div>
+            </div>
+
             <!-- ② 이번달 가계부 -->
             <div class="month-nav">
                 <button class="month-nav-btn" onclick="gk_prevMonth()">‹</button>
@@ -781,6 +790,10 @@
                 <div class="form-group">
                     <label>마이너스 통장 잔액 (원) — 이달 1일 기준</label>
                     <input type="number" id="s-overdraft-balance" placeholder="150000000" min="0">
+                </div>
+                <div class="form-group">
+                    <label>카드빚 잔액 (원) — 이달 1일 기준</label>
+                    <input type="number" id="s-card-debt" placeholder="0" min="0">
                 </div>
                 <div class="form-group">
                     <label>이번달 목표 상환액 (원)</label>
@@ -1282,6 +1295,16 @@ function updateDashboard() {
         goalSection.style.display = 'none';
     }
 
+    // ── 카드빚 섹션 ──
+    const cardDebtSection = document.getElementById('dash-card-debt-section');
+    const cardDebt = ((D.monthlySettings || {})[c.vm] || {}).cardDebt ?? null;
+    if (cardDebt !== null && cardDebt > 0) {
+        cardDebtSection.style.display = '';
+        document.getElementById('dash-card-debt-amount').textContent = fmtMoney(cardDebt);
+    } else {
+        cardDebtSection.style.display = 'none';
+    }
+
     // 월 타이틀
     document.getElementById('dash-month-title').textContent = `${vy}년 ${vm_num}월`;
 
@@ -1439,6 +1462,7 @@ function renderSettings() {
     document.getElementById('settings-month-title').textContent = `⚙️ ${vy}년 ${vm_num}월 설정`;
     const ms = (D.monthlySettings || {})[gk_viewMonth] || {};
     document.getElementById('s-overdraft-balance').value = ms.overdraftBalance ?? '';
+    document.getElementById('s-card-debt').value         = ms.cardDebt ?? '';
     document.getElementById('s-monthly-repay').value     = ms.repayTarget ?? '';
 
     // 계산 로직 카드
@@ -1622,11 +1646,13 @@ function dismissOverdraftReminder() {
 
 function saveSettings() {
     const overdraftBalance = document.getElementById('s-overdraft-balance').value;
+    const cardDebt         = document.getElementById('s-card-debt').value;
     const repayTarget      = parseInt(document.getElementById('s-monthly-repay').value) || 0;
     if (!D.monthlySettings) D.monthlySettings = {};
     D.monthlySettings[gk_viewMonth] = {
         ...((D.monthlySettings || {})[gk_viewMonth] || {}),
         overdraftBalance: overdraftBalance !== '' ? parseInt(overdraftBalance) : null,
+        cardDebt: cardDebt !== '' ? parseInt(cardDebt) : null,
         repayTarget
     };
     save(); updateDashboard(); alert('✅ 저장되었습니다!');
