@@ -118,12 +118,6 @@
             border-radius: 20px; padding: 22px; color: white;
             margin-bottom: 16px; box-shadow: 0 8px 24px rgba(90,103,216,0.35);
         }
-        #app-gk .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-        #app-gk .stat-box.wide { grid-column: 1 / -1; }
-        #app-gk .stat-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 11px 10px; text-align: center; }
-        #app-gk .stat-label { font-size: 0.72rem; opacity: 0.8; margin-bottom: 4px; }
-        #app-gk .stat-value { font-size: 1.1rem; font-weight: 700; }
-        #app-gk .stat-value.red { color: #fbb6ce; }
         #app-gk .daily-budget-box {
             background: rgba(255,255,255,0.18); border-radius: 14px; padding: 16px;
             text-align: center; margin-bottom: 12px;
@@ -287,23 +281,6 @@
         #app-gk .loan-schedule-list { display: flex; flex-direction: column; gap: 6px; }
         #app-gk .loan-overdue {font-size: 0.68em; color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 3px; padding: 1px 5px; margin-left: 3px; font-weight: 600; vertical-align: middle; }
 
-        /* ══ 월별 네비게이터 ══ */
-        #app-gk .month-nav {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 14px;
-        }
-        #app-gk .month-title {
-            font-size: 1.05rem; font-weight: 800; text-align: center; flex: 1;
-        }
-        #app-gk .month-nav-btn {
-            background: rgba(255,255,255,0.2); border: none; color: white;
-            font-size: 1.5rem; border-radius: 8px; width: 34px; height: 34px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-family: inherit; line-height: 1; flex-shrink: 0;
-        }
-        #app-gk .month-nav-btn:hover { background: rgba(255,255,255,0.35); }
-        #app-gk .stat-value.income { color: #9deccc; }
-
         /* ══ 최종 목표 (부채 상환) ══ */
         #app-gk .goal-section {
             background: rgba(0,0,0,0.2); border-radius: 14px; padding: 14px 16px;
@@ -383,9 +360,6 @@
             #app-jk .main-streak { font-size: 2.5rem; }
             #app-jk .milestone-chip { min-width: 100px; padding: 8px 10px; }
             #app-jk .mc-icon { font-size: 1.2rem; }
-            #app-gk .stats-grid { gap: 7px; }
-            #app-gk .stat-value { font-size: 0.95rem; }
-            #app-gk .stat-label { font-size: 0.66rem; }
             #app-gk .daily-budget-amount { font-size: 1.6rem; }
             #app-gk .gk-tab { padding: 7px 12px; font-size: 0.78rem; }
         }
@@ -463,21 +437,7 @@
                 </div>
             </div>
 
-            <!-- ② 이번달 가계부 -->
-            <div class="month-nav">
-                <button class="month-nav-btn" onclick="gk_prevMonth()">‹</button>
-                <div class="month-title" id="dash-month-title">2026년 3월</div>
-                <button class="month-nav-btn" onclick="gk_nextMonth()">›</button>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-box wide"><div class="stat-label" id="dash-month-income-label">-월 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
-                <div class="stat-box"><div class="stat-label">고정 지출</div><div class="stat-value red" id="dash-fixed-cost">-</div></div>
-                <div class="stat-box"><div class="stat-label">구독료</div><div class="stat-value red" id="dash-sub-cost">-</div></div>
-                <div class="stat-box"><div class="stat-label">대출 납부</div><div class="stat-value red" id="dash-loan-cost">-</div></div>
-                <div class="stat-box"><div class="stat-label">지출 기록</div><div class="stat-value red" id="dash-var-cost">-</div></div>
-            </div>
-
-            <!-- ③ 오늘 하루 맥시멈 -->
+            <!-- ② 오늘 지출 가능액 -->
             <div class="daily-budget-box" id="dash-daily-box" style="display:none">
                 <div class="daily-budget-label" id="dash-daily-label">오늘 남은 가능액</div>
                 <div class="daily-budget-amount" id="dash-today-remain">-</div>
@@ -707,7 +667,13 @@
         </div>
 
         <div id="tab-settings" style="display:none">
-            <!-- 이번달 설정 -->
+            <!-- 월 이동 -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <button class="btn" style="padding:6px 16px;font-size:0.9rem;" onclick="settingsPrevMonth()">‹</button>
+                <span id="settings-month-nav-title" style="font-weight:800;font-size:1rem;"></span>
+                <button class="btn" style="padding:6px 16px;font-size:0.9rem;" onclick="settingsNextMonth()">›</button>
+            </div>
+            <!-- 설정 -->
             <div class="card">
                 <h2 id="settings-month-title">⚙️ 2026년 3월 설정</h2>
                 <div class="form-group">
@@ -1250,18 +1216,7 @@ function updateDashboard() {
         cardDebtSection.style.display = 'none';
     }
 
-    // 월 타이틀
-    document.getElementById('dash-month-title').textContent = `${vy}년 ${vm_num}월`;
-
-    // 스탯 박스 (4개 지출 카테고리 + 수입)
-    document.getElementById('dash-month-income-label').textContent = `${monthLabel} 수입`;
-    document.getElementById('dash-month-income').textContent = `+${fmtMoney(c.monthIncome)}`;
-    document.getElementById('dash-fixed-cost').textContent   = `−${fmtMoney(c.monthFixedFull)}`;
-    document.getElementById('dash-sub-cost').textContent     = `−${fmtMoney(c.subFixedFull)}`;
-    document.getElementById('dash-loan-cost').textContent    = `−${fmtMoney(c.loanFixedFull)}`;
-    document.getElementById('dash-var-cost').textContent     = `−${fmtMoney(c.monthVarSpend)}`;
-
-    // ── 오늘 하루 맥시멈 ──
+    // ── 오늘 지출 가능액 ──
     const dailyBox = document.getElementById('dash-daily-box');
     if (c.isCurrentMonth) {
         dailyBox.style.display = '';
@@ -1328,20 +1283,20 @@ function updateDashboard() {
     }
 }
 
-function gk_prevMonth() {
+function settingsPrevMonth() {
     const [y, m] = gk_viewMonth.split('-').map(Number);
-    const d = new Date(y, m - 2, 1); // m-1 이 현재 월, m-2 = 이전 월
+    const d = new Date(y, m - 2, 1);
     gk_viewMonth = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-    updateDashboard();
+    renderSettings();
 }
-function gk_nextMonth() {
+function settingsNextMonth() {
     const [y, m] = gk_viewMonth.split('-').map(Number);
-    const d = new Date(y, m, 1); // m 이 다음 월 (0-indexed)
+    const d = new Date(y, m, 1);
     gk_viewMonth = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-    updateDashboard();
+    renderSettings();
 }
-window.gk_prevMonth = gk_prevMonth;
-window.gk_nextMonth = gk_nextMonth;
+window.settingsPrevMonth = settingsPrevMonth;
+window.settingsNextMonth = settingsNextMonth;
 
 function renderLog() {
     const el = document.getElementById('log-list');
@@ -1490,6 +1445,7 @@ function renderSettings() {
     const [vy, vm_num] = gk_viewMonth.split('-').map(Number);
     const mLabel = `${vm_num}월`;
     document.getElementById('settings-month-title').textContent = `⚙️ ${vy}년 ${mLabel} 설정`;
+    document.getElementById('settings-month-nav-title').textContent = `${vy}년 ${mLabel}`;
     document.getElementById('s-overdraft-label').textContent = `마이너스 통장 잔액 (원) — ${mLabel} 1일 기준`;
     document.getElementById('s-card-debt-label').textContent = `카드빚 잔액 (원) — ${mLabel} 1일 기준`;
     document.getElementById('s-repay-label').textContent = `${mLabel} 목표 상환액 (원)`;
