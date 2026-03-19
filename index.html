@@ -118,10 +118,6 @@
             border-radius: 20px; padding: 22px; color: white;
             margin-bottom: 16px; box-shadow: 0 8px 24px rgba(90,103,216,0.35);
         }
-        #app-gk .dashboard-title {
-            font-size: 0.9rem; text-align: center; opacity: 0.85;
-            margin-bottom: 14px; font-weight: 600;
-        }
         #app-gk .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         #app-gk .stat-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 11px 10px; text-align: center; }
         #app-gk .stat-label { font-size: 0.72rem; opacity: 0.8; margin-bottom: 4px; }
@@ -135,9 +131,6 @@
         #app-gk .daily-budget-amount { font-size: 2.1rem; font-weight: 800; line-height: 1.1; }
         #app-gk .daily-budget-amount.over { color: #fbb6ce; }
         #app-gk .daily-budget-sub { font-size: 0.72rem; opacity: 0.7; margin-top: 5px; }
-        #app-gk .progress-labels { display: flex; justify-content: space-between; font-size: 0.72rem; opacity: 0.82; margin-bottom: 5px; }
-        #app-gk .progress-bar { height: 7px; background: rgba(255,255,255,0.25); border-radius: 999px; overflow: hidden; }
-        #app-gk .progress-fill { height: 100%; background: white; border-radius: 999px; transition: width 0.6s ease; }
         #app-gk .notice {
             background: #fffbeb; border-left: 4px solid #f6ad55; border-radius: 10px;
             padding: 11px 14px; margin-bottom: 14px; font-size: 0.83rem; color: #744210;
@@ -269,12 +262,6 @@
         #app-gk .loan-next-pay.far { color: #718096; font-weight: 400; }
         #app-gk .btn-schedule-pay { background: #ebf8ff; color: #2b6cb0; border: none; border-radius: 6px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
         #app-gk .btn-schedule-pay:hover { background: #bee3f8; }
-        #app-gk .pay-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
-        #app-gk .pay-item:last-child { border-bottom: none; }
-        #app-gk .pay-item-date { font-size: 0.8rem; font-weight: 600; color: #4a5568; }
-        #app-gk .pay-item-detail { font-size: 0.72rem; color: #a0aec0; margin-top: 1px; }
-        #app-gk .pay-item-amount { font-size: 0.88rem; font-weight: 700; color: #e53e3e; }
-
         /* ══ 대출 계산 미리보기 CSS ══ */
         #app-gk .loan-calc-preview {
             background: #f0fff4; border: 1.5px solid #9ae6b4;
@@ -290,21 +277,12 @@
         #app-gk .loan-preview-val { font-weight: 700; color: #2d3748; }
         #app-gk .loan-preview-val.red { color: #e53e3e; }
         #app-gk .loan-preview-sub { font-size: 0.72rem; color: #718096; }
-        #app-gk .loan-grace-row td { background: #fefcbf !important; color: #744210; }
-
         /* ══ 상환 일정 CSS ══ */
         #app-gk .loan-repay-badge {
             font-size: 0.67rem; padding: 2px 7px; border-radius: 999px;
             font-weight: 600; background: #fef3c7; color: #92400e; margin-left: 5px;
             vertical-align: middle;
         }
-        #app-gk .loan-pred-box {
-            background: #fff5f5; border: 1px solid #fed7d7;
-            border-radius: 10px; padding: 11px 13px; margin: 8px 0;
-            font-size: 0.8rem; line-height: 2;
-        }
-        #app-gk .loan-pred-row { display: flex; justify-content: space-between; align-items: center; }
-        #app-gk .loan-pred-label { color: #718096; }
         #app-gk .loan-schedule-list { display: flex; flex-direction: column; gap: 6px; }
         #app-gk .loan-overdue {font-size: 0.68em; color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 3px; padding: 1px 5px; margin-left: 3px; font-weight: 600; vertical-align: middle; }
 
@@ -324,7 +302,6 @@
         }
         #app-gk .month-nav-btn:hover { background: rgba(255,255,255,0.35); }
         #app-gk .stat-value.income { color: #9deccc; }
-        #app-gk .progress-fill.over { background: #fbb6ce; }
 
         /* ══ 최종 목표 (부채 상환) ══ */
         #app-gk .goal-section {
@@ -471,7 +448,7 @@
             <div class="goal-section" id="dash-goal-section">
                 <div class="goal-title">마이너스 통장 현황</div>
                 <div style="text-align:center;">
-                    <div style="font-size:0.75rem; opacity:0.75; margin-bottom:4px;">이번달 1일 기준 잔액</div>
+                    <div id="dash-overdraft-month-label" style="font-size:0.75rem; opacity:0.75; margin-bottom:4px;">-월 1일 기준 잔액</div>
                     <div id="dash-debt-current" style="font-size:2rem; font-weight:800; line-height:1.1; color:#fbb6ce;">-</div>
                 </div>
             </div>
@@ -480,7 +457,7 @@
             <div class="goal-section" id="dash-card-debt-section" style="display:none; margin-top:10px;">
                 <div class="goal-title">💳 카드빚 현황</div>
                 <div style="text-align:center;">
-                    <div style="font-size:0.75rem; opacity:0.75; margin-bottom:4px;">이달 1일 기준 잔액</div>
+                    <div id="dash-card-debt-month-label" style="font-size:0.75rem; opacity:0.75; margin-bottom:4px;">-월 1일 기준 잔액</div>
                     <div id="dash-card-debt-amount" style="font-size:2rem; font-weight:800; line-height:1.1; color:#fbb6ce;">-</div>
                 </div>
             </div>
@@ -492,7 +469,7 @@
                 <button class="month-nav-btn" onclick="gk_nextMonth()">›</button>
             </div>
             <div class="stats-grid">
-                <div class="stat-box"><div class="stat-label">이번달 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
+                <div class="stat-box"><div class="stat-label" id="dash-month-income-label">-월 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
                 <div class="stat-box"><div class="stat-label">구독료</div><div class="stat-value red" id="dash-sub-cost">-</div></div>
                 <div class="stat-box"><div class="stat-label">대출 납부</div><div class="stat-value red" id="dash-loan-cost">-</div></div>
             </div>
@@ -731,15 +708,15 @@
             <div class="card">
                 <h2 id="settings-month-title">⚙️ 2026년 3월 설정</h2>
                 <div class="form-group">
-                    <label>마이너스 통장 잔액 (원) — 이달 1일 기준</label>
+                    <label id="s-overdraft-label">마이너스 통장 잔액 (원)</label>
                     <input type="number" id="s-overdraft-balance" placeholder="150000000" min="0">
                 </div>
                 <div class="form-group">
-                    <label>카드빚 잔액 (원) — 이달 1일 기준</label>
+                    <label id="s-card-debt-label">카드빚 잔액 (원)</label>
                     <input type="number" id="s-card-debt" placeholder="0" min="0">
                 </div>
                 <div class="form-group">
-                    <label>이번달 목표 상환액 (원)</label>
+                    <label id="s-repay-label">목표 상환액 (원)</label>
                     <input type="number" id="s-monthly-repay" placeholder="3000000" min="0">
                 </div>
                 <button class="btn btn-success" onclick="saveSettings()">저장</button>
@@ -747,9 +724,9 @@
             <div class="card">
                 <div class="info-box">
                     <p>💡 <strong>매달 1일 해야 할 일</strong></p>
-                    <p>① 마이너스 통장 잔액 입력 (이달 1일 기준 잔액)</p>
-                    <p>② 이번달 목표 상환액 설정</p>
-                    <p style="margin-top:6px;">상환 실적 = 전달 잔액 − 이달 잔액 (자동 계산)</p>
+                    <p>① 마이너스 통장 잔액 입력 (해당 월 1일 기준 잔액)</p>
+                    <p>② 해당 월 목표 상환액 설정</p>
+                    <p style="margin-top:6px;">상환 실적 = 전달 잔액 − 당월 잔액 (자동 계산)</p>
                 </div>
             </div>
             <div class="card" id="monthly-summary-card" style="display:none">
@@ -1227,11 +1204,14 @@ function updateDashboard() {
     const c = calcMonthlyDashboard();
     const [vy, vm_num] = c.vm.split('-').map(Number);
 
+    const monthLabel = `${vm_num}월`;
+
     // ── 최종 목표 섹션 ──
     const goalSection = document.getElementById('dash-goal-section');
     const overdraftBalance = ((D.monthlySettings || {})[c.vm] || {}).overdraftBalance ?? null;
     if (overdraftBalance !== null) {
         goalSection.style.display = '';
+        document.getElementById('dash-overdraft-month-label').textContent = `${monthLabel} 1일 기준 잔액`;
         document.getElementById('dash-debt-current').textContent = fmtMoney(overdraftBalance);
     } else {
         goalSection.style.display = 'none';
@@ -1242,6 +1222,7 @@ function updateDashboard() {
     const cardDebt = ((D.monthlySettings || {})[c.vm] || {}).cardDebt ?? null;
     if (cardDebt !== null && cardDebt > 0) {
         cardDebtSection.style.display = '';
+        document.getElementById('dash-card-debt-month-label').textContent = `${monthLabel} 1일 기준 잔액`;
         document.getElementById('dash-card-debt-amount').textContent = fmtMoney(cardDebt);
     } else {
         cardDebtSection.style.display = 'none';
@@ -1250,10 +1231,11 @@ function updateDashboard() {
     // 월 타이틀
     document.getElementById('dash-month-title').textContent = `${vy}년 ${vm_num}월`;
 
-    // 스탯 박스
+    // 스탯 박스 (전체 월 기준 고정비)
+    document.getElementById('dash-month-income-label').textContent = `${monthLabel} 수입`;
     document.getElementById('dash-month-income').textContent = `+${fmtMoney(c.monthIncome)}`;
-    document.getElementById('dash-sub-cost').textContent     = `−${fmtMoney(c.subFixed)}`;
-    document.getElementById('dash-loan-cost').textContent    = `−${fmtMoney(c.loanFixed)}`;
+    document.getElementById('dash-sub-cost').textContent     = `−${fmtMoney(c.subFixedFull)}`;
+    document.getElementById('dash-loan-cost').textContent    = `−${fmtMoney(c.loanFixedFull)}`;
 
     // ── 오늘 하루 맥시멈 ──
     const dailyBox = document.getElementById('dash-daily-box');
@@ -1466,7 +1448,11 @@ function renderMonthlySummary(vy, vm_num, ms) {
 
 function renderSettings() {
     const [vy, vm_num] = gk_viewMonth.split('-').map(Number);
-    document.getElementById('settings-month-title').textContent = `⚙️ ${vy}년 ${vm_num}월 설정`;
+    const mLabel = `${vm_num}월`;
+    document.getElementById('settings-month-title').textContent = `⚙️ ${vy}년 ${mLabel} 설정`;
+    document.getElementById('s-overdraft-label').textContent = `마이너스 통장 잔액 (원) — ${mLabel} 1일 기준`;
+    document.getElementById('s-card-debt-label').textContent = `카드빚 잔액 (원) — ${mLabel} 1일 기준`;
+    document.getElementById('s-repay-label').textContent = `${mLabel} 목표 상환액 (원)`;
     const ms = (D.monthlySettings || {})[gk_viewMonth] || {};
     document.getElementById('s-overdraft-balance').value = ms.overdraftBalance ?? '';
     document.getElementById('s-card-debt').value         = ms.cardDebt ?? '';
@@ -1933,7 +1919,7 @@ function renderLoans() {
         }).sort((a, b) => a.date - b.date);
 
         if (allItems.length > 0) {
-            document.getElementById('loan-schedule-card-title').textContent = `이번달 납부 예정`;
+            const nowM = new Date(); document.getElementById('loan-schedule-card-title').textContent = `${nowM.getMonth()+1}월 납부 예정`;
             scheduleListEl.innerHTML = allItems.map(it => {
                 const mo = it.date.getMonth() + 1, day = it.date.getDate();
                 const dateStr = `${mo}/${day}`;
@@ -2195,15 +2181,6 @@ function getNextBillingDate(sub) {
     }
 }
 
-function calcSubSummary() {
-    const subs = (D.subscriptions || []).filter(s => s.active);
-    const monthlyTotal = subs.reduce((sum, s) =>
-        sum + (s.cycle === 'monthly' ? s.amount : Math.round(s.amount / 12)), 0);
-    const yearlyTotal  = subs.reduce((sum, s) =>
-        sum + (s.cycle === 'monthly' ? s.amount * 12 : s.amount), 0);
-    return { monthlyTotal, yearlyTotal, activeCount: subs.length };
-}
-
 function renderSubscriptions() {
     const subs = D.subscriptions || [];
     const el = document.getElementById('sub-list');
@@ -2222,7 +2199,7 @@ function renderSubscriptions() {
 
     // 이번달 결제 예정 카드
     if (scheduleCardEl && scheduleListEl) {
-        document.getElementById('sub-schedule-card-title').textContent = `이번달 결제 예정`;
+        document.getElementById('sub-schedule-card-title').textContent = `${new Date().getMonth()+1}월 결제 예정`;
         const allItems = [];
         subs.filter(s => s.active).forEach(sub => {
             const completedMap = {};
