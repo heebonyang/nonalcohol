@@ -817,11 +817,6 @@
                     <p style="margin-top:6px;">상환 실적 = 전달 잔액 − 이달 잔액 (자동 계산)</p>
                 </div>
             </div>
-            <div class="card">
-                <h3 style="margin:0 0 10px;font-size:0.95rem;">데이터 정리</h3>
-                <p style="font-size:0.82rem;color:#555;margin:0 0 12px;">2026년 3월 이전의 지출 기록, 수입 기록, 고정 지출, 월별 설정, 구독/대출 납부 완료 이력을 삭제합니다.</p>
-                <button class="btn" style="background:#e53e3e;color:#fff;" onclick="cleanupOldData()">2026-03 이전 데이터 삭제</button>
-            </div>
         </div>
     </div>
 </div>
@@ -1602,33 +1597,6 @@ function saveSettings() {
     save(); updateDashboard(); alert('✅ 저장되었습니다!');
 }
 
-async function cleanupOldData() {
-    const CUTOFF = '2026-03';
-    if (!confirm(`2026년 3월 이전의 모든 기록을 삭제합니다.\n이 작업은 되돌릴 수 없습니다. 계속할까요?`)) return;
-
-    const isBefore = date => typeof date === 'string' && date < CUTOFF;
-
-    D.spendingLog    = (D.spendingLog    || []).filter(x => !isBefore(x.date));
-    D.incomeEvents   = (D.incomeEvents   || []).filter(x => !isBefore(x.date));
-    D.fixedExpenses  = (D.fixedExpenses  || []).filter(x => !isBefore(x.date));
-    D.loanPayments   = (D.loanPayments   || []).filter(x => !isBefore(x.date));
-
-    if (D.monthlySettings) {
-        Object.keys(D.monthlySettings).forEach(k => { if (k < CUTOFF) delete D.monthlySettings[k]; });
-    }
-
-    (D.subscriptions || []).forEach(sub => {
-        sub.completedPayments = (sub.completedPayments || []).filter(c => !isBefore(c.date));
-    });
-
-    (D.loans || []).forEach(loan => {
-        loan.completedSchedule = (loan.completedSchedule || []).filter(c => !isBefore(c.date));
-    });
-
-    await save();
-    updateDashboard();
-    alert('✅ 정리 완료!');
-}
 
 // ── 대출 관리 ──
 
