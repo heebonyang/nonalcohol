@@ -561,20 +561,14 @@
             </div>
             <div class="stats-grid">
                 <div class="stat-box"><div class="stat-label">이번달 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
-                <div class="stat-box"><div class="stat-label">이번달 지출</div><div class="stat-value red" id="dash-month-expense">-</div></div>
-                <div class="stat-box" style="grid-column: span 2"><div class="stat-label">순수지</div><div class="stat-value" id="dash-month-net">-</div></div>
+                <div class="stat-box"><div class="stat-label">예상 고정지출</div><div class="stat-value red" id="dash-fixed-cost">-</div></div>
             </div>
 
-            <!-- ③ 이번달 목표 상환 -->
-            <div class="repay-section" id="dash-repay-section" style="display:none">
-                <div class="repay-labels">
-                    <span>이번달 목표 상환</span>
-                    <span class="repay-pct" id="dash-repay-pct">0%</span>
-                </div>
-                <div class="repay-bar">
-                    <div class="repay-bar-fill" id="dash-repay-fill" style="width:0%"></div>
-                </div>
-                <div class="repay-detail" id="dash-repay-detail">-</div>
+            <!-- ③ 오늘 하루 맥시멈 -->
+            <div class="daily-budget-box" id="dash-daily-box" style="display:none">
+                <div class="daily-budget-label" id="dash-daily-label">오늘 남은 가능액</div>
+                <div class="daily-budget-amount" id="dash-today-remain">-</div>
+                <div class="daily-budget-sub" id="dash-today-sub"></div>
             </div>
         </div>
 
@@ -1119,10 +1113,7 @@ function calcMonthlyDashboard() {
     const todayKey = fmtDate(today);
     const [vy, vm_num] = vm.split('-').map(Number);
     const isCurrentMonth = (today.getFullYear() === vy && (today.getMonth() + 1) === vm_num);
-
-    // 해당 월의 일수 & 남은 날수
     const daysInMonth = new Date(vy, vm_num, 0).getDate();
-    const daysLeft = isCurrentMonth ? Math.max(1, daysInMonth - today.getDate() + 1) : 0;
 
     // 이번달 수입 (확인된 예정 수입)
     const monthIncome = (D.incomeEvents || [])
@@ -1133,56 +1124,68 @@ function calcMonthlyDashboard() {
     const monthSpend = (D.spendingLog || [])
         .filter(x => x.date.startsWith(vm))
         .reduce((s, x) => s + x.amount, 0);
-    const monthFixed = (D.fixedExpenses || [])
+    const monthFixedConfirmed = (D.fixedExpenses || [])
         .filter(x => x.confirmed && x.date.startsWith(vm))
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
-    const monthExpense = monthSpend + monthFixed;
-
-    const monthNet = monthIncome - monthExpense;
+    const monthExpense = monthSpend + monthFixedConfirmed;
 
     // 이번달 월별 설정
     const ms = (D.monthlySettings || {})[vm] || {};
-    const monthlyBudget = ms.monthlyBudget || 0;
-    const budgetRemain = monthlyBudget - monthExpense;
+    const monthlyRepayTarget = ms.repayTarget || 0;
 
-    // 오늘 지출 (이번달인 경우에만 의미 있음)
-    const todayExpense = isCurrentMonth
-        ? (D.spendingLog || []).filter(x => x.date === todayKey).reduce((s, x) => s + x.amount, 0)
+    // ── 예상 고정지출 (구독 + 대출 월납) ──
+    const monthStart = new Date(vy, vm_num - 1, 1);
+    const monthEnd   = new Date(vy, vm_num, 0);
+    const subFixed = (D.subscriptions || [])
+        .filter(s => s.active)
+        .reduce((sum, sub) => {
+            if (sub.cycle === 'monthly') return sum + sub.amount;
+            if (sub.cycle === 'yearly' && sub.billingDate) {
+                const ref = new Date(sub.billingDate);
+                const hit = new Date(vy, ref.getMonth(), ref.getDate());
+                if (hit >= monthStart && hit <= monthEnd) return sum + sub.amount;
+            }
+            return sum;
+        }, 0);
+    const loanFixed = (D.loans || []).reduce((sum, loan) => {
+        if (!loan.paymentDay) return sum;
+        const payDate = new Date(vy, vm_num - 1, loan.paymentDay);
+        if (payDate >= monthStart && payDate <= monthEnd)
+            return sum + (loan.monthlyPayment || 0);
+        return sum;
+    }, 0);
+    const expectedFixedCosts = subFixed + loanFixed;
+
+    // ── 일 맥시멈 ──
+    const monthlyVariableBudget = monthIncome - expectedFixedCosts - monthlyRepayTarget;
+    const dailyMax = monthIncome > 0 ? monthlyVariableBudget / daysInMonth : 0;
+    const todayVariableSpend = isCurrentMonth
+        ? (D.spendingLog || [])
+            .filter(x => x.date === todayKey && !x.desc.startsWith('[구독]') && !x.desc.startsWith('[대출'))
+            .reduce((s, x) => s + x.amount, 0)
         : 0;
-
-    // 일 기준 가용액 & 오늘 남은 금액
-    const dailyBudget = (isCurrentMonth && daysLeft > 0) ? budgetRemain / daysLeft : 0;
-    const todayRemain = dailyBudget - todayExpense;
-
-    // 예산 사용률
-    const pct = monthlyBudget > 0 ? Math.min(100, (monthExpense / monthlyBudget) * 100) : 0;
-    const isOver = monthlyBudget > 0 && monthExpense > monthlyBudget;
+    const todayRemain = isCurrentMonth ? dailyMax - todayVariableSpend : 0;
+    const hasIncome = monthIncome > 0;
 
     // ── 최종 목표: 부채 상환 ──
     const debtGoal = D.debtGoal || 0;
-    // 현재 잔액: 이번달 설정에서 직접 입력한 마이너스 통장 잔액
     const overdraftBalance = ms.overdraftBalance ?? null;
     const currentDebt = overdraftBalance !== null
         ? overdraftBalance
         : (D.loans || []).filter(l => l.repaymentType === 'overdraft').reduce((s, l) => s + (l.remainingBalance || 0), 0);
     const debtPaid = Math.max(0, debtGoal - currentDebt);
-    const debtPct = debtGoal > 0 ? Math.min(100, (debtPaid / debtGoal) * 100) : 0;
+    const debtPct  = debtGoal > 0 ? Math.min(100, (debtPaid / debtGoal) * 100) : 0;
 
-    // ── 이번달 목표 상환 & 실적 ──
-    const monthlyRepayTarget = ms.repayTarget || 0;
-    // 실적: 전달 잔액 - 이번달 잔액 (월별 설정이 모두 있으면)
+    // ── 이번달 상환 실적 ──
     const prevMonthDate = new Date(vy, vm_num - 2, 1);
-    const prevMonthKey = `${prevMonthDate.getFullYear()}-${pad(prevMonthDate.getMonth() + 1)}`;
-    const prevMs = (D.monthlySettings || {})[prevMonthKey] || {};
-    const prevBalance = prevMs.overdraftBalance ?? null;
+    const prevMonthKey  = `${prevMonthDate.getFullYear()}-${pad(prevMonthDate.getMonth() + 1)}`;
+    const prevMs        = (D.monthlySettings || {})[prevMonthKey] || {};
+    const prevBalance   = prevMs.overdraftBalance ?? null;
     const monthRepayActual = (prevBalance !== null && overdraftBalance !== null)
-        ? Math.max(0, prevBalance - overdraftBalance)
-        : (D.spendingLog || [])
-            .filter(x => x.date.startsWith(vm) && (x.desc.startsWith('[대출]') || x.desc.startsWith('[대출이자]')))
-            .reduce((s, x) => s + x.amount, 0);
+        ? Math.max(0, prevBalance - overdraftBalance) : 0;
     const repayPct = monthlyRepayTarget > 0 ? Math.min(100, (monthRepayActual / monthlyRepayTarget) * 100) : 0;
 
-    // 앞으로 7일 내 미완료 예정 거래 (오늘 기준, 이번달 여부 무관)
+    // ── 7일 내 예정 거래 ──
     const next7 = new Date(today); next7.setDate(next7.getDate() + 7);
     const upcomingIncome = (D.incomeEvents || [])
         .filter(x => !x.confirmed && new Date(x.date) >= today && new Date(x.date) <= next7)
@@ -1220,7 +1223,7 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthExpense, monthNet, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
+    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, dailyMax, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
@@ -1244,25 +1247,36 @@ function updateDashboard() {
 
     // 스탯 박스
     document.getElementById('dash-month-income').textContent = `+${fmtMoney(c.monthIncome)}`;
-    document.getElementById('dash-month-expense').textContent = `−${fmtMoney(c.monthExpense)}`;
-    const netEl = document.getElementById('dash-month-net');
-    netEl.textContent = (c.monthNet >= 0 ? '+' : '−') + fmtMoney(Math.abs(c.monthNet));
-    netEl.className = 'stat-value' + (c.monthNet < 0 ? ' red' : ' income');
-    document.getElementById('alert-over').style.display = 'none';
+    document.getElementById('dash-fixed-cost').textContent   = `−${fmtMoney(c.expectedFixedCosts)}`;
 
-    // ── 이번달 목표 상환 섹션 ──
-    const repaySection = document.getElementById('dash-repay-section');
-    if (c.monthlyRepayTarget > 0 && c.isCurrentMonth) {
-        repaySection.style.display = '';
-        document.getElementById('dash-repay-pct').textContent = `${Math.round(c.repayPct)}%`;
-        document.getElementById('dash-repay-fill').style.width = `${c.repayPct}%`;
-        const repayOver = c.monthRepayActual >= c.monthlyRepayTarget;
-        document.getElementById('dash-repay-fill').style.background = repayOver ? '#9deccc' : 'rgba(255,255,255,0.8)';
-        document.getElementById('dash-repay-detail').textContent =
-            `실제 ${fmtMoney(c.monthRepayActual)} / 목표 ${fmtMoney(c.monthlyRepayTarget)}` +
-            (repayOver ? ' — 목표 달성!' : ` — ${fmtMoney(c.monthlyRepayTarget - c.monthRepayActual)} 더 필요`);
+    // ── 오늘 하루 맥시멈 ──
+    const dailyBox = document.getElementById('dash-daily-box');
+    if (c.isCurrentMonth) {
+        dailyBox.style.display = '';
+        if (!c.hasIncome) {
+            document.getElementById('dash-daily-label').textContent = '오늘 남은 가능액';
+            document.getElementById('dash-today-remain').textContent = '수입을 등록해 주세요';
+            document.getElementById('dash-today-remain').className = 'daily-budget-amount';
+            document.getElementById('dash-today-sub').textContent = '';
+            document.getElementById('alert-over').style.display = 'none';
+        } else if (c.todayRemain < 0) {
+            document.getElementById('dash-daily-label').textContent = '오늘 남은 가능액';
+            document.getElementById('dash-today-remain').textContent = `−${fmtMoney(Math.abs(c.todayRemain))}`;
+            document.getElementById('dash-today-remain').className = 'daily-budget-amount over';
+            document.getElementById('dash-today-sub').textContent =
+                `일 맥시멈 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todayVariableSpend)}`;
+            document.getElementById('alert-over').style.display = 'block';
+        } else {
+            document.getElementById('dash-daily-label').textContent = '오늘 남은 가능액';
+            document.getElementById('dash-today-remain').textContent = fmtMoney(c.todayRemain);
+            document.getElementById('dash-today-remain').className = 'daily-budget-amount';
+            document.getElementById('dash-today-sub').textContent =
+                `일 맥시멈 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todayVariableSpend)}`;
+            document.getElementById('alert-over').style.display = 'none';
+        }
     } else {
-        repaySection.style.display = 'none';
+        dailyBox.style.display = 'none';
+        document.getElementById('alert-over').style.display = 'none';
     }
 
     // 7일 내 예정 알림
