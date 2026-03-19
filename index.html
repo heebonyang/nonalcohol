@@ -1118,31 +1118,15 @@ function calcMonthlyDashboard() {
     const ms = (D.monthlySettings || {})[vm] || {};
     const monthlyRepayTarget = ms.repayTarget || 0;
 
-    // ── 예상 고정지출 (구독 + 대출 월납) ──
     const monthStart = new Date(vy, vm_num - 1, 1);
     const monthEnd   = new Date(vy, vm_num, 0);
-    // dailyMax 계산용: 이번달 전체 고정지출
-    const subFixedFull = (D.subscriptions || [])
-        .filter(s => s.active)
-        .reduce((sum, sub) => {
-            if (sub.cycle === 'monthly') return sum + sub.amount;
-            if (sub.cycle === 'yearly' && sub.billingDate) {
-                const ref = new Date(sub.billingDate);
-                const hit = new Date(vy, ref.getMonth(), ref.getDate());
-                if (hit >= monthStart && hit <= monthEnd) return sum + sub.amount;
-            }
-            return sum;
-        }, 0);
-    const loanFixedFull = (D.loans || []).reduce((sum, loan) => {
-        if (!loan.paymentDay) return sum;
-        const payDate = new Date(vy, vm_num - 1, loan.paymentDay);
-        if (payDate >= monthStart && payDate <= monthEnd)
-            return sum + (loan.monthlyPayment || 0);
-        return sum;
-    }, 0);
-    const expectedFixedCosts = subFixedFull + loanFixedFull;
-    // 대쉬보드 표시용: 오늘 이후 아직 빠져나가지 않은 금액만
+    // 기준일: 이번달이면 오늘, 다른달이면 월 시작
     const fromDate = isCurrentMonth ? today : monthStart;
+    const remainingDays = isCurrentMonth
+        ? Math.max(1, Math.ceil((monthEnd - today) / 86400000) + 1)
+        : daysInMonth;
+
+    // ── 남은 구독료 (오늘 이후 결제일) ──
     const subFixed = (D.subscriptions || [])
         .filter(s => s.active)
         .reduce((sum, sub) => {
@@ -1156,22 +1140,60 @@ function calcMonthlyDashboard() {
             }
             return sum;
         }, 0);
+    // stat box용 전체 (이달) 구독료
+    const subFixedFull = (D.subscriptions || [])
+        .filter(s => s.active)
+        .reduce((sum, sub) => {
+            if (sub.cycle === 'monthly') return sum + sub.amount;
+            if (sub.cycle === 'yearly' && sub.billingDate) {
+                const ref = new Date(sub.billingDate);
+                const hit = new Date(vy, ref.getMonth(), ref.getDate());
+                if (hit >= monthStart && hit <= monthEnd) return sum + sub.amount;
+            }
+            return sum;
+        }, 0);
+
+    // ── 남은 대출 납부 (오늘 이후 납부일, 미납 건만) ──
     const loanFixed = (D.loans || []).reduce((sum, loan) => {
         if (!loan.paymentDay) return sum;
         const payDate = new Date(vy, vm_num - 1, loan.paymentDay);
-        if (payDate >= fromDate && payDate <= monthEnd)
+        if (payDate < fromDate || payDate > monthEnd) return sum;
+        // 이미 납부 완료된 달은 제외
+        const dateKey = `${vy}.${String(vm_num).padStart(2,'0')}`;
+        const done = (loan.completedSchedule || []).some(c => c.date === dateKey);
+        return done ? sum : sum + (loan.monthlyPayment || 0);
+    }, 0);
+    // stat box용 전체 (이달) 대출 납부
+    const loanFixedFull = (D.loans || []).reduce((sum, loan) => {
+        if (!loan.paymentDay) return sum;
+        const payDate = new Date(vy, vm_num - 1, loan.paymentDay);
+        if (payDate >= monthStart && payDate <= monthEnd)
             return sum + (loan.monthlyPayment || 0);
         return sum;
     }, 0);
 
-    // ── 예정 고정지출 (fixedExpenses 탭) ──
+    // ── 남은 예정 지출 (미확인 & 오늘 이후) ──
     const fixedExpensesThisMonth = (D.fixedExpenses || [])
-        .filter(x => x.date.startsWith(vm))
+        .filter(x => x.date.startsWith(vm) && !x.confirmed && x.date >= todayKey)
+        .reduce((s, x) => s + x.amount, 0);
+    // 이미 확인된 예정 지출 (이미 지출됨)
+    const fixedExpensesConfirmed = (D.fixedExpenses || [])
+        .filter(x => x.date.startsWith(vm) && x.confirmed)
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
 
-    // ── 일 맥시멈 ──
-    const monthlyVariableBudget = monthIncome - expectedFixedCosts - fixedExpensesThisMonth - monthlyRepayTarget;
-    const dailyMax = monthlyVariableBudget / daysInMonth;
+    // ── 오늘 이전까지의 변동 지출 (이미 소비) ──
+    const variableSpentBeforeToday = isCurrentMonth
+        ? (D.spendingLog || [])
+            .filter(x => x.date.startsWith(vm) && x.date < todayKey
+                && !x.desc.startsWith('[구독]') && !x.desc.startsWith('[대출'))
+            .reduce((s, x) => s + x.amount, 0)
+        : 0;
+
+    // ── 일 맥시멈 (남은 기간 기준) ──
+    // 남은 가용예산 = 수입 - 남은 고정비 - 이미 확인된 예정지출 - 목표상환 - 이미 쓴 변동지출
+    const monthlyVariableBudget = monthIncome - subFixed - loanFixed - fixedExpensesThisMonth
+        - fixedExpensesConfirmed - monthlyRepayTarget - variableSpentBeforeToday;
+    const dailyMax = monthlyVariableBudget / remainingDays;
     const todayVariableSpend = isCurrentMonth
         ? (D.spendingLog || [])
             .filter(x => x.date === todayKey && !x.desc.startsWith('[구독]') && !x.desc.startsWith('[대출'))
@@ -1179,6 +1201,7 @@ function calcMonthlyDashboard() {
         : 0;
     const todayRemain = isCurrentMonth ? dailyMax - todayVariableSpend : 0;
     const hasIncome = monthIncome > 0;
+    const expectedFixedCosts = subFixed + loanFixed; // 남은 고정비 합계
 
     // ── 최종 목표: 부채 상환 ──
     const debtGoal = D.debtGoal || 0;
@@ -1236,7 +1259,7 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, subFixed, loanFixed, subFixedFull, loanFixedFull, fixedExpensesThisMonth, dailyMax, monthlyVariableBudget, daysInMonth, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
+    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, subFixed, loanFixed, subFixedFull, loanFixedFull, fixedExpensesThisMonth, fixedExpensesConfirmed, variableSpentBeforeToday, dailyMax, monthlyVariableBudget, daysInMonth, remainingDays, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
@@ -1426,15 +1449,17 @@ function renderSettings() {
         </div>`;
     body.innerHTML =
         row('이번달 수입', `+${fmtMoney(c.monthIncome)}`, '#276749') +
-        row('구독료', `−${fmtMoney(c.subFixedFull)}`, '#c53030') +
-        row('대출 납부', `−${fmtMoney(c.loanFixedFull)}`, '#c53030') +
-        row('예정 고정지출', `−${fmtMoney(c.fixedExpensesThisMonth)}`, '#c53030') +
+        row(`남은 구독료`, `−${fmtMoney(c.subFixed)}`, '#c53030') +
+        row(`남은 대출 납부`, `−${fmtMoney(c.loanFixed)}`, '#c53030') +
+        row('남은 예정 지출', `−${fmtMoney(c.fixedExpensesThisMonth)}`, '#c53030') +
+        row('확인된 예정 지출', `−${fmtMoney(c.fixedExpensesConfirmed)}`, '#c53030') +
         row('목표 상환액', `−${fmtMoney(c.monthlyRepayTarget)}`, '#c53030') +
+        row('이전 변동 지출', `−${fmtMoney(c.variableSpentBeforeToday)}`, '#c53030') +
         `<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:700;font-size:0.88rem;">
-            <span>월 가용예산</span><span>${fmtMoney(c.monthlyVariableBudget)}</span>
+            <span>남은 가용예산</span><span>${fmtMoney(c.monthlyVariableBudget)}</span>
         </div>` +
         `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f4f8;padding:4px 0;color:#718096;font-size:0.8rem;">
-            <span>÷ ${c.daysInMonth}일</span><span>= 일 ${fmtMoney(c.dailyMax)}</span>
+            <span>÷ ${c.remainingDays}일 (오늘~말일)</span><span>= 일 ${fmtMoney(c.dailyMax)}</span>
         </div>` +
         row('오늘 지출', `−${fmtMoney(c.todayVariableSpend)}`, '#c53030') +
         `<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:800;font-size:1rem;color:#0284c7;">
