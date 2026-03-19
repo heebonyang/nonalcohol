@@ -1117,9 +1117,9 @@ function calcMonthlyDashboard() {
     const isCurrentMonth = (today.getFullYear() === vy && (today.getMonth() + 1) === vm_num);
     const daysInMonth = new Date(vy, vm_num, 0).getDate();
 
-    // 이번달 수입 (확인된 예정 수입)
+    // 이번달 수입 (확인된 수입 + 미확인 예정 수입 모두 포함)
     const monthIncome = (D.incomeEvents || [])
-        .filter(x => x.confirmed && x.date.startsWith(vm))
+        .filter(x => x.date.startsWith(vm))
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
 
     // 이번달 지출 (spendingLog + 확인된 예정 지출)
@@ -1183,7 +1183,7 @@ function calcMonthlyDashboard() {
 
     // ── 일 맥시멈 ──
     const monthlyVariableBudget = monthIncome - expectedFixedCosts - monthlyRepayTarget;
-    const dailyMax = monthIncome > 0 ? monthlyVariableBudget / daysInMonth : 0;
+    const dailyMax = monthlyVariableBudget / daysInMonth;
     const todayVariableSpend = isCurrentMonth
         ? (D.spendingLog || [])
             .filter(x => x.date === todayKey && !x.desc.startsWith('[구독]') && !x.desc.startsWith('[대출'))
@@ -1279,27 +1279,18 @@ function updateDashboard() {
     const dailyBox = document.getElementById('dash-daily-box');
     if (c.isCurrentMonth) {
         dailyBox.style.display = '';
-        if (!c.hasIncome) {
-            document.getElementById('dash-daily-label').textContent = '오늘 남은 가능액';
-            document.getElementById('dash-today-remain').textContent = '수입을 등록해 주세요';
-            document.getElementById('dash-today-remain').className = 'daily-budget-amount';
-            document.getElementById('dash-today-sub').textContent = '';
-            document.getElementById('alert-over').style.display = 'none';
-        } else if (c.todayRemain < 0) {
-            document.getElementById('dash-daily-label').textContent = '오늘 남은 가능액';
+        document.getElementById('dash-daily-label').textContent = '오늘 지출 가능액';
+        if (c.todayRemain < 0) {
             document.getElementById('dash-today-remain').textContent = `−${fmtMoney(Math.abs(c.todayRemain))}`;
             document.getElementById('dash-today-remain').className = 'daily-budget-amount over';
-            document.getElementById('dash-today-sub').textContent =
-                `일 맥시멈 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todayVariableSpend)}`;
             document.getElementById('alert-over').style.display = 'block';
         } else {
-            document.getElementById('dash-daily-label').textContent = '오늘 남은 가능액';
             document.getElementById('dash-today-remain').textContent = fmtMoney(c.todayRemain);
             document.getElementById('dash-today-remain').className = 'daily-budget-amount';
-            document.getElementById('dash-today-sub').textContent =
-                `일 맥시멈 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todayVariableSpend)}`;
             document.getElementById('alert-over').style.display = 'none';
         }
+        document.getElementById('dash-today-sub').textContent =
+            `일 맥시멈 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todayVariableSpend)}`;
     } else {
         dailyBox.style.display = 'none';
         document.getElementById('alert-over').style.display = 'none';
