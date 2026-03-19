@@ -347,6 +347,59 @@
         #app-gk .stat-value.income { color: #9deccc; }
         #app-gk .progress-fill.over { background: #fbb6ce; }
 
+        /* ══ 최종 목표 (부채 상환) ══ */
+        #app-gk .goal-section {
+            background: rgba(0,0,0,0.2); border-radius: 14px; padding: 14px 16px;
+            margin-bottom: 16px;
+        }
+        #app-gk .goal-title {
+            font-size: 0.8rem; font-weight: 700; opacity: 0.9; margin-bottom: 10px;
+            letter-spacing: -0.01em;
+        }
+        #app-gk .goal-stats {
+            display: flex; margin-bottom: 10px;
+        }
+        #app-gk .goal-stat {
+            flex: 1; text-align: center;
+        }
+        #app-gk .goal-stat + .goal-stat {
+            border-left: 1px solid rgba(255,255,255,0.18);
+        }
+        #app-gk .goal-stat-label {
+            font-size: 0.67rem; opacity: 0.72; margin-bottom: 3px;
+        }
+        #app-gk .goal-stat-value {
+            font-size: 0.87rem; font-weight: 700;
+        }
+        #app-gk .goal-progress-labels {
+            display: flex; justify-content: space-between;
+            font-size: 0.71rem; opacity: 0.8; margin-bottom: 5px;
+        }
+        #app-gk .goal-progress-bar {
+            height: 8px; background: rgba(255,255,255,0.18);
+            border-radius: 999px; overflow: hidden;
+        }
+        #app-gk .goal-progress-fill {
+            height: 100%; background: #9deccc; border-radius: 999px;
+            transition: width 0.6s ease;
+        }
+
+        /* ══ 이번달 상환 목표 ══ */
+        #app-gk .repay-section {
+            background: rgba(255,255,255,0.13); border-radius: 12px;
+            padding: 11px 14px; margin-top: 12px;
+        }
+        #app-gk .repay-labels {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.77rem; font-weight: 700; margin-bottom: 6px;
+        }
+        #app-gk .repay-pct { font-size: 0.77rem; opacity: 0.9; }
+        #app-gk .repay-detail {
+            font-size: 0.69rem; opacity: 0.72; margin-top: 5px; text-align: center;
+        }
+        #app-gk .repay-bar { height: 6px; background: rgba(255,255,255,0.2); border-radius: 999px; overflow: hidden; }
+        #app-gk .repay-bar-fill { height: 100%; background: #9deccc; border-radius: 999px; transition: width 0.6s ease; }
+
         /* ══ 모바일 반응형 ══ */
         @media (max-width: 600px) {
             /* 탭: 좌우 safe-area 패딩 포함 */
@@ -478,6 +531,33 @@
 <div id="app-gk" class="app-section">
     <div class="container">
         <div class="dashboard">
+            <!-- ① 최종 목표: 마이너스 통장 완전 상환 -->
+            <div class="goal-section" id="dash-goal-section">
+                <div class="goal-title">🏦 최종 목표 — 마이너스 통장 완전 상환</div>
+                <div class="goal-stats">
+                    <div class="goal-stat">
+                        <div class="goal-stat-label">초기 부채</div>
+                        <div class="goal-stat-value" id="dash-debt-goal">-</div>
+                    </div>
+                    <div class="goal-stat">
+                        <div class="goal-stat-label">현재 잔액</div>
+                        <div class="goal-stat-value red" id="dash-debt-current">-</div>
+                    </div>
+                    <div class="goal-stat">
+                        <div class="goal-stat-label">갚은 금액</div>
+                        <div class="goal-stat-value income" id="dash-debt-paid">-</div>
+                    </div>
+                </div>
+                <div class="goal-progress-labels">
+                    <span id="dash-debt-pct-label">0% 달성</span>
+                    <span id="dash-debt-remain-label">-</span>
+                </div>
+                <div class="goal-progress-bar">
+                    <div class="goal-progress-fill" id="dash-debt-progress" style="width:0%"></div>
+                </div>
+            </div>
+
+            <!-- ② 이번달 가계부 -->
             <div class="month-nav">
                 <button class="month-nav-btn" onclick="gk_prevMonth()">‹</button>
                 <div class="month-title" id="dash-month-title">2026년 3월</div>
@@ -500,6 +580,18 @@
             </div>
             <div class="progress-bar">
                 <div class="progress-fill" id="dash-progress" style="width:0%"></div>
+            </div>
+
+            <!-- ③ 이번달 목표 상환 -->
+            <div class="repay-section" id="dash-repay-section" style="display:none">
+                <div class="repay-labels">
+                    <span>이번달 목표 상환</span>
+                    <span class="repay-pct" id="dash-repay-pct">0%</span>
+                </div>
+                <div class="repay-bar">
+                    <div class="repay-bar-fill" id="dash-repay-fill" style="width:0%"></div>
+                </div>
+                <div class="repay-detail" id="dash-repay-detail">-</div>
             </div>
         </div>
 
@@ -727,6 +819,8 @@
         <div id="tab-settings" style="display:none">
             <div class="card">
                 <h2>⚙️ 기본 설정</h2>
+                <div class="form-group"><label>초기 총 부채 (원) — 최종 목표 기준</label><input type="number" id="s-debt-goal" placeholder="150000000"></div>
+                <div class="form-group"><label>이번달 목표 상환액 (원)</label><input type="number" id="s-monthly-repay" placeholder="3000000"></div>
                 <div class="form-group"><label>월 예산 (원)</label><input type="number" id="s-monthly-budget" placeholder="1500000"></div>
                 <div class="divider"></div>
                 <div class="form-group"><label>목표 금액 (원) — 대출/구독 D-day 기준</label><input type="number" id="s-goal" placeholder="5000000"></div>
@@ -739,9 +833,9 @@
             </div>
             <div class="card">
                 <div class="info-box">
-                    <p>💡 <strong>월별 가계부 계산 방식</strong></p>
-                    <p>이번달 수입 = 확인된 예정 수입 합계</p>
-                    <p>이번달 지출 = 지출 기록 + 확인된 예정 지출 (구독/대출 포함)</p>
+                    <p>💡 <strong>계산 방식</strong></p>
+                    <p>최종 목표 달성률 = (초기 부채 − 현재 마이너스 통장 잔액) ÷ 초기 부채</p>
+                    <p>이번달 상환 실적 = 지출 기록 중 [대출] · [대출이자] 항목 합계</p>
                     <p style="margin-top:6px;">예산 잔여 ÷ 남은 일수 = <strong>일 기준 지출</strong> → 일 기준 − 오늘 지출 = <strong>오늘 남은 가능액</strong></p>
                 </div>
             </div>
@@ -1016,6 +1110,8 @@ const DEFAULT = {
     balanceDate: todayStr(),
     emergencyFund: 1000000,
     monthlyBudget: 0,
+    debtGoal: 150000000,       // 초기 총 부채 (최종 목표 기준)
+    monthlyRepayTarget: 0,     // 이번달 목표 상환액
     incomeEvents: [],    // [{id, name, amount, date}]
     fixedExpenses: [],   // [{id, name, amount, date}]
     spendingLog: [],
@@ -1080,6 +1176,23 @@ function calcMonthlyDashboard() {
     const pct = monthlyBudget > 0 ? Math.min(100, (monthExpense / monthlyBudget) * 100) : 0;
     const isOver = monthlyBudget > 0 && monthExpense > monthlyBudget;
 
+    // ── 최종 목표: 부채 상환 ──
+    const debtGoal = D.debtGoal || 0;
+    // 현재 마이너스 통장 잔액 합산 (overdraft 타입 대출)
+    const currentDebt = (D.loans || [])
+        .filter(l => l.repaymentType === 'overdraft')
+        .reduce((s, l) => s + (l.remainingBalance || 0), 0);
+    const debtPaid = Math.max(0, debtGoal - currentDebt);
+    const debtPct = debtGoal > 0 ? Math.min(100, (debtPaid / debtGoal) * 100) : 0;
+
+    // ── 이번달 목표 상환 ──
+    const monthlyRepayTarget = D.monthlyRepayTarget || 0;
+    // spendingLog 중 이번달 대출 납부액 (대출 원금+이자 모두 포함)
+    const monthRepayActual = (D.spendingLog || [])
+        .filter(x => x.date.startsWith(vm) && (x.desc.startsWith('[대출]') || x.desc.startsWith('[대출이자]')))
+        .reduce((s, x) => s + x.amount, 0);
+    const repayPct = monthlyRepayTarget > 0 ? Math.min(100, (monthRepayActual / monthlyRepayTarget) * 100) : 0;
+
     // 앞으로 7일 내 미완료 예정 거래 (오늘 기준, 이번달 여부 무관)
     const next7 = new Date(today); next7.setDate(next7.getDate() + 7);
     const upcomingIncome = (D.incomeEvents || [])
@@ -1118,12 +1231,26 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthExpense, monthNet, monthlyBudget, budgetRemain, dailyBudget, todayExpense, todayRemain, pct, isOver, daysLeft, upcomingItems };
+    return { vm, isCurrentMonth, monthIncome, monthExpense, monthNet, monthlyBudget, budgetRemain, dailyBudget, todayExpense, todayRemain, pct, isOver, daysLeft, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
     const c = calcMonthlyDashboard();
     const [vy, vm_num] = c.vm.split('-').map(Number);
+
+    // ── 최종 목표 섹션 ──
+    const goalSection = document.getElementById('dash-goal-section');
+    if (c.debtGoal > 0) {
+        goalSection.style.display = '';
+        document.getElementById('dash-debt-goal').textContent    = fmtMoney(c.debtGoal);
+        document.getElementById('dash-debt-current').textContent = fmtMoney(c.currentDebt);
+        document.getElementById('dash-debt-paid').textContent    = fmtMoney(c.debtPaid);
+        document.getElementById('dash-debt-pct-label').textContent = `${Math.round(c.debtPct)}% 달성`;
+        document.getElementById('dash-debt-remain-label').textContent = `잔여 ${fmtMoney(c.currentDebt)}`;
+        document.getElementById('dash-debt-progress').style.width = `${c.debtPct}%`;
+    } else {
+        goalSection.style.display = 'none';
+    }
 
     // 월 타이틀
     document.getElementById('dash-month-title').textContent = `${vy}년 ${vm_num}월`;
@@ -1167,6 +1294,21 @@ function updateDashboard() {
     const fill = document.getElementById('dash-progress');
     fill.style.width = `${c.pct}%`;
     fill.className = 'progress-fill' + (c.isOver ? ' over' : '');
+
+    // ── 이번달 목표 상환 섹션 ──
+    const repaySection = document.getElementById('dash-repay-section');
+    if (c.monthlyRepayTarget > 0 && c.isCurrentMonth) {
+        repaySection.style.display = '';
+        document.getElementById('dash-repay-pct').textContent = `${Math.round(c.repayPct)}%`;
+        document.getElementById('dash-repay-fill').style.width = `${c.repayPct}%`;
+        const repayOver = c.monthRepayActual >= c.monthlyRepayTarget;
+        document.getElementById('dash-repay-fill').style.background = repayOver ? '#9deccc' : 'rgba(255,255,255,0.8)';
+        document.getElementById('dash-repay-detail').textContent =
+            `실제 ${fmtMoney(c.monthRepayActual)} / 목표 ${fmtMoney(c.monthlyRepayTarget)}` +
+            (repayOver ? ' — 목표 달성!' : ` — ${fmtMoney(c.monthlyRepayTarget - c.monthRepayActual)} 더 필요`);
+    } else {
+        repaySection.style.display = 'none';
+    }
 
     // 7일 내 예정 알림
     const noticeEl = document.getElementById('notice-upcoming');
@@ -1292,6 +1434,8 @@ function renderFixed() {
 }
 
 function renderSettings() {
+    document.getElementById('s-debt-goal').value      = D.debtGoal || 150000000;
+    document.getElementById('s-monthly-repay').value  = D.monthlyRepayTarget || 0;
     document.getElementById('s-monthly-budget').value = D.monthlyBudget || 0;
     document.getElementById('s-goal').value      = D.goal;
     document.getElementById('s-target').value    = D.targetDate;
@@ -1449,12 +1593,16 @@ function dismissOverdraftReminder() {
 }
 
 function saveSettings() {
+    const debtGoal          = parseInt(document.getElementById('s-debt-goal').value) || 0;
+    const monthlyRepayTarget = parseInt(document.getElementById('s-monthly-repay').value) || 0;
     const monthlyBudget = parseInt(document.getElementById('s-monthly-budget').value) || 0;
     const goal          = parseInt(document.getElementById('s-goal').value) || 0;
     const targetDate    = document.getElementById('s-target').value;
     const balance       = parseInt(document.getElementById('s-balance').value) || 0;
     const emergencyFund = parseInt(document.getElementById('s-emergency').value) || 0;
     if (balance !== D.currentBalance) D.balanceDate = todayStr();
+    D.debtGoal = debtGoal;
+    D.monthlyRepayTarget = monthlyRepayTarget;
     D.monthlyBudget = monthlyBudget;
     D.goal = goal; D.targetDate = targetDate; D.currentBalance = balance; D.emergencyFund = emergencyFund;
     save(); updateDashboard(); alert('✅ 저장되었습니다!');
