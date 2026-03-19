@@ -562,20 +562,7 @@
             <div class="stats-grid">
                 <div class="stat-box"><div class="stat-label">이번달 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
                 <div class="stat-box"><div class="stat-label">이번달 지출</div><div class="stat-value red" id="dash-month-expense">-</div></div>
-                <div class="stat-box"><div class="stat-label">순수지</div><div class="stat-value" id="dash-month-net">-</div></div>
-                <div class="stat-box"><div class="stat-label">예산 잔여</div><div class="stat-value" id="dash-budget-remain">-</div></div>
-            </div>
-            <div class="daily-budget-box" id="dash-daily-box">
-                <div class="daily-budget-label">오늘 남은 지출 가능액</div>
-                <div class="daily-budget-amount" id="dash-today-remain">-</div>
-                <div class="daily-budget-sub" id="dash-today-sub"></div>
-            </div>
-            <div class="progress-labels">
-                <span id="dash-spent-label">지출 0원</span>
-                <span id="dash-budget-label">예산 0원</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="dash-progress" style="width:0%"></div>
+                <div class="stat-box" style="grid-column: span 2"><div class="stat-label">순수지</div><div class="stat-value" id="dash-month-net">-</div></div>
             </div>
 
             <!-- ③ 이번달 목표 상환 -->
@@ -824,27 +811,13 @@
                     <label>이번달 목표 상환액 (원)</label>
                     <input type="number" id="s-monthly-repay" placeholder="3000000" min="0">
                 </div>
-                <div class="form-group">
-                    <label>이번달 생활비 예산 (원)</label>
-                    <input type="number" id="s-monthly-budget" placeholder="1500000" min="0">
-                </div>
                 <button class="btn btn-success" onclick="saveSettings()">저장</button>
-            </div>
-            <!-- 초기 설정 (1회) -->
-            <div class="card">
-                <h2>📌 초기 설정 (최초 1회)</h2>
-                <div class="form-group">
-                    <label>초기 총 부채 (원) — 최종 목표 기준</label>
-                    <input type="number" id="s-debt-goal" placeholder="150000000" min="0">
-                </div>
-                <button class="btn btn-primary" onclick="saveDebtGoal()">저장</button>
             </div>
             <div class="card">
                 <div class="info-box">
                     <p>💡 <strong>매달 1일 해야 할 일</strong></p>
                     <p>① 마이너스 통장 잔액 입력 (이달 1일 기준 잔액)</p>
                     <p>② 이번달 목표 상환액 설정</p>
-                    <p>③ 이번달 생활비 예산 설정</p>
                     <p style="margin-top:6px;">상환 실적 = 전달 잔액 − 이달 잔액 (자동 계산)</p>
                 </div>
             </div>
@@ -1247,7 +1220,7 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthExpense, monthNet, monthlyBudget, budgetRemain, dailyBudget, todayExpense, todayRemain, pct, isOver, daysLeft, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
+    return { vm, isCurrentMonth, monthIncome, monthExpense, monthNet, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
@@ -1272,42 +1245,10 @@ function updateDashboard() {
     // 스탯 박스
     document.getElementById('dash-month-income').textContent = `+${fmtMoney(c.monthIncome)}`;
     document.getElementById('dash-month-expense').textContent = `−${fmtMoney(c.monthExpense)}`;
-
     const netEl = document.getElementById('dash-month-net');
     netEl.textContent = (c.monthNet >= 0 ? '+' : '−') + fmtMoney(Math.abs(c.monthNet));
     netEl.className = 'stat-value' + (c.monthNet < 0 ? ' red' : ' income');
-
-    const remainEl2 = document.getElementById('dash-budget-remain');
-    remainEl2.textContent = (c.budgetRemain < 0 ? '−' : '') + fmtMoney(Math.abs(c.budgetRemain));
-    remainEl2.className = 'stat-value' + (c.budgetRemain < 0 ? ' red' : '');
-
-    // 오늘 남은 가능액 (이번달만 표시)
-    const dailyBox = document.getElementById('dash-daily-box');
-    if (c.isCurrentMonth) {
-        dailyBox.style.display = '';
-        const remainEl = document.getElementById('dash-today-remain');
-        if (c.todayRemain < 0) {
-            remainEl.textContent = `−${fmtMoney(Math.abs(c.todayRemain))}`;
-            remainEl.className = 'daily-budget-amount over';
-            document.getElementById('alert-over').style.display = 'block';
-        } else {
-            remainEl.textContent = fmtMoney(c.todayRemain);
-            remainEl.className = 'daily-budget-amount';
-            document.getElementById('alert-over').style.display = 'none';
-        }
-        document.getElementById('dash-today-sub').textContent =
-            `일 기준 ${fmtMoney(c.dailyBudget)} · 오늘 지출 ${fmtMoney(c.todayExpense)} · 남은 ${c.daysLeft}일`;
-    } else {
-        dailyBox.style.display = 'none';
-        document.getElementById('alert-over').style.display = 'none';
-    }
-
-    // 예산 프로그레스바
-    document.getElementById('dash-spent-label').textContent = `지출 ${fmtMoney(c.monthExpense)}`;
-    document.getElementById('dash-budget-label').textContent = `예산 ${fmtMoney(c.monthlyBudget)}`;
-    const fill = document.getElementById('dash-progress');
-    fill.style.width = `${c.pct}%`;
-    fill.className = 'progress-fill' + (c.isOver ? ' over' : '');
+    document.getElementById('alert-over').style.display = 'none';
 
     // ── 이번달 목표 상환 섹션 ──
     const repaySection = document.getElementById('dash-repay-section');
@@ -1453,8 +1394,6 @@ function renderSettings() {
     const ms = (D.monthlySettings || {})[gk_viewMonth] || {};
     document.getElementById('s-overdraft-balance').value = ms.overdraftBalance ?? '';
     document.getElementById('s-monthly-repay').value     = ms.repayTarget ?? '';
-    document.getElementById('s-monthly-budget').value    = ms.monthlyBudget ?? '';
-    document.getElementById('s-debt-goal').value         = D.debtGoal || 150000000;
 }
 
 function showTab(name) {
@@ -1609,21 +1548,13 @@ function dismissOverdraftReminder() {
 function saveSettings() {
     const overdraftBalance = document.getElementById('s-overdraft-balance').value;
     const repayTarget      = parseInt(document.getElementById('s-monthly-repay').value) || 0;
-    const monthlyBudget    = parseInt(document.getElementById('s-monthly-budget').value) || 0;
     if (!D.monthlySettings) D.monthlySettings = {};
     D.monthlySettings[gk_viewMonth] = {
+        ...((D.monthlySettings || {})[gk_viewMonth] || {}),
         overdraftBalance: overdraftBalance !== '' ? parseInt(overdraftBalance) : null,
-        repayTarget,
-        monthlyBudget
+        repayTarget
     };
     save(); updateDashboard(); alert('✅ 저장되었습니다!');
-}
-function saveDebtGoal() {
-    const debtGoal = parseInt(document.getElementById('s-debt-goal').value) || 0;
-    D.debtGoal = debtGoal;
-    save(); updateDashboard(); alert('✅ 저장되었습니다!');
-}
-window.saveDebtGoal = saveDebtGoal;
 
 // ── 대출 관리 ──
 
