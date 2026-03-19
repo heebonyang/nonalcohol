@@ -796,6 +796,10 @@
                     <p style="margin-top:6px;">상환 실적 = 전달 잔액 − 이달 잔액 (자동 계산)</p>
                 </div>
             </div>
+            <div class="card" id="calc-breakdown-card" style="display:none">
+                <h2 style="margin-bottom:12px;">📐 오늘 지출 가능액 계산</h2>
+                <div id="calc-breakdown-body" style="font-size:0.84rem;line-height:2;color:#4a5568;"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -1160,8 +1164,13 @@ function calcMonthlyDashboard() {
         return sum;
     }, 0);
 
+    // ── 예정 고정지출 (fixedExpenses 탭) ──
+    const fixedExpensesThisMonth = (D.fixedExpenses || [])
+        .filter(x => x.date.startsWith(vm))
+        .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
+
     // ── 일 맥시멈 ──
-    const monthlyVariableBudget = monthIncome - expectedFixedCosts - monthlyRepayTarget;
+    const monthlyVariableBudget = monthIncome - expectedFixedCosts - fixedExpensesThisMonth - monthlyRepayTarget;
     const dailyMax = monthlyVariableBudget / daysInMonth;
     const todayVariableSpend = isCurrentMonth
         ? (D.spendingLog || [])
@@ -1227,7 +1236,7 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, subFixed, loanFixed, dailyMax, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
+    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, subFixed, loanFixed, subFixedFull, loanFixedFull, fixedExpensesThisMonth, dailyMax, monthlyVariableBudget, daysInMonth, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
@@ -1404,6 +1413,33 @@ function renderSettings() {
     const ms = (D.monthlySettings || {})[gk_viewMonth] || {};
     document.getElementById('s-overdraft-balance').value = ms.overdraftBalance ?? '';
     document.getElementById('s-monthly-repay').value     = ms.repayTarget ?? '';
+
+    // 계산 로직 카드
+    const c = calcMonthlyDashboard();
+    const card = document.getElementById('calc-breakdown-card');
+    const body = document.getElementById('calc-breakdown-body');
+    if (!c.isCurrentMonth) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    const row = (label, value, color) =>
+        `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f4f8;padding:4px 0;">
+            <span>${label}</span><span style="font-weight:700;color:${color||'#2d3748'};">${value}</span>
+        </div>`;
+    body.innerHTML =
+        row('이번달 수입', `+${fmtMoney(c.monthIncome)}`, '#276749') +
+        row('구독료', `−${fmtMoney(c.subFixedFull)}`, '#c53030') +
+        row('대출 납부', `−${fmtMoney(c.loanFixedFull)}`, '#c53030') +
+        row('예정 고정지출', `−${fmtMoney(c.fixedExpensesThisMonth)}`, '#c53030') +
+        row('목표 상환액', `−${fmtMoney(c.monthlyRepayTarget)}`, '#c53030') +
+        `<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:700;font-size:0.88rem;">
+            <span>월 가용예산</span><span>${fmtMoney(c.monthlyVariableBudget)}</span>
+        </div>` +
+        `<div style="display:flex;justify-content:space-between;border-bottom:1px solid #f0f4f8;padding:4px 0;color:#718096;font-size:0.8rem;">
+            <span>÷ ${c.daysInMonth}일</span><span>= 일 ${fmtMoney(c.dailyMax)}</span>
+        </div>` +
+        row('오늘 지출', `−${fmtMoney(c.todayVariableSpend)}`, '#c53030') +
+        `<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:800;font-size:1rem;color:#0284c7;">
+            <span>오늘 지출 가능액</span><span>${c.todayRemain < 0 ? '−' : ''}${fmtMoney(Math.abs(c.todayRemain))}</span>
+        </div>`;
 }
 
 function showTab(name) {
