@@ -817,26 +817,39 @@
         </div>
 
         <div id="tab-settings" style="display:none">
+            <!-- 이번달 설정 -->
             <div class="card">
-                <h2>⚙️ 기본 설정</h2>
-                <div class="form-group"><label>초기 총 부채 (원) — 최종 목표 기준</label><input type="number" id="s-debt-goal" placeholder="150000000"></div>
-                <div class="form-group"><label>이번달 목표 상환액 (원)</label><input type="number" id="s-monthly-repay" placeholder="3000000"></div>
-                <div class="form-group"><label>월 예산 (원)</label><input type="number" id="s-monthly-budget" placeholder="1500000"></div>
-                <div class="divider"></div>
-                <div class="form-group"><label>목표 금액 (원) — 대출/구독 D-day 기준</label><input type="number" id="s-goal" placeholder="5000000"></div>
-                <div class="form-group"><label>목표 날짜 — 대출/구독 D-day 기준</label><input type="date" id="s-target"></div>
-                <div class="divider"></div>
-                <div class="form-group"><label>현재 잔액 (원)</label><input type="number" id="s-balance" placeholder="0"></div>
-                <div class="divider"></div>
-                <div class="form-group"><label>비상금 예비 (원)</label><input type="number" id="s-emergency" placeholder="1000000"></div>
+                <h2 id="settings-month-title">⚙️ 2026년 3월 설정</h2>
+                <div class="form-group">
+                    <label>마이너스 통장 잔액 (원) — 이달 1일 기준</label>
+                    <input type="number" id="s-overdraft-balance" placeholder="150000000" min="0">
+                </div>
+                <div class="form-group">
+                    <label>이번달 목표 상환액 (원)</label>
+                    <input type="number" id="s-monthly-repay" placeholder="3000000" min="0">
+                </div>
+                <div class="form-group">
+                    <label>이번달 생활비 예산 (원)</label>
+                    <input type="number" id="s-monthly-budget" placeholder="1500000" min="0">
+                </div>
                 <button class="btn btn-success" onclick="saveSettings()">저장</button>
+            </div>
+            <!-- 초기 설정 (1회) -->
+            <div class="card">
+                <h2>📌 초기 설정 (최초 1회)</h2>
+                <div class="form-group">
+                    <label>초기 총 부채 (원) — 최종 목표 기준</label>
+                    <input type="number" id="s-debt-goal" placeholder="150000000" min="0">
+                </div>
+                <button class="btn btn-primary" onclick="saveDebtGoal()">저장</button>
             </div>
             <div class="card">
                 <div class="info-box">
-                    <p>💡 <strong>계산 방식</strong></p>
-                    <p>최종 목표 달성률 = (초기 부채 − 현재 마이너스 통장 잔액) ÷ 초기 부채</p>
-                    <p>이번달 상환 실적 = 지출 기록 중 [대출] · [대출이자] 항목 합계</p>
-                    <p style="margin-top:6px;">예산 잔여 ÷ 남은 일수 = <strong>일 기준 지출</strong> → 일 기준 − 오늘 지출 = <strong>오늘 남은 가능액</strong></p>
+                    <p>💡 <strong>매달 1일 해야 할 일</strong></p>
+                    <p>① 마이너스 통장 잔액 입력 (이달 1일 기준 잔액)</p>
+                    <p>② 이번달 목표 상환액 설정</p>
+                    <p>③ 이번달 생활비 예산 설정</p>
+                    <p style="margin-top:6px;">상환 실적 = 전달 잔액 − 이달 잔액 (자동 계산)</p>
                 </div>
             </div>
         </div>
@@ -1106,12 +1119,9 @@ let _editingFixedId  = null;
 let _editingSubId    = null;
 let _editingLoanId   = null;
 const DEFAULT = {
-    goal: 5000000, targetDate: '2026-04-14', currentBalance: 0,
-    balanceDate: todayStr(),
-    emergencyFund: 1000000,
-    monthlyBudget: 0,
+    targetDate: '2035-12-31',  // 대출/구독 D-day 계산용 (UI에서 숨김)
     debtGoal: 150000000,       // 초기 총 부채 (최종 목표 기준)
-    monthlyRepayTarget: 0,     // 이번달 목표 상환액
+    monthlySettings: {},       // { "YYYY-MM": { overdraftBalance, repayTarget, monthlyBudget } }
     incomeEvents: [],    // [{id, name, amount, date}]
     fixedExpenses: [],   // [{id, name, amount, date}]
     spendingLog: [],
@@ -1160,7 +1170,10 @@ function calcMonthlyDashboard() {
     const monthExpense = monthSpend + monthFixed;
 
     const monthNet = monthIncome - monthExpense;
-    const monthlyBudget = D.monthlyBudget || 0;
+
+    // 이번달 월별 설정
+    const ms = (D.monthlySettings || {})[vm] || {};
+    const monthlyBudget = ms.monthlyBudget || 0;
     const budgetRemain = monthlyBudget - monthExpense;
 
     // 오늘 지출 (이번달인 경우에만 의미 있음)
@@ -1178,19 +1191,26 @@ function calcMonthlyDashboard() {
 
     // ── 최종 목표: 부채 상환 ──
     const debtGoal = D.debtGoal || 0;
-    // 현재 마이너스 통장 잔액 합산 (overdraft 타입 대출)
-    const currentDebt = (D.loans || [])
-        .filter(l => l.repaymentType === 'overdraft')
-        .reduce((s, l) => s + (l.remainingBalance || 0), 0);
+    // 현재 잔액: 이번달 설정에서 직접 입력한 마이너스 통장 잔액
+    const overdraftBalance = ms.overdraftBalance ?? null;
+    const currentDebt = overdraftBalance !== null
+        ? overdraftBalance
+        : (D.loans || []).filter(l => l.repaymentType === 'overdraft').reduce((s, l) => s + (l.remainingBalance || 0), 0);
     const debtPaid = Math.max(0, debtGoal - currentDebt);
     const debtPct = debtGoal > 0 ? Math.min(100, (debtPaid / debtGoal) * 100) : 0;
 
-    // ── 이번달 목표 상환 ──
-    const monthlyRepayTarget = D.monthlyRepayTarget || 0;
-    // spendingLog 중 이번달 대출 납부액 (대출 원금+이자 모두 포함)
-    const monthRepayActual = (D.spendingLog || [])
-        .filter(x => x.date.startsWith(vm) && (x.desc.startsWith('[대출]') || x.desc.startsWith('[대출이자]')))
-        .reduce((s, x) => s + x.amount, 0);
+    // ── 이번달 목표 상환 & 실적 ──
+    const monthlyRepayTarget = ms.repayTarget || 0;
+    // 실적: 전달 잔액 - 이번달 잔액 (월별 설정이 모두 있으면)
+    const prevMonthDate = new Date(vy, vm_num - 2, 1);
+    const prevMonthKey = `${prevMonthDate.getFullYear()}-${pad(prevMonthDate.getMonth() + 1)}`;
+    const prevMs = (D.monthlySettings || {})[prevMonthKey] || {};
+    const prevBalance = prevMs.overdraftBalance ?? null;
+    const monthRepayActual = (prevBalance !== null && overdraftBalance !== null)
+        ? Math.max(0, prevBalance - overdraftBalance)
+        : (D.spendingLog || [])
+            .filter(x => x.date.startsWith(vm) && (x.desc.startsWith('[대출]') || x.desc.startsWith('[대출이자]')))
+            .reduce((s, x) => s + x.amount, 0);
     const repayPct = monthlyRepayTarget > 0 ? Math.min(100, (monthRepayActual / monthlyRepayTarget) * 100) : 0;
 
     // 앞으로 7일 내 미완료 예정 거래 (오늘 기준, 이번달 여부 무관)
@@ -1434,13 +1454,13 @@ function renderFixed() {
 }
 
 function renderSettings() {
-    document.getElementById('s-debt-goal').value      = D.debtGoal || 150000000;
-    document.getElementById('s-monthly-repay').value  = D.monthlyRepayTarget || 0;
-    document.getElementById('s-monthly-budget').value = D.monthlyBudget || 0;
-    document.getElementById('s-goal').value      = D.goal;
-    document.getElementById('s-target').value    = D.targetDate;
-    document.getElementById('s-balance').value   = D.currentBalance;
-    document.getElementById('s-emergency').value = D.emergencyFund ?? 1000000;
+    const [vy, vm_num] = gk_viewMonth.split('-').map(Number);
+    document.getElementById('settings-month-title').textContent = `⚙️ ${vy}년 ${vm_num}월 설정`;
+    const ms = (D.monthlySettings || {})[gk_viewMonth] || {};
+    document.getElementById('s-overdraft-balance').value = ms.overdraftBalance ?? '';
+    document.getElementById('s-monthly-repay').value     = ms.repayTarget ?? '';
+    document.getElementById('s-monthly-budget').value    = ms.monthlyBudget ?? '';
+    document.getElementById('s-debt-goal').value         = D.debtGoal || 150000000;
 }
 
 function showTab(name) {
@@ -1593,20 +1613,23 @@ function dismissOverdraftReminder() {
 }
 
 function saveSettings() {
-    const debtGoal          = parseInt(document.getElementById('s-debt-goal').value) || 0;
-    const monthlyRepayTarget = parseInt(document.getElementById('s-monthly-repay').value) || 0;
-    const monthlyBudget = parseInt(document.getElementById('s-monthly-budget').value) || 0;
-    const goal          = parseInt(document.getElementById('s-goal').value) || 0;
-    const targetDate    = document.getElementById('s-target').value;
-    const balance       = parseInt(document.getElementById('s-balance').value) || 0;
-    const emergencyFund = parseInt(document.getElementById('s-emergency').value) || 0;
-    if (balance !== D.currentBalance) D.balanceDate = todayStr();
-    D.debtGoal = debtGoal;
-    D.monthlyRepayTarget = monthlyRepayTarget;
-    D.monthlyBudget = monthlyBudget;
-    D.goal = goal; D.targetDate = targetDate; D.currentBalance = balance; D.emergencyFund = emergencyFund;
+    const overdraftBalance = document.getElementById('s-overdraft-balance').value;
+    const repayTarget      = parseInt(document.getElementById('s-monthly-repay').value) || 0;
+    const monthlyBudget    = parseInt(document.getElementById('s-monthly-budget').value) || 0;
+    if (!D.monthlySettings) D.monthlySettings = {};
+    D.monthlySettings[gk_viewMonth] = {
+        overdraftBalance: overdraftBalance !== '' ? parseInt(overdraftBalance) : null,
+        repayTarget,
+        monthlyBudget
+    };
     save(); updateDashboard(); alert('✅ 저장되었습니다!');
 }
+function saveDebtGoal() {
+    const debtGoal = parseInt(document.getElementById('s-debt-goal').value) || 0;
+    D.debtGoal = debtGoal;
+    save(); updateDashboard(); alert('✅ 저장되었습니다!');
+}
+window.saveDebtGoal = saveDebtGoal;
 
 // ── 대출 관리 ──
 
