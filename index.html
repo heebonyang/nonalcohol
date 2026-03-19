@@ -335,50 +335,6 @@
             font-size: 0.8rem; font-weight: 700; opacity: 0.9; margin-bottom: 10px;
             letter-spacing: -0.01em;
         }
-        #app-gk .goal-stats {
-            display: flex; margin-bottom: 10px;
-        }
-        #app-gk .goal-stat {
-            flex: 1; text-align: center;
-        }
-        #app-gk .goal-stat + .goal-stat {
-            border-left: 1px solid rgba(255,255,255,0.18);
-        }
-        #app-gk .goal-stat-label {
-            font-size: 0.67rem; opacity: 0.72; margin-bottom: 3px;
-        }
-        #app-gk .goal-stat-value {
-            font-size: 0.87rem; font-weight: 700;
-        }
-        #app-gk .goal-progress-labels {
-            display: flex; justify-content: space-between;
-            font-size: 0.71rem; opacity: 0.8; margin-bottom: 5px;
-        }
-        #app-gk .goal-progress-bar {
-            height: 8px; background: rgba(255,255,255,0.18);
-            border-radius: 999px; overflow: hidden;
-        }
-        #app-gk .goal-progress-fill {
-            height: 100%; background: #9deccc; border-radius: 999px;
-            transition: width 0.6s ease;
-        }
-
-        /* ══ 이번달 상환 목표 ══ */
-        #app-gk .repay-section {
-            background: rgba(255,255,255,0.13); border-radius: 12px;
-            padding: 11px 14px; margin-top: 12px;
-        }
-        #app-gk .repay-labels {
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 0.77rem; font-weight: 700; margin-bottom: 6px;
-        }
-        #app-gk .repay-pct { font-size: 0.77rem; opacity: 0.9; }
-        #app-gk .repay-detail {
-            font-size: 0.69rem; opacity: 0.72; margin-top: 5px; text-align: center;
-        }
-        #app-gk .repay-bar { height: 6px; background: rgba(255,255,255,0.2); border-radius: 999px; overflow: hidden; }
-        #app-gk .repay-bar-fill { height: 100%; background: #9deccc; border-radius: 999px; transition: width 0.6s ease; }
-
         /* ══ 모바일 반응형 ══ */
         @media (max-width: 600px) {
             /* 탭: 좌우 safe-area 패딩 포함 */
@@ -522,7 +478,11 @@
 
             <!-- ① 카드빚 현황 -->
             <div class="goal-section" id="dash-card-debt-section" style="display:none; margin-top:10px;">
-                <div class="goal-title">카드빚 현황</div>
+                <div class="goal-title">💳 카드빚 현황</div>
+                <div style="text-align:center;">
+                    <div style="font-size:0.75rem; opacity:0.75; margin-bottom:4px;">이달 1일 기준 잔액</div>
+                    <div id="dash-card-debt-amount" style="font-size:2rem; font-weight:800; line-height:1.1; color:#fbb6ce;">-</div>
+                </div>
             </div>
 
             <!-- ② 이번달 가계부 -->
@@ -1067,16 +1027,13 @@ let _editingFixedId  = null;
 let _editingSubId    = null;
 let _editingLoanId   = null;
 const DEFAULT = {
-    targetDate: '2035-12-31',  // 대출/구독 D-day 계산용 (UI에서 숨김)
     debtGoal: 150000000,       // 초기 총 부채 (최종 목표 기준)
-    monthlySettings: {},       // { "YYYY-MM": { overdraftBalance, repayTarget, monthlyBudget } }
+    monthlySettings: {},       // { "YYYY-MM": { overdraftBalance, cardDebt, repayTarget } }
     incomeEvents: [],    // [{id, name, amount, date}]
     fixedExpenses: [],   // [{id, name, amount, date}]
     spendingLog: [],
-    interestLog: [],     // 레거시 (미사용)
-    subscriptions: [],   // [{id, name, category, cycle, amount, billingDay, billingDate, active}]
+    subscriptions: [],   // [{id, name, cycle, amount, billingDay, billingDate, active}]
     loans: [],           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
-    loanPayments: [],    // [{id, loanId, loanName, date, principal, interest, memo}]
     overdraftReminderMonth: ''  // 'YYYY-MM' - 마지막으로 알림 확인한 월
 };
 let D = { ...DEFAULT };
@@ -2166,7 +2123,6 @@ function editLoan(id) {
 function deleteLoan(id) {
     if (!confirm('정말 삭제하시겠습니까?')) return;
     D.loans = (D.loans || []).filter(x => x.id !== id);
-    D.loanPayments = (D.loanPayments || []).filter(x => x.loanId !== id);
     save(); renderLoans(); updateDashboard();
 }
 
