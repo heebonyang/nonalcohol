@@ -122,7 +122,7 @@
             font-size: 0.9rem; text-align: center; opacity: 0.85;
             margin-bottom: 14px; font-weight: 600;
         }
-        #app-gk .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        #app-gk .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         #app-gk .stat-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 11px 10px; text-align: center; }
         #app-gk .stat-label { font-size: 0.72rem; opacity: 0.8; margin-bottom: 4px; }
         #app-gk .stat-value { font-size: 1.1rem; font-weight: 700; }
@@ -471,7 +471,8 @@
             #app-jk .milestone-chip { min-width: 100px; padding: 8px 10px; }
             #app-jk .mc-icon { font-size: 1.2rem; }
             #app-gk .stats-grid { gap: 7px; }
-            #app-gk .stat-value { font-size: 1rem; }
+            #app-gk .stat-value { font-size: 0.95rem; }
+            #app-gk .stat-label { font-size: 0.66rem; }
             #app-gk .daily-budget-amount { font-size: 1.6rem; }
             #app-gk .gk-tab { padding: 7px 12px; font-size: 0.78rem; }
         }
@@ -561,7 +562,8 @@
             </div>
             <div class="stats-grid">
                 <div class="stat-box"><div class="stat-label">이번달 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
-                <div class="stat-box"><div class="stat-label">예상 고정지출</div><div class="stat-value red" id="dash-fixed-cost">-</div></div>
+                <div class="stat-box"><div class="stat-label">구독료</div><div class="stat-value red" id="dash-sub-cost">-</div></div>
+                <div class="stat-box"><div class="stat-label">대출 납부</div><div class="stat-value red" id="dash-loan-cost">-</div></div>
             </div>
 
             <!-- ③ 오늘 하루 맥시멈 -->
@@ -1223,7 +1225,7 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, dailyMax, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
+    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, subFixed, loanFixed, dailyMax, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
@@ -1247,7 +1249,8 @@ function updateDashboard() {
 
     // 스탯 박스
     document.getElementById('dash-month-income').textContent = `+${fmtMoney(c.monthIncome)}`;
-    document.getElementById('dash-fixed-cost').textContent   = `−${fmtMoney(c.expectedFixedCosts)}`;
+    document.getElementById('dash-sub-cost').textContent     = `−${fmtMoney(c.subFixed)}`;
+    document.getElementById('dash-loan-cost').textContent    = `−${fmtMoney(c.loanFixed)}`;
 
     // ── 오늘 하루 맥시멈 ──
     const dailyBox = document.getElementById('dash-daily-box');
