@@ -1290,7 +1290,7 @@ function updateDashboard() {
             document.getElementById('alert-over').style.display = 'none';
         }
         document.getElementById('dash-today-sub').textContent =
-            `일 맥시멈 ${fmtMoney(c.dailyMax)} · 오늘 지출 ${fmtMoney(c.todayVariableSpend)}`;
+            `오늘 지출 ${fmtMoney(c.todayVariableSpend)}`;
     } else {
         dailyBox.style.display = 'none';
         document.getElementById('alert-over').style.display = 'none';
