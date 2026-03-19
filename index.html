@@ -1138,7 +1138,8 @@ function calcMonthlyDashboard() {
     // ── 예상 고정지출 (구독 + 대출 월납) ──
     const monthStart = new Date(vy, vm_num - 1, 1);
     const monthEnd   = new Date(vy, vm_num, 0);
-    const subFixed = (D.subscriptions || [])
+    // dailyMax 계산용: 이번달 전체 고정지출
+    const subFixedFull = (D.subscriptions || [])
         .filter(s => s.active)
         .reduce((sum, sub) => {
             if (sub.cycle === 'monthly') return sum + sub.amount;
@@ -1149,14 +1150,36 @@ function calcMonthlyDashboard() {
             }
             return sum;
         }, 0);
-    const loanFixed = (D.loans || []).reduce((sum, loan) => {
+    const loanFixedFull = (D.loans || []).reduce((sum, loan) => {
         if (!loan.paymentDay) return sum;
         const payDate = new Date(vy, vm_num - 1, loan.paymentDay);
         if (payDate >= monthStart && payDate <= monthEnd)
             return sum + (loan.monthlyPayment || 0);
         return sum;
     }, 0);
-    const expectedFixedCosts = subFixed + loanFixed;
+    const expectedFixedCosts = subFixedFull + loanFixedFull;
+    // 대쉬보드 표시용: 오늘 이후 아직 빠져나가지 않은 금액만
+    const fromDate = isCurrentMonth ? today : monthStart;
+    const subFixed = (D.subscriptions || [])
+        .filter(s => s.active)
+        .reduce((sum, sub) => {
+            if (sub.cycle === 'monthly' && sub.billingDay) {
+                const hit = new Date(vy, vm_num - 1, sub.billingDay);
+                if (hit >= fromDate && hit <= monthEnd) return sum + sub.amount;
+            } else if (sub.cycle === 'yearly' && sub.billingDate) {
+                const ref = new Date(sub.billingDate);
+                const hit = new Date(vy, ref.getMonth(), ref.getDate());
+                if (hit >= fromDate && hit <= monthEnd) return sum + sub.amount;
+            }
+            return sum;
+        }, 0);
+    const loanFixed = (D.loans || []).reduce((sum, loan) => {
+        if (!loan.paymentDay) return sum;
+        const payDate = new Date(vy, vm_num - 1, loan.paymentDay);
+        if (payDate >= fromDate && payDate <= monthEnd)
+            return sum + (loan.monthlyPayment || 0);
+        return sum;
+    }, 0);
 
     // ── 일 맥시멈 ──
     const monthlyVariableBudget = monthIncome - expectedFixedCosts - monthlyRepayTarget;
