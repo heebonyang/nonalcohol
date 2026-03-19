@@ -118,7 +118,8 @@
             border-radius: 20px; padding: 22px; color: white;
             margin-bottom: 16px; box-shadow: 0 8px 24px rgba(90,103,216,0.35);
         }
-        #app-gk .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        #app-gk .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        #app-gk .stat-box.wide { grid-column: 1 / -1; }
         #app-gk .stat-box { background: rgba(255,255,255,0.15); border-radius: 12px; padding: 11px 10px; text-align: center; }
         #app-gk .stat-label { font-size: 0.72rem; opacity: 0.8; margin-bottom: 4px; }
         #app-gk .stat-value { font-size: 1.1rem; font-weight: 700; }
@@ -469,9 +470,11 @@
                 <button class="month-nav-btn" onclick="gk_nextMonth()">›</button>
             </div>
             <div class="stats-grid">
-                <div class="stat-box"><div class="stat-label" id="dash-month-income-label">-월 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
+                <div class="stat-box wide"><div class="stat-label" id="dash-month-income-label">-월 수입</div><div class="stat-value income" id="dash-month-income">-</div></div>
+                <div class="stat-box"><div class="stat-label">고정 지출</div><div class="stat-value red" id="dash-fixed-cost">-</div></div>
                 <div class="stat-box"><div class="stat-label">구독료</div><div class="stat-value red" id="dash-sub-cost">-</div></div>
                 <div class="stat-box"><div class="stat-label">대출 납부</div><div class="stat-value red" id="dash-loan-cost">-</div></div>
+                <div class="stat-box"><div class="stat-label">지출 기록</div><div class="stat-value red" id="dash-var-cost">-</div></div>
             </div>
 
             <!-- ③ 오늘 하루 맥시멈 -->
@@ -1043,14 +1046,33 @@ function calcMonthlyDashboard() {
         .filter(x => x.date.startsWith(vm))
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
 
-    // 이번달 지출 (spendingLog + 확인된 예정 지출)
-    const monthSpend = (D.spendingLog || [])
-        .filter(x => x.date.startsWith(vm))
+    // ── 카테고리별 지출 분리 ──
+    // ① 지출 기록 (변동 지출 — [구독]/[대출] 자동기록 제외)
+    const monthVarSpend = (D.spendingLog || [])
+        .filter(x => x.date.startsWith(vm) && !x.desc.startsWith('[구독]') && !x.desc.startsWith('[대출'))
         .reduce((s, x) => s + x.amount, 0);
+    // ② 고정 지출 — 확인된 것 (일 맥시멈 계산용)
     const monthFixedConfirmed = (D.fixedExpenses || [])
         .filter(x => x.confirmed && x.date.startsWith(vm))
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
-    const monthExpense = monthSpend + monthFixedConfirmed;
+    // ② 고정 지출 — 전체 (stat 박스 표시용)
+    const monthFixedFull = (D.fixedExpenses || [])
+        .filter(x => x.date.startsWith(vm))
+        .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
+    // ③ 구독 — 이번달 실납부액 (completedPayments)
+    const monthSubPaid = (D.subscriptions || [])
+        .reduce((s, sub) => s + (sub.completedPayments || [])
+            .filter(c => c.date.startsWith(vm))
+            .reduce((ss, c) => ss + c.actualAmount, 0), 0);
+    // ④ 대출 — 이번달 실납부액 (completedSchedule)
+    const _loanDateKey = `${vy}.${String(vm_num).padStart(2,'0')}`;
+    const monthLoanPaid = (D.loans || [])
+        .reduce((s, loan) => {
+            const entry = (loan.completedSchedule || []).find(c => c.date === _loanDateKey);
+            return entry ? s + entry.actualAmount : s;
+        }, 0);
+    // 전체 지출 합계 (4개 카테고리 합산)
+    const monthExpense = monthVarSpend + monthFixedConfirmed + monthSubPaid + monthLoanPaid;
 
     // 이번달 월별 설정
     const ms = (D.monthlySettings || {})[vm] || {};
@@ -1197,7 +1219,7 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthIncomeTotal, monthExpense, expectedFixedCosts, subFixed, loanFixed, subFixedFull, loanFixedFull, fixedExpensesThisMonth, fixedExpensesConfirmed, variableSpentBeforeToday, dailyMax, monthlyVariableBudget, daysInMonth, remainingDays, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
+    return { vm, isCurrentMonth, monthIncome, monthIncomeTotal, monthExpense, monthVarSpend, monthFixedFull, monthFixedConfirmed, monthSubPaid, monthLoanPaid, expectedFixedCosts, subFixed, loanFixed, subFixedFull, loanFixedFull, fixedExpensesThisMonth, fixedExpensesConfirmed, variableSpentBeforeToday, dailyMax, monthlyVariableBudget, daysInMonth, remainingDays, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
@@ -1231,11 +1253,13 @@ function updateDashboard() {
     // 월 타이틀
     document.getElementById('dash-month-title').textContent = `${vy}년 ${vm_num}월`;
 
-    // 스탯 박스 (전체 월 기준 고정비)
+    // 스탯 박스 (4개 지출 카테고리 + 수입)
     document.getElementById('dash-month-income-label').textContent = `${monthLabel} 수입`;
     document.getElementById('dash-month-income').textContent = `+${fmtMoney(c.monthIncome)}`;
+    document.getElementById('dash-fixed-cost').textContent   = `−${fmtMoney(c.monthFixedFull)}`;
     document.getElementById('dash-sub-cost').textContent     = `−${fmtMoney(c.subFixedFull)}`;
     document.getElementById('dash-loan-cost').textContent    = `−${fmtMoney(c.loanFixedFull)}`;
+    document.getElementById('dash-var-cost').textContent     = `−${fmtMoney(c.monthVarSpend)}`;
 
     // ── 오늘 하루 맥시멈 ──
     const dailyBox = document.getElementById('dash-daily-box');
@@ -1391,17 +1415,31 @@ function renderMonthlySummary(vy, vm_num, ms) {
         .filter(x => x.confirmed && x.date.startsWith(vm))
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
 
-    // 변동 지출 합계
+    // ① 지출 기록 (변동 지출)
     const varSpend = (D.spendingLog || [])
         .filter(x => x.date.startsWith(vm) && !x.desc.startsWith('[구독]') && !x.desc.startsWith('[대출'))
         .reduce((s, x) => s + x.amount, 0);
 
-    // 고정 지출 합계 (확인된 것)
+    // ② 고정 지출 (확인된 것)
     const fixedSpend = (D.fixedExpenses || [])
         .filter(x => x.confirmed && x.date.startsWith(vm))
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
 
-    const totalSpend = varSpend + fixedSpend;
+    // ③ 구독 실납부
+    const subPaid = (D.subscriptions || [])
+        .reduce((s, sub) => s + (sub.completedPayments || [])
+            .filter(c => c.date.startsWith(vm))
+            .reduce((ss, c) => ss + c.actualAmount, 0), 0);
+
+    // ④ 대출 실납부
+    const loanDateKey = `${vy}.${String(vm_num).padStart(2,'0')}`;
+    const loanPaid = (D.loans || [])
+        .reduce((s, loan) => {
+            const entry = (loan.completedSchedule || []).find(c => c.date === loanDateKey);
+            return entry ? s + entry.actualAmount : s;
+        }, 0);
+
+    const totalSpend = varSpend + fixedSpend + subPaid + loanPaid;
 
     // 상환 실적
     const prevMonthDate = new Date(vy, vm_num - 2, 1);
@@ -1412,7 +1450,7 @@ function renderMonthlySummary(vy, vm_num, ms) {
     const repayTarget = ms.repayTarget || 0;
 
     // 데이터가 없으면 카드 숨김
-    if (!income && !totalSpend && repayActual === null) {
+    if (!income && !varSpend && !fixedSpend && !subPaid && !loanPaid && repayActual === null) {
         summaryCard.style.display = 'none';
         return;
     }
@@ -1436,9 +1474,11 @@ function renderMonthlySummary(vy, vm_num, ms) {
         </div>`;
 
     summaryBody.innerHTML =
-        (income   ? row('수입 합계',   `+${fmtMoney(income)}`,      '#276749') : '') +
-        (varSpend  ? row('변동 지출',   `−${fmtMoney(varSpend)}`,    '#c53030') : '') +
-        (fixedSpend ? row('고정 지출',  `−${fmtMoney(fixedSpend)}`,  '#c53030') : '') +
+        (income     ? row('수입 합계',   `+${fmtMoney(income)}`,      '#276749') : '') +
+        (fixedSpend ? row('고정 지출',   `−${fmtMoney(fixedSpend)}`,  '#c53030') : '') +
+        (subPaid    ? row('구독료',      `−${fmtMoney(subPaid)}`,     '#c53030') : '') +
+        (loanPaid   ? row('대출 납부',   `−${fmtMoney(loanPaid)}`,    '#c53030') : '') +
+        (varSpend   ? row('지출 기록',   `−${fmtMoney(varSpend)}`,    '#c53030') : '') +
         row('순 지출', `${income - totalSpend >= 0 ? '+' : '−'}${fmtMoney(Math.abs(income - totalSpend))}`,
             income - totalSpend >= 0 ? '#276749' : '#c53030') +
         (repayActual !== null ? row('실제 상환액', `${fmtMoney(repayActual)}`, '#2b6cb0') : '') +
@@ -1473,12 +1513,12 @@ function renderSettings() {
         </div>`;
     body.innerHTML =
         row('예정 수입 합계', `+${fmtMoney(c.monthIncomeTotal)}`, '#276749') +
-        row(`남은 구독료`, `−${fmtMoney(c.subFixed)}`, '#c53030') +
-        row(`남은 대출 납부`, `−${fmtMoney(c.loanFixed)}`, '#c53030') +
-        row('남은 예정 지출', `−${fmtMoney(c.fixedExpensesThisMonth)}`, '#c53030') +
-        row('확인된 예정 지출', `−${fmtMoney(c.fixedExpensesConfirmed)}`, '#c53030') +
+        row('남은 고정 지출', `−${fmtMoney(c.fixedExpensesThisMonth)}`, '#c53030') +
+        row('확인된 고정 지출', `−${fmtMoney(c.fixedExpensesConfirmed)}`, '#c53030') +
+        row('남은 구독료', `−${fmtMoney(c.subFixed)}`, '#c53030') +
+        row('남은 대출 납부', `−${fmtMoney(c.loanFixed)}`, '#c53030') +
         row('목표 상환액', `−${fmtMoney(c.monthlyRepayTarget)}`, '#c53030') +
-        row('이전 변동 지출', `−${fmtMoney(c.variableSpentBeforeToday)}`, '#c53030') +
+        row('이전 지출 기록', `−${fmtMoney(c.variableSpentBeforeToday)}`, '#c53030') +
         `<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:700;font-size:0.88rem;">
             <span>남은 가용예산</span><span>${fmtMoney(c.monthlyVariableBudget)}</span>
         </div>` +
