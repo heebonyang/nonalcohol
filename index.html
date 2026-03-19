@@ -1100,8 +1100,12 @@ function calcMonthlyDashboard() {
     const isCurrentMonth = (today.getFullYear() === vy && (today.getMonth() + 1) === vm_num);
     const daysInMonth = new Date(vy, vm_num, 0).getDate();
 
-    // 이번달 수입 (확인된 수입 + 미확인 예정 수입 모두 포함)
+    // 이번달 확인된 수입 (대쉬보드 stat 표시용)
     const monthIncome = (D.incomeEvents || [])
+        .filter(x => x.confirmed && x.date.startsWith(vm))
+        .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
+    // 예정 수입 포함 합계 (계산 로직용)
+    const monthIncomeTotal = (D.incomeEvents || [])
         .filter(x => x.date.startsWith(vm))
         .reduce((s, x) => s + (x.actualAmount ?? x.amount), 0);
 
@@ -1191,7 +1195,7 @@ function calcMonthlyDashboard() {
 
     // ── 일 맥시멈 (남은 기간 기준) ──
     // 남은 가용예산 = 수입 - 남은 고정비 - 이미 확인된 예정지출 - 목표상환 - 이미 쓴 변동지출
-    const monthlyVariableBudget = monthIncome - subFixed - loanFixed - fixedExpensesThisMonth
+    const monthlyVariableBudget = monthIncomeTotal - subFixed - loanFixed - fixedExpensesThisMonth
         - fixedExpensesConfirmed - monthlyRepayTarget - variableSpentBeforeToday;
     const dailyMax = monthlyVariableBudget / remainingDays;
     const todayVariableSpend = isCurrentMonth
@@ -1259,7 +1263,7 @@ function calcMonthlyDashboard() {
         }).filter(Boolean);
     const upcomingItems = [...upcomingIncome, ...upcomingFixed, ...upcomingLoans, ...upcomingSubscriptions].sort((a, b) => a.date - b.date);
 
-    return { vm, isCurrentMonth, monthIncome, monthExpense, expectedFixedCosts, subFixed, loanFixed, subFixedFull, loanFixedFull, fixedExpensesThisMonth, fixedExpensesConfirmed, variableSpentBeforeToday, dailyMax, monthlyVariableBudget, daysInMonth, remainingDays, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
+    return { vm, isCurrentMonth, monthIncome, monthIncomeTotal, monthExpense, expectedFixedCosts, subFixed, loanFixed, subFixedFull, loanFixedFull, fixedExpensesThisMonth, fixedExpensesConfirmed, variableSpentBeforeToday, dailyMax, monthlyVariableBudget, daysInMonth, remainingDays, todayVariableSpend, todayRemain, hasIncome, upcomingItems, debtGoal, currentDebt, debtPaid, debtPct, monthlyRepayTarget, monthRepayActual, repayPct };
 }
 
 function updateDashboard() {
@@ -1448,7 +1452,7 @@ function renderSettings() {
             <span>${label}</span><span style="font-weight:700;color:${color||'#2d3748'};">${value}</span>
         </div>`;
     body.innerHTML =
-        row('이번달 수입', `+${fmtMoney(c.monthIncome)}`, '#276749') +
+        row('예정 수입 합계', `+${fmtMoney(c.monthIncomeTotal)}`, '#276749') +
         row(`남은 구독료`, `−${fmtMoney(c.subFixed)}`, '#c53030') +
         row(`남은 대출 납부`, `−${fmtMoney(c.loanFixed)}`, '#c53030') +
         row('남은 예정 지출', `−${fmtMoney(c.fixedExpensesThisMonth)}`, '#c53030') +
