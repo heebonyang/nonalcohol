@@ -531,26 +531,22 @@
 <div id="app-gk" class="app-section">
     <div class="container">
         <div class="dashboard">
-            <!-- ① 최종 목표: 마이너스 통장 완전 상환 -->
+            <!-- ① 마이너스 통장 현황판 -->
             <div class="goal-section" id="dash-goal-section">
-                <div class="goal-title">🏦 최종 목표 — 마이너스 통장 완전 상환</div>
-                <div class="goal-stats">
-                    <div class="goal-stat">
-                        <div class="goal-stat-label">초기 부채</div>
-                        <div class="goal-stat-value" id="dash-debt-goal">-</div>
-                    </div>
-                    <div class="goal-stat">
-                        <div class="goal-stat-label">현재 잔액</div>
-                        <div class="goal-stat-value red" id="dash-debt-current">-</div>
-                    </div>
+                <div class="goal-title">🏦 마이너스 통장 현황</div>
+                <div style="text-align:center; margin-bottom:12px;">
+                    <div style="font-size:0.75rem; opacity:0.75; margin-bottom:4px;">현재 잔액</div>
+                    <div id="dash-debt-current" style="font-size:2rem; font-weight:800; line-height:1.1; color:#fbb6ce;">-</div>
+                </div>
+                <div class="goal-stats" style="margin-bottom:10px;">
                     <div class="goal-stat">
                         <div class="goal-stat-label">갚은 금액</div>
                         <div class="goal-stat-value income" id="dash-debt-paid">-</div>
                     </div>
-                </div>
-                <div class="goal-progress-labels">
-                    <span id="dash-debt-pct-label">0% 달성</span>
-                    <span id="dash-debt-remain-label">-</span>
+                    <div class="goal-stat">
+                        <div class="goal-stat-label">달성률</div>
+                        <div class="goal-stat-value income" id="dash-debt-pct-label">0%</div>
+                    </div>
                 </div>
                 <div class="goal-progress-bar">
                     <div class="goal-progress-fill" id="dash-debt-progress" style="width:0%"></div>
@@ -1262,11 +1258,9 @@ function updateDashboard() {
     const goalSection = document.getElementById('dash-goal-section');
     if (c.debtGoal > 0) {
         goalSection.style.display = '';
-        document.getElementById('dash-debt-goal').textContent    = fmtMoney(c.debtGoal);
         document.getElementById('dash-debt-current').textContent = fmtMoney(c.currentDebt);
         document.getElementById('dash-debt-paid').textContent    = fmtMoney(c.debtPaid);
-        document.getElementById('dash-debt-pct-label').textContent = `${Math.round(c.debtPct)}% 달성`;
-        document.getElementById('dash-debt-remain-label').textContent = `잔여 ${fmtMoney(c.currentDebt)}`;
+        document.getElementById('dash-debt-pct-label').textContent = `${Math.round(c.debtPct)}%`;
         document.getElementById('dash-debt-progress').style.width = `${c.debtPct}%`;
     } else {
         goalSection.style.display = 'none';
