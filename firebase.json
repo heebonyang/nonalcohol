@@ -8,7 +8,8 @@
       ".idx/**",
       ".vscode/**",
       "main.js",
-      "style.css"
+      "style.css",
+      ".github/**"
     ]
   }
 }
