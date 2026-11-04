@@ -217,6 +217,19 @@
             padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
         }
         #app-gk .lv-cat.active { border-color: #5a67d8; background: #ebf4ff; color: #434190; }
+        #app-gk .lv-cat-label { display: flex; justify-content: space-between; align-items: center; }
+        #app-gk .lv-cat-edit-toggle {
+            background: none; border: none; color: #5a67d8; font-size: 0.75rem; font-weight: 700;
+            cursor: pointer; font-family: inherit; padding: 0;
+        }
+        #app-gk .lv-cats.editing .lv-cat { cursor: default; border-style: dashed; }
+        #app-gk .lv-cat-x {
+            margin-left: 6px; color: #e53e3e; font-weight: 800; cursor: pointer;
+            background: none; border: none; padding: 0; font-size: 0.85rem; font-family: inherit;
+        }
+        #app-gk .lv-cat-rename { background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+        #app-gk .lv-cat-add { border-style: dashed; color: #5a67d8; }
+        #app-gk .lv-cat-hint { font-size: 0.72rem; color: #a0aec0; margin-top: 6px; }
         #app-gk .lv-breakdown-row { margin-bottom: 9px; }
         #app-gk .lv-breakdown-row:last-child { margin-bottom: 0; }
         #app-gk .lv-breakdown-head { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
@@ -456,8 +469,9 @@
                     <div class="form-group"><label>금액 (원)</label><input type="number" id="lv-amount" placeholder="0" min="0" inputmode="numeric"></div>
                 </div>
                 <div class="form-group">
-                    <label>분류</label>
+                    <label class="lv-cat-label"><span>분류</span><button type="button" class="lv-cat-edit-toggle" id="lv-cat-edit-toggle" onclick="lvToggleCatEdit()">편집</button></label>
                     <div class="lv-cats" id="lv-cats"></div>
+                    <div class="lv-cat-hint" id="lv-cat-hint" style="display:none">이름을 누르면 수정, ✕를 누르면 삭제돼요.</div>
                 </div>
                 <div class="form-group"><label>내용 (선택)</label><input type="text" id="lv-memo" placeholder="예: 점심, 편의점, 장보기"></div>
                 <button class="btn btn-primary" id="lv-submit-btn" onclick="lvAdd()">+ 기록하기</button>
@@ -894,7 +908,8 @@ const DEFAULT = {
     subscriptions: [],   // [{id, name, cycle, amount, billingDay, billingDate, active}]
     loans: [],
     livingLog: [],       // [{id, date, amount, category, memo}] 순수 생활비
-    livingGoal: 1000000, // 월 생활비 목표           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
+    livingGoal: 1000000, // 월 생활비 목표
+    livingCats: null,    // 생활비 분류 목록 (null이면 기본값)           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
     overdraftReminderMonth: ''  // 'YYYY-MM' - 마지막으로 알림 확인한 월
 };
 let D = { ...DEFAULT };
@@ -1635,7 +1650,12 @@ function subPayUnconfirm(id, dateStr, actualAmount) {
 }
 
 // ── 생활비 ──
-const LV_CATS = ['식비', '카페·간식', '교통', '생활용품', '쇼핑', '기타'];
+const LV_DEFAULT_CATS = ['식비', '카페·간식', '교통', '생활용품', '쇼핑', '기타'];
+let lv_catEditing = false;
+function lvCats() {
+    if (!Array.isArray(D.livingCats) || D.livingCats.length === 0) D.livingCats = [...LV_DEFAULT_CATS];
+    return D.livingCats;
+}
 let lv_viewMonth = '';
 let lv_category  = '식비';
 let _editingLivingId = null;
@@ -1659,11 +1679,63 @@ function calcFixedThisMonth() {
 }
 
 function renderLvCats() {
-    document.getElementById('lv-cats').innerHTML = LV_CATS.map(c =>
-        `<button type="button" class="lv-cat${c === lv_category ? ' active' : ''}" onclick="lvPickCat('${c}')">${c}</button>`
-    ).join('');
+    const cats = lvCats();
+    if (!cats.includes(lv_category) && !_editingLivingId) lv_category = cats[0];
+    const el = document.getElementById('lv-cats');
+    el.classList.toggle('editing', lv_catEditing);
+    document.getElementById('lv-cat-edit-toggle').textContent = lv_catEditing ? '완료' : '편집';
+    document.getElementById('lv-cat-hint').style.display = lv_catEditing ? '' : 'none';
+    if (lv_catEditing) {
+        el.innerHTML = cats.map((c, i) =>
+            `<span class="lv-cat"><button type="button" class="lv-cat-rename" onclick="lvRenameCat(${i})">${escHtml(c)}</button><button type="button" class="lv-cat-x" onclick="lvDeleteCat(${i})" aria-label="삭제">✕</button></span>`
+        ).join('') + `<button type="button" class="lv-cat lv-cat-add" onclick="lvAddCat()">+ 추가</button>`;
+    } else {
+        el.innerHTML = cats.map((c, i) =>
+            `<button type="button" class="lv-cat${c === lv_category ? ' active' : ''}" onclick="lvPickCat(${i})">${escHtml(c)}</button>`
+        ).join('');
+    }
 }
-function lvPickCat(c) { lv_category = c; renderLvCats(); }
+function lvPickCat(i) { lv_category = lvCats()[i]; renderLvCats(); }
+function lvToggleCatEdit() { lv_catEditing = !lv_catEditing; renderLvCats(); }
+
+function lvAskCatName(msg, cur) {
+    const input = prompt(msg, cur || '');
+    if (input === null) return null;
+    const name = input.trim();
+    if (!name) { alert('이름을 입력해 주세요.'); return null; }
+    if (name.length > 12) { alert('12자 이내로 입력해 주세요.'); return null; }
+    if (lvCats().includes(name) && name !== cur) { alert('이미 있는 분류예요.'); return null; }
+    return name;
+}
+function lvAddCat() {
+    const name = lvAskCatName('새 분류 이름을 입력하세요');
+    if (!name) return;
+    lvCats().push(name);
+    save(); renderLvCats();
+}
+function lvRenameCat(i) {
+    const cats = lvCats(); const old = cats[i];
+    const name = lvAskCatName(`'${old}' 분류의 새 이름을 입력하세요`, old);
+    if (!name || name === old) return;
+    cats[i] = name;
+    // 기존 기록의 분류 이름도 함께 변경
+    (D.livingLog || []).forEach(x => { if (x.category === old) x.category = name; });
+    if (lv_category === old) lv_category = name;
+    save(); renderLvCats(); renderLiving();
+}
+function lvDeleteCat(i) {
+    const cats = lvCats();
+    if (cats.length <= 1) { alert('분류는 최소 1개는 있어야 해요.'); return; }
+    const name = cats[i];
+    const used = (D.livingLog || []).filter(x => x.category === name).length;
+    const msg = used
+        ? `'${name}' 분류를 삭제할까요?\n이 분류로 기록된 ${used}건은 그대로 남아요.`
+        : `'${name}' 분류를 삭제할까요?`;
+    if (!confirm(msg)) return;
+    cats.splice(i, 1);
+    if (lv_category === name) lv_category = cats[0];
+    save(); renderLvCats();
+}
 
 function lvPrevMonth() {
     const [y, m] = lv_viewMonth.split('-').map(Number);
@@ -1851,6 +1923,10 @@ function lvDelete(id) {
 }
 
 window.lvPickCat   = lvPickCat;
+window.lvToggleCatEdit = lvToggleCatEdit;
+window.lvAddCat    = lvAddCat;
+window.lvRenameCat = lvRenameCat;
+window.lvDeleteCat = lvDeleteCat;
 window.lvPrevMonth = lvPrevMonth;
 window.lvNextMonth = lvNextMonth;
 window.lvEditGoal  = lvEditGoal;
@@ -1884,7 +1960,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
         jk_load(),
         loadFromFirestore().then(() => {
-            renderSubscriptions(); renderLoans(); renderLiving();
+            renderSubscriptions(); renderLoans(); renderLvCats(); renderLiving();
             ['lv-amount', 'lv-memo'].forEach(id => document.getElementById(id)
                 .addEventListener('keydown', e => { if (e.key === 'Enter') lvAdd(); }));
         })
