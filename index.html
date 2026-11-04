@@ -181,6 +181,51 @@
         #app-gk .empty { text-align: center; color: #a0aec0; padding: 20px; font-size: 0.87rem; }
         #app-gk .divider { height: 1px; background: #f0f4f8; margin: 10px 0; }
 
+        /* ══ 생활비 CSS ══ */
+        #app-gk .lv-hero {
+            background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
+            border-radius: 20px; padding: 18px 20px 20px; color: #fff;
+            margin-bottom: 14px; box-shadow: 0 8px 24px rgba(90,103,216,0.3);
+        }
+        #app-gk .lv-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        #app-gk .lv-nav button {
+            background: rgba(255,255,255,0.18); color: #fff; border: none; border-radius: 999px;
+            width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; font-family: inherit;
+        }
+        #app-gk .lv-nav button:disabled { opacity: 0.3; cursor: default; }
+        #app-gk .lv-nav-title { font-weight: 800; font-size: 0.98rem; }
+        #app-gk .lv-label { font-size: 0.78rem; opacity: 0.85; display: flex; justify-content: space-between; align-items: center; }
+        #app-gk .lv-goal-btn {
+            background: rgba(255,255,255,0.18); color: #fff; border: none; border-radius: 999px;
+            padding: 3px 10px; font-size: 0.7rem; font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        #app-gk .lv-spent { font-size: 2.2rem; font-weight: 800; line-height: 1.15; margin-top: 4px; letter-spacing: -0.02em; }
+        #app-gk .lv-spent small { font-size: 0.9rem; font-weight: 600; opacity: 0.75; margin-left: 4px; }
+        #app-gk .lv-bar { position: relative; height: 12px; background: rgba(255,255,255,0.22); border-radius: 999px; margin: 14px 0 6px; overflow: hidden; }
+        #app-gk .lv-bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s, background 0.4s; }
+        #app-gk .lv-bar-pace { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: 0.9; }
+        #app-gk .lv-bar-legend { display: flex; justify-content: space-between; font-size: 0.68rem; opacity: 0.75; }
+        #app-gk .lv-status { margin-top: 12px; background: rgba(255,255,255,0.16); border-radius: 12px; padding: 10px 12px; font-size: 0.84rem; font-weight: 600; }
+        #app-gk .lv-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        #app-gk .lv-stat { background: rgba(0,0,0,0.16); border-radius: 12px; padding: 10px 8px; text-align: center; }
+        #app-gk .lv-stat-label { font-size: 0.68rem; opacity: 0.8; margin-bottom: 3px; }
+        #app-gk .lv-stat-value { font-size: 0.95rem; font-weight: 800; }
+        #app-gk .lv-fixed-note { font-size: 0.74rem; color: #718096; background: #f7fafc; border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; }
+        #app-gk .lv-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+        #app-gk .lv-cat {
+            border: 1.5px solid #e2e8f0; background: #fff; color: #4a5568; border-radius: 999px;
+            padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        #app-gk .lv-cat.active { border-color: #5a67d8; background: #ebf4ff; color: #434190; }
+        #app-gk .lv-breakdown-row { margin-bottom: 9px; }
+        #app-gk .lv-breakdown-row:last-child { margin-bottom: 0; }
+        #app-gk .lv-breakdown-head { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
+        #app-gk .lv-breakdown-head span:last-child { font-weight: 700; color: #2d3748; }
+        #app-gk .lv-breakdown-bar { height: 6px; background: #edf2f7; border-radius: 999px; overflow: hidden; }
+        #app-gk .lv-breakdown-bar div { height: 100%; background: #7f9cf5; border-radius: 999px; }
+        #app-gk .lv-day-head { display: flex; justify-content: space-between; font-size: 0.76rem; font-weight: 700; color: #718096; padding: 12px 0 2px; border-bottom: 1px solid #edf2f7; }
+        #app-gk .lv-day-head:first-child { padding-top: 0; }
+
         /* ══ 구독 관리 CSS ══ */
         #app-gk .sub-badge {
             font-size: 0.65rem; padding: 2px 6px; border-radius: 999px;
@@ -373,8 +418,60 @@
 <div id="app-gk" class="app-section">
     <div class="container">
         <div class="gk-tabs">
-            <button class="gk-tab active" onclick="showTab('subscription')">구독</button>
+            <button class="gk-tab active" onclick="showTab('living')">생활비</button>
+            <button class="gk-tab" onclick="showTab('subscription')">구독</button>
             <button class="gk-tab" onclick="showTab('loan')">대출</button>
+        </div>
+
+        <div id="tab-living">
+            <div class="lv-hero">
+                <div class="lv-nav">
+                    <button onclick="lvPrevMonth()" aria-label="이전 달">‹</button>
+                    <span class="lv-nav-title" id="lv-month-title"></span>
+                    <button id="lv-next-btn" onclick="lvNextMonth()" aria-label="다음 달">›</button>
+                </div>
+                <div class="lv-label">
+                    <span>순수 생활비</span>
+                    <button class="lv-goal-btn" onclick="lvEditGoal()">목표 <span id="lv-goal-text"></span> ✏️</button>
+                </div>
+                <div class="lv-spent" id="lv-spent">0원</div>
+                <div class="lv-bar">
+                    <div class="lv-bar-fill" id="lv-bar-fill"></div>
+                    <div class="lv-bar-pace" id="lv-bar-pace"></div>
+                </div>
+                <div class="lv-bar-legend"><span id="lv-percent">0%</span><span id="lv-pace-legend"></span></div>
+                <div class="lv-status" id="lv-status"></div>
+                <div class="lv-stats">
+                    <div class="lv-stat"><div class="lv-stat-label" id="lv-stat1-label">남은 예산</div><div class="lv-stat-value" id="lv-stat1"></div></div>
+                    <div class="lv-stat"><div class="lv-stat-label" id="lv-stat2-label">하루 권장</div><div class="lv-stat-value" id="lv-stat2"></div></div>
+                    <div class="lv-stat"><div class="lv-stat-label" id="lv-stat3-label">오늘 쓴 돈</div><div class="lv-stat-value" id="lv-stat3"></div></div>
+                </div>
+            </div>
+            <div class="lv-fixed-note" id="lv-fixed-note" style="display:none"></div>
+
+            <div class="card">
+                <h2 id="lv-form-title">생활비 기록</h2>
+                <div class="gk-row">
+                    <div class="form-group"><label>날짜</label><input type="date" id="lv-date"></div>
+                    <div class="form-group"><label>금액 (원)</label><input type="number" id="lv-amount" placeholder="0" min="0" inputmode="numeric"></div>
+                </div>
+                <div class="form-group">
+                    <label>분류</label>
+                    <div class="lv-cats" id="lv-cats"></div>
+                </div>
+                <div class="form-group"><label>내용 (선택)</label><input type="text" id="lv-memo" placeholder="예: 점심, 편의점, 장보기"></div>
+                <button class="btn btn-primary" id="lv-submit-btn" onclick="lvAdd()">+ 기록하기</button>
+            </div>
+
+            <div class="card" id="lv-breakdown-card" style="display:none">
+                <h2>분류별 지출</h2>
+                <div id="lv-breakdown"></div>
+            </div>
+
+            <div class="card">
+                <h2 id="lv-list-title">이번 달 내역</h2>
+                <div id="lv-list"><div class="empty">아직 기록이 없어요</div></div>
+            </div>
         </div>
 
         <div id="tab-loan" style="display:none">
@@ -464,7 +561,7 @@
 
         </div>
 
-        <div id="tab-subscription">
+        <div id="tab-subscription" style="display:none">
             <div class="card" id="sub-schedule-card" style="display:none">
                 <h2 id="sub-schedule-card-title">이번달 결제 예정</h2>
                 <div id="sub-schedule-list"></div>
@@ -795,7 +892,9 @@ const DEFAULT = {
     fixedExpenses: [],   // [{id, name, amount, date}]
     spendingLog: [],
     subscriptions: [],   // [{id, name, cycle, amount, billingDay, billingDate, active}]
-    loans: [],           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
+    loans: [],
+    livingLog: [],       // [{id, date, amount, category, memo}] 순수 생활비
+    livingGoal: 1000000, // 월 생활비 목표           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
     overdraftReminderMonth: ''  // 'YYYY-MM' - 마지막으로 알림 확인한 월
 };
 let D = { ...DEFAULT };
@@ -811,13 +910,14 @@ function save() {
 }
 
 function showTab(name) {
-    const TABS = ['subscription', 'loan'];
+    const TABS = ['living', 'subscription', 'loan'];
     TABS.forEach(t => {
         document.getElementById(`tab-${t}`).style.display = t === name ? 'block' : 'none';
     });
     document.querySelectorAll('#app-gk .gk-tab').forEach((el, i) => {
         el.classList.toggle('active', TABS[i] === name);
     });
+    if (name === 'living') renderLiving();
     if (name === 'subscription') renderSubscriptions();
     if (name === 'loan') renderLoans();
 }
@@ -1534,6 +1634,230 @@ function subPayUnconfirm(id, dateStr, actualAmount) {
     save(); renderSubscriptions();
 }
 
+// ── 생활비 ──
+const LV_CATS = ['식비', '카페·간식', '교통', '생활용품', '쇼핑', '기타'];
+let lv_viewMonth = '';
+let lv_category  = '식비';
+let _editingLivingId = null;
+
+function lvMonthKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
+
+// 이번 달 고정 지출(구독·대출) 합계 — 생활비 목표와는 별도
+function calcFixedThisMonth() {
+    const today = new Date();
+    const y = today.getFullYear(), m = today.getMonth();
+    let sub = 0;
+    (D.subscriptions || []).filter(x => x.active).forEach(x => {
+        if (x.cycle === 'monthly') sub += x.amount || 0;
+        else if (x.billingDate && new Date(x.billingDate).getMonth() === m) sub += x.amount || 0;
+    });
+    let loan = 0;
+    (D.loans || []).forEach(l => {
+        calcPaymentsThisMonth(l).payments.forEach(p => { loan += p.payment || 0; });
+    });
+    return { sub, loan, total: sub + loan };
+}
+
+function renderLvCats() {
+    document.getElementById('lv-cats').innerHTML = LV_CATS.map(c =>
+        `<button type="button" class="lv-cat${c === lv_category ? ' active' : ''}" onclick="lvPickCat('${c}')">${c}</button>`
+    ).join('');
+}
+function lvPickCat(c) { lv_category = c; renderLvCats(); }
+
+function lvPrevMonth() {
+    const [y, m] = lv_viewMonth.split('-').map(Number);
+    lv_viewMonth = lvMonthKey(new Date(y, m - 2, 1));
+    renderLiving();
+}
+function lvNextMonth() {
+    const [y, m] = lv_viewMonth.split('-').map(Number);
+    const next = lvMonthKey(new Date(y, m, 1));
+    if (next > lvMonthKey(new Date())) return;
+    lv_viewMonth = next;
+    renderLiving();
+}
+
+function lvEditGoal() {
+    const cur = D.livingGoal || 1000000;
+    const input = prompt('한 달 생활비 목표를 입력하세요 (원)', cur);
+    if (input === null) return;
+    const v = parseInt(String(input).replace(/[^0-9]/g, ''));
+    if (!v || v <= 0) { alert('올바른 금액을 입력해 주세요.'); return; }
+    D.livingGoal = v;
+    save(); renderLiving();
+}
+
+function renderLiving() {
+    if (!lv_viewMonth) lv_viewMonth = lvMonthKey(new Date());
+    const goal  = D.livingGoal || 1000000;
+    const [vy, vm] = lv_viewMonth.split('-').map(Number);
+    const now   = new Date();
+    const thisMonth = lvMonthKey(now);
+    const isCurrent = lv_viewMonth === thisMonth;
+    const daysInMonth = new Date(vy, vm, 0).getDate();
+    const items = (D.livingLog || []).filter(x => x.date.startsWith(lv_viewMonth));
+    const spent = items.reduce((s, x) => s + x.amount, 0);
+    const remain = goal - spent;
+    const pct = goal ? spent / goal * 100 : 0;
+
+    document.getElementById('lv-month-title').textContent = `${vy}년 ${vm}월`;
+    document.getElementById('lv-next-btn').disabled = isCurrent;
+    document.getElementById('lv-goal-text').textContent = fmtMoney(goal);
+    document.getElementById('lv-spent').innerHTML = `${fmtMoney(spent)}<small>/ ${fmtMoney(goal)}</small>`;
+
+    const fill = document.getElementById('lv-bar-fill');
+    fill.style.width = Math.min(100, pct) + '%';
+    fill.style.background = pct > 100 ? '#fc8181' : pct >= 80 ? '#f6e05e' : '#68d391';
+    document.getElementById('lv-percent').textContent = `${Math.round(pct)}% 사용`;
+
+    const paceEl = document.getElementById('lv-bar-pace');
+    const statusEl = document.getElementById('lv-status');
+    const set = (i, label, value) => {
+        document.getElementById(`lv-stat${i}-label`).textContent = label;
+        document.getElementById(`lv-stat${i}`).textContent = value;
+    };
+
+    if (isCurrent) {
+        const day = now.getDate();
+        const daysLeft = daysInMonth - day + 1; // 오늘 포함
+        const pace = goal * day / daysInMonth;  // 오늘까지 써도 되는 금액
+        const todaySpent = items.filter(x => x.date === todayStr()).reduce((s, x) => s + x.amount, 0);
+        const spentBeforeToday = spent - todaySpent;
+        const dailyAllow = Math.max(0, Math.floor((goal - spentBeforeToday) / daysLeft));
+        paceEl.style.display = '';
+        paceEl.style.left = Math.min(100, day / daysInMonth * 100) + '%';
+        document.getElementById('lv-pace-legend').textContent = `| 오늘까지 적정 ${fmtMoney(pace)}`;
+
+        if (remain < 0) {
+            statusEl.textContent = `🚨 목표를 ${fmtMoney(-remain)} 넘었어요. 남은 ${daysLeft}일은 최대한 아껴봐요!`;
+        } else if (spent <= pace) {
+            statusEl.textContent = `👍 순항 중! 적정 페이스보다 ${fmtMoney(pace - spent)} 덜 썼어요.`;
+        } else {
+            statusEl.textContent = `⚠️ 적정 페이스보다 ${fmtMoney(spent - pace)} 더 썼어요. 조금만 아껴봐요.`;
+        }
+        set(1, '남은 예산', remain < 0 ? `−${fmtMoney(-remain)}` : fmtMoney(remain));
+        set(2, '오늘 가능액', fmtMoney(Math.max(0, dailyAllow - todaySpent)));
+        set(3, '오늘 쓴 돈', fmtMoney(todaySpent));
+    } else {
+        paceEl.style.display = 'none';
+        document.getElementById('lv-pace-legend').textContent = '';
+        const usedDays = new Set(items.map(x => x.date)).size;
+        statusEl.textContent = items.length === 0 ? '📭 이 달에는 기록이 없어요.'
+            : remain >= 0 ? `🎉 목표 달성! ${fmtMoney(remain)} 아꼈어요.`
+            : `😢 목표보다 ${fmtMoney(-remain)} 더 썼어요.`;
+        set(1, remain >= 0 ? '아낀 돈' : '초과 금액', fmtMoney(Math.abs(remain)));
+        set(2, '하루 평균', fmtMoney(spent / daysInMonth));
+        set(3, '지출한 날', `${usedDays}일`);
+    }
+
+    // 고정 지출 안내 (이번 달만)
+    const noteEl = document.getElementById('lv-fixed-note');
+    const fixed = isCurrent ? calcFixedThisMonth() : null;
+    if (fixed && fixed.total > 0) {
+        noteEl.style.display = '';
+        noteEl.innerHTML = `📌 이번 달 고정 지출 <strong>${fmtMoney(fixed.total)}</strong> (구독 ${fmtMoney(fixed.sub)} · 대출 ${fmtMoney(fixed.loan)})은 목표에서 제외돼요.`;
+    } else {
+        noteEl.style.display = 'none';
+    }
+
+    // 분류별
+    const bdCard = document.getElementById('lv-breakdown-card');
+    if (items.length) {
+        const byCat = {};
+        items.forEach(x => { const c = x.category || '기타'; byCat[c] = (byCat[c] || 0) + x.amount; });
+        const max = Math.max(...Object.values(byCat));
+        bdCard.style.display = '';
+        document.getElementById('lv-breakdown').innerHTML = Object.entries(byCat)
+            .sort((a, b) => b[1] - a[1])
+            .map(([c, v]) => `<div class="lv-breakdown-row">
+                <div class="lv-breakdown-head"><span>${escHtml(c)} <span style="color:#a0aec0;font-weight:400;">${Math.round(v / spent * 100)}%</span></span><span>${fmtMoney(v)}</span></div>
+                <div class="lv-breakdown-bar"><div style="width:${v / max * 100}%"></div></div>
+            </div>`).join('');
+    } else {
+        bdCard.style.display = 'none';
+    }
+
+    // 내역 (날짜별)
+    document.getElementById('lv-list-title').textContent = isCurrent ? '이번 달 내역' : `${vm}월 내역`;
+    const listEl = document.getElementById('lv-list');
+    if (!items.length) { listEl.innerHTML = '<div class="empty">아직 기록이 없어요</div>'; return; }
+    const byDate = {};
+    items.forEach(x => { (byDate[x.date] = byDate[x.date] || []).push(x); });
+    const WD = ['일','월','화','수','목','금','토'];
+    listEl.innerHTML = Object.keys(byDate).sort().reverse().map(date => {
+        const list = byDate[date];
+        const d = new Date(date + 'T00:00:00');
+        const sum = list.reduce((s, x) => s + x.amount, 0);
+        return `<div class="lv-day-head"><span>${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[d.getDay()]})</span><span>${fmtMoney(sum)}</span></div>` +
+            list.map(x => `<div class="list-item">
+                <div class="info"><div class="name">${escHtml(x.memo || x.category || '생활비')}</div><div class="sub">${escHtml(x.category || '기타')}</div></div>
+                <div class="right"><span class="amount">−${fmtMoney(x.amount)}</span>
+                    <button class="btn-sm-edit" onclick="lvEdit('${x.id}')">수정</button>
+                    <button class="btn-sm" onclick="lvDelete('${x.id}')">삭제</button></div>
+            </div>`).join('');
+    }).join('');
+}
+
+function lvResetForm() {
+    _editingLivingId = null;
+    document.getElementById('lv-amount').value = '';
+    document.getElementById('lv-memo').value = '';
+    document.getElementById('lv-form-title').textContent = '생활비 기록';
+    const btn = document.getElementById('lv-submit-btn');
+    btn.textContent = '+ 기록하기';
+    btn.style.background = '';
+}
+
+function lvAdd() {
+    const date   = document.getElementById('lv-date').value;
+    const amount = parseInt(document.getElementById('lv-amount').value);
+    const memo   = document.getElementById('lv-memo').value.trim();
+    if (!date) { alert('날짜를 선택해 주세요.'); return; }
+    if (!amount || amount <= 0) { alert('금액을 입력해 주세요.'); return; }
+    if (!D.livingLog) D.livingLog = [];
+    if (_editingLivingId) {
+        const it = D.livingLog.find(x => x.id === _editingLivingId);
+        if (it) Object.assign(it, { date, amount, memo, category: lv_category });
+    } else {
+        D.livingLog.push({ id: uid(), date, amount, memo, category: lv_category });
+    }
+    lv_viewMonth = date.slice(0, 7) > lvMonthKey(new Date()) ? lvMonthKey(new Date()) : date.slice(0, 7);
+    lvResetForm();
+    save(); renderLiving();
+}
+
+function lvEdit(id) {
+    const it = (D.livingLog || []).find(x => x.id === id);
+    if (!it) return;
+    _editingLivingId = id;
+    document.getElementById('lv-date').value   = it.date;
+    document.getElementById('lv-amount').value = it.amount;
+    document.getElementById('lv-memo').value   = it.memo || '';
+    lv_category = it.category || '기타';
+    renderLvCats();
+    document.getElementById('lv-form-title').textContent = '생활비 수정';
+    const btn = document.getElementById('lv-submit-btn');
+    btn.textContent = '✏️ 수정 완료';
+    btn.style.background = '#f6ad55';
+    document.getElementById('lv-form-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function lvDelete(id) {
+    if (!confirm('이 기록을 삭제할까요?')) return;
+    D.livingLog = (D.livingLog || []).filter(x => x.id !== id);
+    if (_editingLivingId === id) lvResetForm();
+    save(); renderLiving();
+}
+
+window.lvPickCat   = lvPickCat;
+window.lvPrevMonth = lvPrevMonth;
+window.lvNextMonth = lvNextMonth;
+window.lvEditGoal  = lvEditGoal;
+window.lvAdd       = lvAdd;
+window.lvEdit      = lvEdit;
+window.lvDelete    = lvDelete;
+
 window.showTab        = showTab;
 window.addLoan            = addLoan;
 window.editLoan           = editLoan;
@@ -1554,11 +1878,15 @@ window.subPayUnconfirm    = subPayUnconfirm;
 // ── DOMContentLoaded ──
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('targetDate').value = todayStr();
+    document.getElementById('lv-date').value    = todayStr();
+    renderLvCats();
 
     await Promise.all([
         jk_load(),
         loadFromFirestore().then(() => {
-            renderSubscriptions(); renderLoans();
+            renderSubscriptions(); renderLoans(); renderLiving();
+            ['lv-amount', 'lv-memo'].forEach(id => document.getElementById(id)
+                .addEventListener('keydown', e => { if (e.key === 'Enter') lvAdd(); }));
         })
     ]);
 });
