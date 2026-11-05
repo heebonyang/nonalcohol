@@ -217,12 +217,20 @@
             padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
         }
         #app-gk .lv-cat.active { border-color: #5a67d8; background: #ebf4ff; color: #434190; }
-        #app-gk .lv-cat-label { display: flex; justify-content: space-between; align-items: center; }
+        #app-gk .lv-cat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        #app-gk .lv-cat-title { font-size: 0.75rem; color: #718096; font-weight: 600; }
         #app-gk .lv-cat-edit-toggle {
-            background: none; border: none; color: #5a67d8; font-size: 0.75rem; font-weight: 700;
-            cursor: pointer; font-family: inherit; padding: 0;
+            display: inline-flex; align-items: center; gap: 4px;
+            background: #ebf4ff; border: none; color: #4c51bf; border-radius: 999px;
+            padding: 5px 12px; font-size: 0.74rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
         }
-        #app-gk .lv-cats.editing .lv-cat { cursor: default; border-style: dashed; }
+        #app-gk .lv-cat-edit-toggle:hover { background: #c3dafe; }
+        #app-gk .lv-cat-edit-toggle.on { background: #5a67d8; color: #fff; }
+        #app-gk .lv-cats.editing {
+            background: #f7fafc; border: 1.5px dashed #c3dafe; border-radius: 12px; padding: 10px;
+        }
+        #app-gk .lv-cats.editing .lv-cat { cursor: default; }
         #app-gk .lv-cat-x {
             margin-left: 6px; color: #e53e3e; font-weight: 800; cursor: pointer;
             background: none; border: none; padding: 0; font-size: 0.85rem; font-family: inherit;
@@ -469,7 +477,10 @@
                     <div class="form-group"><label>금액 (원)</label><input type="number" id="lv-amount" placeholder="0" min="0" inputmode="numeric"></div>
                 </div>
                 <div class="form-group">
-                    <label class="lv-cat-label"><span>분류</span><button type="button" class="lv-cat-edit-toggle" id="lv-cat-edit-toggle" onclick="lvToggleCatEdit()">편집</button></label>
+                    <div class="lv-cat-head">
+                        <span class="lv-cat-title">분류</span>
+                        <button type="button" class="lv-cat-edit-toggle" id="lv-cat-edit-toggle" onclick="lvToggleCatEdit()">⚙️ 분류 편집</button>
+                    </div>
                     <div class="lv-cats" id="lv-cats"></div>
                     <div class="lv-cat-hint" id="lv-cat-hint" style="display:none">이름을 누르면 수정, ✕를 누르면 삭제돼요.</div>
                 </div>
@@ -1683,7 +1694,9 @@ function renderLvCats() {
     if (!cats.includes(lv_category) && !_editingLivingId) lv_category = cats[0];
     const el = document.getElementById('lv-cats');
     el.classList.toggle('editing', lv_catEditing);
-    document.getElementById('lv-cat-edit-toggle').textContent = lv_catEditing ? '완료' : '편집';
+    const toggle = document.getElementById('lv-cat-edit-toggle');
+    toggle.textContent = lv_catEditing ? '✓ 편집 완료' : '⚙️ 분류 편집';
+    toggle.classList.toggle('on', lv_catEditing);
     document.getElementById('lv-cat-hint').style.display = lv_catEditing ? '' : 'none';
     if (lv_catEditing) {
         el.innerHTML = cats.map((c, i) =>
