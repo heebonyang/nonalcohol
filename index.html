@@ -45,9 +45,6 @@
         #app-jk .sub-title { font-size: 1.2rem; color: #6b7280; font-weight: 600; margin-bottom: 10px; }
         #app-jk .main-streak { font-size: 4rem; font-weight: 800; color: #0284c7; display: block; }
         #app-jk .streak-unit { font-size: 1.5rem; color: #1f2937; vertical-align: middle; }
-        #app-jk .total-sober { margin-top: 14px; font-size: 1rem; color: #4b5563; }
-        #app-jk .total-sober b { color: #059669; font-size: 1.25rem; }
-        #app-jk .total-sober small { display: block; margin-top: 4px; font-size: 0.8rem; color: #9ca3af; }
         #app-jk .input-card {
             background: #fff; padding: 25px; border-radius: 20px;
             margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
@@ -401,7 +398,6 @@
                 <span class="main-streak" id="day-count">0</span>
                 <span class="streak-unit" id="streak-text">일차 금주 중</span>
             </div>
-            <div class="total-sober" id="jk-total"></div>
         </div>
         <div class="milestone-bar" id="jk-milestones"></div>
         <div class="input-card">
@@ -691,17 +687,6 @@ window.switchApp = switchApp;
 const JK_DOC_REF = doc(db, 'challenge', 'main');
 let D_jk = { records: [] };
 
-// 누적 금주 카운트 시작일 (연속이 끊겨도 누적됨)
-const JK_TOTAL_START = '2026-11-04';
-
-function getTotalSober(records) {
-    const inRange = records.filter(r => r.date >= JK_TOTAL_START);
-    return {
-        sober: inRange.filter(r => r.sober === 'O').length,
-        recorded: inRange.length
-    };
-}
-
 function getCurrentStreak(records) {
     const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
     let streak = 0;
@@ -737,12 +722,6 @@ function jk_updateSoberCounter() {
     } else {
         countElem.style.color = '#0284c7';
         textElem.innerText = '일차 금주 중';
-    }
-    const total = getTotalSober(D_jk.records);
-    const totalElem = document.getElementById('jk-total');
-    if (totalElem) {
-        totalElem.innerHTML = `누적 금주 <b>${total.sober}</b>일` +
-            `<small>${JK_TOTAL_START.replace(/-/g, '.')}부터 · 기록한 ${total.recorded}일 중</small>`;
     }
     jk_renderMilestones(streak);
 }
