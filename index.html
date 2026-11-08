@@ -236,15 +236,15 @@
         #app-gk .lv-cat-add { border-style: dashed; color: #5a67d8; }
         #app-gk .lv-cat-hint { font-size: 0.72rem; color: #a0aec0; margin-top: 6px; }
         #app-gk .lv-cat-drag { display: inline-flex; align-items: center; user-select: none; -webkit-user-select: none; transition: transform 0.12s, box-shadow 0.12s; }
-        #app-gk .lv-cat-handle {
-            cursor: grab; color: #a0aec0; margin: -6px 4px -6px -6px; padding: 6px 4px 6px 6px;
-            touch-action: none; font-size: 0.9rem; line-height: 1;
-        }
+        #app-gk .lv-cats.editing { touch-action: none; -webkit-touch-callout: none; }
+        #app-gk .lv-cats.editing .lv-cat-drag { cursor: grab; }
+        #app-gk .lv-cat-handle { color: #a0aec0; margin-right: 5px; font-size: 0.9rem; line-height: 1; pointer-events: none; }
         #app-gk .lv-cat-drag.dragging {
             border-color: #5a67d8; background: #ebf4ff; transform: scale(1.06);
             box-shadow: 0 4px 12px rgba(90,103,216,0.3); z-index: 1; position: relative;
         }
-        #app-gk .lv-cat-drag.dragging .lv-cat-handle { cursor: grabbing; color: #5a67d8; }
+        #app-gk .lv-cat-drag.dragging, #app-gk .lv-cat-drag.dragging * { cursor: grabbing; }
+        #app-gk .lv-cat-drag.dragging .lv-cat-handle { color: #5a67d8; }
         #app-gk .lv-breakdown-row { margin-bottom: 9px; }
         #app-gk .lv-breakdown-row:last-child { margin-bottom: 0; }
         #app-gk .lv-breakdown-head { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
@@ -488,7 +488,7 @@
                         <button type="button" class="lv-cat-edit-toggle" id="lv-cat-edit-toggle" onclick="lvToggleCatEdit()">⚙️ 분류 편집</button>
                     </div>
                     <div class="lv-cats" id="lv-cats"></div>
-                    <div class="lv-cat-hint" id="lv-cat-hint" style="display:none">⠿를 잡고 끌면 순서 변경 · 이름을 누르면 수정 · ✕를 누르면 삭제</div>
+                    <div class="lv-cat-hint" id="lv-cat-hint" style="display:none">분류를 잡고 끌면 순서 변경 · 이름을 누르면 수정 · ✕를 누르면 삭제</div>
                 </div>
                 <div class="form-group"><label>내용 (선택)</label><input type="text" id="lv-memo" placeholder="예: 점심, 편의점, 장보기"></div>
                 <button class="btn btn-primary" id="lv-submit-btn" onclick="lvAdd()">+ 기록하기</button>
@@ -1689,7 +1689,7 @@ function renderLvCats() {
     document.getElementById('lv-cat-hint').style.display = lv_catEditing ? '' : 'none';
     if (lv_catEditing) {
         el.innerHTML = cats.map((c, i) =>
-            `<span class="lv-cat lv-cat-drag" data-i="${i}"><span class="lv-cat-handle" aria-label="끌어서 순서 변경">⠿</span><button type="button" class="lv-cat-rename" onclick="lvRenameCat(${i})">${escHtml(c)}</button><button type="button" class="lv-cat-x" onclick="lvDeleteCat(${i})" aria-label="삭제">✕</button></span>`
+            `<span class="lv-cat lv-cat-drag" data-i="${i}"><span class="lv-cat-handle" aria-hidden="true">⠿</span><button type="button" class="lv-cat-rename" onclick="lvRenameCat(${i})">${escHtml(c)}</button><button type="button" class="lv-cat-x" onclick="lvDeleteCat(${i})" aria-label="삭제">✕</button></span>`
         ).join('') + `<button type="button" class="lv-cat lv-cat-add" onclick="lvAddCat()">+ 추가</button>`;
     } else {
         el.innerHTML = cats.map((c, i) =>
@@ -1698,21 +1698,32 @@ function renderLvCats() {
     }
 }
 // 분류 순서 드래그 (마우스·터치 공통: Pointer Events)
+// 칩 어디를 잡아도 끌 수 있음. 조금 움직여야 드래그가 시작되므로 이름 탭(수정)·✕(삭제)는 그대로 동작.
 let lv_drag = null;
+let lv_suppressClick = false;
 function lvCatDragInit() {
     const box = document.getElementById('lv-cats');
+    const START_DIST = 6;
+
     box.addEventListener('pointerdown', e => {
-        const handle = e.target.closest('.lv-cat-handle');
-        if (!handle || !lv_catEditing) return;
-        e.preventDefault();
-        const chip = handle.closest('.lv-cat-drag');
-        chip.classList.add('dragging');
-        // 칩은 드래그 중 DOM에서 이동하므로, 움직이지 않는 상자에 포인터를 고정
-        box.setPointerCapture(e.pointerId);
-        lv_drag = { chip, pointerId: e.pointerId };
+        if (!lv_catEditing || lv_drag) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (e.target.closest('.lv-cat-x')) return;
+        const chip = e.target.closest('.lv-cat-drag');
+        if (!chip) return;
+        lv_drag = { chip, pointerId: e.pointerId, x0: e.clientX, y0: e.clientY, active: false };
     });
+
     box.addEventListener('pointermove', e => {
         if (!lv_drag || e.pointerId !== lv_drag.pointerId) return;
+        if (!lv_drag.active) {
+            if (Math.hypot(e.clientX - lv_drag.x0, e.clientY - lv_drag.y0) < START_DIST) return;
+            lv_drag.active = true;
+            lv_drag.chip.classList.add('dragging');
+            // 칩은 드래그 중 DOM에서 이동하므로, 움직이지 않는 상자에 포인터를 고정
+            try { box.setPointerCapture(e.pointerId); } catch (_) {}
+            if (navigator.vibrate) navigator.vibrate(10);
+        }
         e.preventDefault();
         const over = document.elementFromPoint(e.clientX, e.clientY);
         const target = over && over.closest('#lv-cats .lv-cat-drag');
@@ -1725,10 +1736,15 @@ function lvCatDragInit() {
             if (target.previousElementSibling !== lv_drag.chip) target.before(lv_drag.chip);
         }
     });
+
     const end = e => {
         if (!lv_drag || e.pointerId !== lv_drag.pointerId) return;
+        const wasActive = lv_drag.active;
         lv_drag.chip.classList.remove('dragging');
         lv_drag = null;
+        if (!wasActive) return; // 그냥 탭이면 이름 수정 등 원래 동작
+        lv_suppressClick = true;
+        setTimeout(() => { lv_suppressClick = false; }, 300);
         const cats  = lvCats();
         const order = [...box.querySelectorAll('.lv-cat-drag')].map(el => cats[+el.dataset.i]);
         if (order.join('\u0000') !== cats.join('\u0000')) {
@@ -1739,6 +1755,15 @@ function lvCatDragInit() {
     };
     box.addEventListener('pointerup', end);
     box.addEventListener('pointercancel', end);
+
+    // 드래그 직후 발생하는 클릭(이름 수정 창 열림) 막기
+    box.addEventListener('click', e => {
+        if (lv_suppressClick) { e.stopPropagation(); e.preventDefault(); lv_suppressClick = false; }
+    }, true);
+    // iOS 구형 Safari 대비: 드래그 중 화면 스크롤 막기
+    box.addEventListener('touchmove', e => { if (lv_drag && lv_drag.active) e.preventDefault(); }, { passive: false });
+    // 길게 눌렀을 때 뜨는 메뉴 막기
+    box.addEventListener('contextmenu', e => { if (lv_catEditing) e.preventDefault(); });
 }
 
 function lvPickCat(i) { lv_category = lvCats()[i]; renderLvCats(); }
