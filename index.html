@@ -192,7 +192,22 @@
         #app-gk .lv-nav button:disabled { opacity: 0.3; cursor: default; }
         #app-gk .lv-nav-title { font-weight: 800; font-size: 0.98rem; text-align: center; }
         #app-gk .lv-nav-range { display: block; font-size: 0.7rem; font-weight: 600; opacity: 0.75; margin-top: 2px; }
-        #app-gk .lv-label-btns { display: flex; gap: 6px; }
+        #app-gk .lv-pay-check {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            background: #fffbeb; border: 1.5px solid #f6e05e; border-radius: 14px;
+            padding: 12px 14px; margin-bottom: 14px;
+        }
+        #app-gk .lv-pay-check-text { font-size: 0.85rem; color: #744210; font-weight: 600; line-height: 1.4; }
+        #app-gk .lv-pay-check-text small { display: block; font-weight: 400; font-size: 0.72rem; color: #975a16; }
+        #app-gk .lv-pay-check-btn {
+            background: #f6ad55; color: #fff; border: none; border-radius: 999px; white-space: nowrap;
+            padding: 8px 14px; font-size: 0.82rem; font-weight: 800; cursor: pointer; font-family: inherit;
+        }
+        #app-gk .lv-nav .lv-pay-undo {
+            width: auto; height: auto; border-radius: 0; background: none; border: none; color: #fff;
+            opacity: 0.7; font-size: 0.68rem; font-weight: 600; text-decoration: underline;
+            cursor: pointer; font-family: inherit; padding: 0; margin-left: 6px; vertical-align: baseline;
+        }
         #app-gk .lv-label { font-size: 0.78rem; opacity: 0.85; display: flex; justify-content: space-between; align-items: center; }
         #app-gk .lv-goal-btn {
             background: rgba(255,255,255,0.18); color: #fff; border: none; border-radius: 999px;
@@ -453,18 +468,19 @@
         </div>
 
         <div id="tab-living">
+            <div class="lv-pay-check" id="lv-pay-check" style="display:none">
+                <div class="lv-pay-check-text"><span id="lv-pay-check-title"></span><small>받은 날부터 새 생활비 기간이 시작돼요</small></div>
+                <button class="lv-pay-check-btn" onclick="lvCheckPaycheck()">💵 받았어요</button>
+            </div>
             <div class="lv-hero">
                 <div class="lv-nav">
                     <button onclick="lvPrevMonth()" aria-label="이전 급여 기간">‹</button>
-                    <div class="lv-nav-title"><span id="lv-month-title"></span><span class="lv-nav-range" id="lv-month-range"></span></div>
+                    <div class="lv-nav-title"><span id="lv-month-title"></span><span class="lv-nav-range"><span id="lv-month-range"></span><button class="lv-pay-undo" id="lv-pay-undo" onclick="lvUndoPaycheck()" style="display:none">체크 취소</button></span></div>
                     <button id="lv-next-btn" onclick="lvNextMonth()" aria-label="다음 급여 기간">›</button>
                 </div>
                 <div class="lv-label">
                     <span>순수 생활비</span>
-                    <div class="lv-label-btns">
-                        <button class="lv-goal-btn" onclick="lvEditPayday()">월급날 <span id="lv-payday-text"></span> ✏️</button>
-                        <button class="lv-goal-btn" onclick="lvEditGoal()">목표 <span id="lv-goal-text"></span> ✏️</button>
-                    </div>
+                    <button class="lv-goal-btn" onclick="lvEditGoal()">목표 <span id="lv-goal-text"></span> ✏️</button>
                 </div>
                 <div class="lv-spent" id="lv-spent">0원</div>
                 <div class="lv-bar">
@@ -913,8 +929,8 @@ const DEFAULT = {
     subscriptions: [],   // [{id, name, cycle, amount, billingDay, billingDate, active}]
     loans: [],
     livingLog: [],       // [{id, date, amount, category, memo}] 순수 생활비
-    livingGoal: 1000000, // 급여 기간(월급날~다음 월급날 전날) 생활비 목표
-    payday: 10,          // 월급날 (주말이면 다음 월요일로 미룸)
+    livingGoal: 1000000, // 급여 기간(급여 받은 날 ~ 다음 급여 전날) 생활비 목표
+    paychecks: [{ key: '2026-10', date: '2026-11-10' }],  // 급여 받음 체크 [{key:'YYYY-MM'(급여월), date:'YYYY-MM-DD'(받은 날)}]
     livingCats: null,    // 생활비 분류 목록 (null이면 기본값)           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
     overdraftReminderMonth: ''  // 'YYYY-MM' - 마지막으로 알림 확인한 월
 };
@@ -1669,30 +1685,79 @@ let _editingLivingId = null;
 function lvMonthKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; }
 function lvYmd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
 
-// ── 급여 기간: 'N월 급여' = N월 월급날 ~ 다음 달 월급날 전날 ──
-// 월급날이 토·일이면 다음 월요일로 미룸. 그 달에 없는 날(예: 31일)은 말일로.
-function lvPayStart(y, m) {   // m: 1~12
-    const day = Math.min(D.payday || 10, new Date(y, m, 0).getDate());
-    const d = new Date(y, m - 1, day);
-    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
-    else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
-    return d;
+// ── 급여 기간: 'N월 급여'를 받았다고 체크한 날 ~ 다음 급여 체크 전날 ──
+// 예) 11/10에 '10월 급여 받음' 체크 → 10월 급여 기간 = 11/10 ~ 다음 체크 전날(보통 12/9)
+const LV_PRE = 'pre';
+function lvDate(str) { return new Date(str + 'T00:00:00'); }
+function lvAddDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function lvPrevMonthKey(dateStr) {   // 받은 날짜의 '전달' = 급여월
+    const [y, m] = dateStr.split('-').map(Number);
+    return m === 1 ? `${y - 1}-12` : `${y}-${pad(m - 1)}`;
 }
-function lvPeriod(key) {      // key: 'YYYY-MM' (급여 월)
-    const [y, m] = key.split('-').map(Number);
-    const start = lvPayStart(y, m);
-    const next  = lvPayStart(m === 12 ? y + 1 : y, m === 12 ? 1 : m + 1);
-    const end   = new Date(next); end.setDate(end.getDate() - 1);   // 마지막 날(포함)
-    const days  = Math.round((next - start) / 86400000);
-    return { start, end, next, startStr: lvYmd(start), nextStr: lvYmd(next), days };
+function lvPaychecks() {
+    if (!Array.isArray(D.paychecks)) D.paychecks = [];
+    return [...D.paychecks].sort((a, b) => a.date.localeCompare(b.date));
 }
-function lvKeyOf(dateStr) {   // 해당 날짜가 속한 급여 월
-    const d = new Date(dateStr + 'T00:00:00');
-    let y = d.getFullYear(), m = d.getMonth() + 1;
-    if (d < lvPayStart(y, m)) { m -= 1; if (m === 0) { m = 12; y -= 1; } }
-    return `${y}-${pad(m)}`;
+// 전체 기간 목록 (오래된 순). 첫 급여 체크 이전 기록이 있으면 '이전 기록' 기간을 맨 앞에 둠
+function lvPeriods() {
+    const pcs = lvPaychecks();
+    const list = pcs.map((pc, i) => {
+        const [y, m] = pc.key.split('-').map(Number);
+        const next = pcs[i + 1] ? pcs[i + 1].date : null;
+        const start = lvDate(pc.date);
+        // 진행 중인 기간은 다음 달 같은 날 전날까지로 예상
+        const estNext = new Date(start.getFullYear(), start.getMonth() + 1, start.getDate());
+        const nextD = next ? lvDate(next) : estNext;
+        return { key: pc.key, label: `${y}년 ${m}월 급여`, start, startStr: pc.date, nextStr: next,
+                 end: lvAddDays(nextD, -1), days: Math.round((nextD - start) / 86400000), ongoing: !next };
+    });
+    const first = pcs[0] ? pcs[0].date : null;
+    const before = (D.livingLog || []).filter(x => !first || x.date < first).map(x => x.date).sort();
+    if (before.length) {
+        const start = lvDate(before[0]);
+        const nextD = first ? lvDate(first) : lvAddDays(lvDate(todayStr()), 1);
+        list.unshift({ key: LV_PRE, label: '급여 체크 이전 기록', start, startStr: before[0], nextStr: first,
+                       end: lvAddDays(nextD, -1), days: Math.max(1, Math.round((nextD - start) / 86400000)), ongoing: !first, pre: true });
+    }
+    return list;
 }
-function lvCurrentKey() { return lvKeyOf(todayStr()); }
+function lvPeriodOf(dateStr) {
+    const ps = lvPeriods();
+    for (let i = ps.length - 1; i >= 0; i--) if (dateStr >= ps[i].startStr) return ps[i];
+    return ps[0] || null;
+}
+function lvCurrentKey() { const p = lvPeriodOf(todayStr()); return p ? p.key : LV_PRE; }
+function lvKeyOf(dateStr) { const p = lvPeriodOf(dateStr); return p ? p.key : LV_PRE; }
+
+// 급여 받음 체크: 이번에 받을 차례인 급여 = 오늘 기준 '전달' 급여
+function lvDuePaycheckKey() {
+    const key = lvPrevMonthKey(todayStr());
+    return lvPaychecks().some(pc => pc.key === key) ? null : key;
+}
+function lvCheckPaycheck() {
+    const key = lvDuePaycheckKey();
+    if (!key) return;
+    const [, m] = key.split('-').map(Number);
+    const input = prompt(`${m}월 급여 받은 날짜를 확인해 주세요 (YYYY-MM-DD)\n이 날부터 ${m}월 급여 생활비 기간이 시작돼요.`, todayStr());
+    if (input === null) return;
+    const date = input.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(lvDate(date))) { alert('날짜를 YYYY-MM-DD 형식으로 입력해 주세요.'); return; }
+    if (date > todayStr()) { alert('오늘 이후 날짜는 체크할 수 없어요.'); return; }
+    const last = lvPaychecks().slice(-1)[0];
+    if (last && date <= last.date) { alert(`이전 급여 체크(${last.date})보다 뒤 날짜여야 해요.`); return; }
+    D.paychecks.push({ key, date });
+    lv_viewMonth = key;
+    save(); renderLiving();
+}
+function lvUndoPaycheck() {
+    const last = lvPaychecks().slice(-1)[0];
+    if (!last || last.key !== lv_viewMonth) return;
+    const [, m] = last.key.split('-').map(Number);
+    if (!confirm(`${m}월 급여 받음 체크(${last.date})를 취소할까요?\n이 기간의 기록은 지워지지 않고 이전 기간에 합쳐져요.`)) return;
+    D.paychecks = D.paychecks.filter(pc => !(pc.key === last.key && pc.date === last.date));
+    lv_viewMonth = lvCurrentKey();
+    save(); renderLiving();
+}
 
 // 이번 달 고정 지출(구독·대출) 합계 — 생활비 목표와는 별도
 function calcFixedThisMonth() {
@@ -1841,31 +1906,17 @@ function lvDeleteCat(i) {
 }
 
 function lvPrevMonth() {
-    const [y, m] = lv_viewMonth.split('-').map(Number);
-    lv_viewMonth = lvMonthKey(new Date(y, m - 2, 1));
-    renderLiving();
+    const ps = lvPeriods(); const i = ps.findIndex(p => p.key === lv_viewMonth);
+    if (i > 0) { lv_viewMonth = ps[i - 1].key; renderLiving(); }
 }
 function lvNextMonth() {
-    const [y, m] = lv_viewMonth.split('-').map(Number);
-    const next = lvMonthKey(new Date(y, m, 1));
-    if (next > lvCurrentKey()) return;
-    lv_viewMonth = next;
-    renderLiving();
-}
-
-function lvEditPayday() {
-    const input = prompt('월급날을 입력하세요 (1~31일)\n토·일요일이면 다음 월요일부터 새 기간이 시작돼요.', D.payday || 10);
-    if (input === null) return;
-    const v = parseInt(String(input).replace(/[^0-9]/g, ''));
-    if (!v || v < 1 || v > 31) { alert('1~31 사이로 입력해 주세요.'); return; }
-    D.payday = v;
-    lv_viewMonth = lvCurrentKey();
-    save(); renderLiving();
+    const ps = lvPeriods(); const i = ps.findIndex(p => p.key === lv_viewMonth);
+    if (i >= 0 && i < ps.length - 1) { lv_viewMonth = ps[i + 1].key; renderLiving(); }
 }
 
 function lvEditGoal() {
     const cur = D.livingGoal || 1000000;
-    const input = prompt('급여 기간(월급날~다음 월급날 전날) 생활비 목표를 입력하세요 (원)', cur);
+    const input = prompt('급여 한 번으로 생활할 생활비 목표를 입력하세요 (원)', cur);
     if (input === null) return;
     const v = parseInt(String(input).replace(/[^0-9]/g, ''));
     if (!v || v <= 0) { alert('올바른 금액을 입력해 주세요.'); return; }
@@ -1874,24 +1925,34 @@ function lvEditGoal() {
 }
 
 function renderLiving() {
-    if (!lv_viewMonth) lv_viewMonth = lvCurrentKey();
+    const periods = lvPeriods();
+    if (!periods.some(p => p.key === lv_viewMonth)) lv_viewMonth = lvCurrentKey();
+    const pIdx  = periods.findIndex(p => p.key === lv_viewMonth);
+    const period = periods[pIdx] || { key: LV_PRE, label: '급여 체크 전', start: lvDate(todayStr()), startStr: todayStr(), nextStr: null, end: lvDate(todayStr()), days: 30, ongoing: true, pre: true };
     const goal  = D.livingGoal || 1000000;
-    const [vy, vm] = lv_viewMonth.split('-').map(Number);
     const now   = new Date(); now.setHours(0, 0, 0, 0);
-    const isCurrent = lv_viewMonth === lvCurrentKey();
-    const period = lvPeriod(lv_viewMonth);
-    const daysInMonth = period.days;   // 급여 기간 일수
-    const items = (D.livingLog || []).filter(x => x.date >= period.startStr && x.date < period.nextStr);
+    const isCurrent = period.ongoing;
+    const daysInMonth = period.days;   // 급여 기간 일수 (진행 중이면 예상치)
+    const items = (D.livingLog || []).filter(x => x.date >= period.startStr && (!period.nextStr || x.date < period.nextStr));
     const spent = items.reduce((s, x) => s + x.amount, 0);
     const remain = goal - spent;
     const pct = goal ? spent / goal * 100 : 0;
 
     const WDS = ['일','월','화','수','목','금','토'];
     const md = d => `${d.getMonth() + 1}.${d.getDate()}(${WDS[d.getDay()]})`;
-    document.getElementById('lv-month-title').textContent = `${vy}년 ${vm}월 급여`;
-    document.getElementById('lv-month-range').textContent = `${md(period.start)} ~ ${md(period.end)}`;
-    document.getElementById('lv-payday-text').textContent = `${D.payday || 10}일`;
-    document.getElementById('lv-next-btn').disabled = isCurrent;
+    document.getElementById('lv-month-title').textContent = period.label;
+    document.getElementById('lv-month-range').textContent =
+        `${md(period.start)} ~ ${period.ongoing && !period.pre ? `${md(period.end)} 예상` : md(period.end)}`;
+    document.querySelector('.lv-nav button').disabled = pIdx <= 0;
+    document.getElementById('lv-next-btn').disabled = pIdx < 0 || pIdx >= periods.length - 1;
+    const lastPc = lvPaychecks().slice(-1)[0];
+    document.getElementById('lv-pay-undo').style.display = lastPc && lastPc.key === period.key ? '' : 'none';
+
+    // 급여 받음 체크 배너
+    const dueKey = lvDuePaycheckKey();
+    const checkEl = document.getElementById('lv-pay-check');
+    checkEl.style.display = dueKey ? '' : 'none';
+    if (dueKey) document.getElementById('lv-pay-check-title').textContent = `${Number(dueKey.split('-')[1])}월 급여 받으셨나요?`;
     document.getElementById('lv-goal-text').textContent = fmtMoney(goal);
     document.getElementById('lv-spent').innerHTML = `${fmtMoney(spent)}<small>/ ${fmtMoney(goal)}</small>`;
 
@@ -1908,8 +1969,8 @@ function renderLiving() {
     };
 
     if (isCurrent) {
-        const day = Math.round((now - period.start) / 86400000) + 1; // 기간 중 오늘이 며칠째인지
-        const daysLeft = daysInMonth - day + 1; // 오늘 포함
+        const day = Math.min(daysInMonth, Math.round((now - period.start) / 86400000) + 1); // 기간 중 오늘이 며칠째인지
+        const daysLeft = Math.max(1, daysInMonth - day + 1); // 오늘 포함
         const pace = goal * day / daysInMonth;  // 오늘까지 써도 되는 금액
         const todaySpent = items.filter(x => x.date === todayStr()).reduce((s, x) => s + x.amount, 0);
         const spentBeforeToday = spent - todaySpent;
@@ -1968,7 +2029,7 @@ function renderLiving() {
     }
 
     // 내역 (날짜별)
-    document.getElementById('lv-list-title').textContent = isCurrent ? '이번 급여 기간 내역' : `${vm}월 급여 내역`;
+    document.getElementById('lv-list-title').textContent = isCurrent ? '이번 급여 기간 내역' : `${period.label} 내역`;
     const listEl = document.getElementById('lv-list');
     if (!items.length) { listEl.innerHTML = '<div class="empty">아직 기록이 없어요</div>'; return; }
     const byDate = {};
@@ -2011,8 +2072,7 @@ function lvAdd() {
     } else {
         D.livingLog.push({ id: uid(), date, amount, memo, category: lv_category });
     }
-    const k = lvKeyOf(date);
-    lv_viewMonth = k > lvCurrentKey() ? lvCurrentKey() : k;
+    lv_viewMonth = lvKeyOf(date);
     lvResetForm();
     save(); renderLiving();
 }
@@ -2048,7 +2108,8 @@ window.lvDeleteCat = lvDeleteCat;
 window.lvPrevMonth = lvPrevMonth;
 window.lvNextMonth = lvNextMonth;
 window.lvEditGoal  = lvEditGoal;
-window.lvEditPayday = lvEditPayday;
+window.lvCheckPaycheck = lvCheckPaycheck;
+window.lvUndoPaycheck  = lvUndoPaycheck;
 window.lvAdd       = lvAdd;
 window.lvEdit      = lvEdit;
 window.lvDelete    = lvDelete;
