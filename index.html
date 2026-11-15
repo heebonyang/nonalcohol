@@ -138,6 +138,10 @@
         #app-jk .jk-progress { margin-top: 18px; }
         #app-jk .jk-progress-track { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
         #app-jk .jk-progress-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.5s ease; }
+        #app-jk .jk-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+        #app-jk .jk-meta-item { background: var(--surface-2); border-radius: var(--radius-sm); padding: 10px 6px; text-align: center; min-width: 0; }
+        #app-jk .jk-meta-label { display: block; font-size: 0.68rem; color: var(--ink-3); font-weight: 600; white-space: nowrap; }
+        #app-jk .jk-meta-value { display: block; font-size: 0.92rem; font-weight: 800; margin-top: 2px; white-space: nowrap; font-variant-numeric: tabular-nums; }
         #app-jk .jk-progress-legend { display: flex; justify-content: space-between; margin-top: 7px; font-size: 0.74rem; color: var(--ink-3); font-weight: 500; }
 
         /* 마일스톤: 세로 폰에서 3칸 한 줄 */
@@ -153,6 +157,7 @@
         #app-jk .mc-dday { font-size: 0.7rem; font-weight: 700; color: var(--ink-3); }
         #app-jk .mc-dday.soon { color: var(--warn); }
         #app-jk .mc-dday.done { color: var(--accent-text); }
+        #app-jk .mc-dday.passed { color: var(--ink-3); }
 
         /* 기록 입력 */
         #app-jk .input-card {
@@ -456,7 +461,7 @@
             <span class="page-sub" id="jk-today"></span>
         </div>
         <div class="header-card">
-            <div class="sub-title">연속 금주</div>
+            <div class="sub-title" id="jk-kicker">DAY 100</div>
             <div class="streak-row">
                 <span class="main-streak" id="day-count">0</span>
                 <span class="streak-unit" id="streak-text">일차 금주 중</span>
@@ -464,6 +469,11 @@
             <div class="jk-progress">
                 <div class="jk-progress-track"><div class="jk-progress-fill" id="jk-progress-fill" style="width:0%"></div></div>
                 <div class="jk-progress-legend"><span id="jk-progress-text">0 / 100일</span><span id="jk-progress-left"></span></div>
+            </div>
+            <div class="jk-meta">
+                <div class="jk-meta-item"><span class="jk-meta-label">연속 금주</span><span class="jk-meta-value" id="jk-streak">0일</span></div>
+                <div class="jk-meta-item"><span class="jk-meta-label" id="jk-sober-label">기간 중 금주</span><span class="jk-meta-value" id="jk-sober-count">—</span></div>
+                <div class="jk-meta-item"><span class="jk-meta-label">🎤 부산 공연</span><span class="jk-meta-value" id="jk-concert">—</span></div>
             </div>
         </div>
         <div class="milestone-bar" id="jk-milestones"></div>
@@ -777,82 +787,94 @@ function jk_save() {
     setDoc(JK_DOC_REF, D_jk).catch(err => console.error('금주 저장 실패:', err));
 }
 
+// ── Day100 프로젝트 일정 (heebonmd.web.app 기준, 앱에서 수정 불가) ──
+const JK_PROJECT = Object.freeze({
+    start:   '2026-12-14',   // Day 1 · 광안리 첫 라이브 (월)
+    days:    100,            // Day 100 = 2027-03-23 (화)
+    concert: '2027-03-27',   // 부산 공연 (토)
+});
+const JK_MILESTONES = Object.freeze([
+    { day: 30,  icon: '🌱', label: 'Day 30'  },
+    { day: 50,  icon: '⭐', label: 'Day 50'  },
+    { day: 100, icon: '🏆', label: 'Day 100' },
+]);
+function jkDate(str) { return new Date(str + 'T00:00:00'); }
+function jkAdd(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function jkYmd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function jkMd(d) { return `${d.getMonth() + 1}.${d.getDate()}(${['일','월','화','수','목','금','토'][d.getDay()]})`; }
+function jkToday() { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+function jkDayIndex() { return Math.round((jkToday() - jkDate(JK_PROJECT.start)) / 86400000) + 1; } // Day 1 = 시작일
+
 function jk_updateSoberCounter() {
     const streak = getCurrentStreak(D_jk.records);
+    const start  = jkDate(JK_PROJECT.start);
+    const last   = jkAdd(start, JK_PROJECT.days - 1);
+    const concert = jkDate(JK_PROJECT.concert);
+    const today  = jkToday();
+    const day    = jkDayIndex();
     const countElem = document.getElementById('day-count');
     const textElem  = document.getElementById('streak-text');
-    countElem.innerText = streak;
-    countElem.classList.toggle('is-reset', streak === 0);
-    textElem.innerText = streak === 0 ? '일 · 오늘부터 다시 시작해요' : '일째';
-    const pct = Math.min(100, streak);
-    document.getElementById('jk-progress-fill').style.width = pct + '%';
-    document.getElementById('jk-progress-text').textContent = `${Math.min(streak, 100)} / 100일`;
-    document.getElementById('jk-progress-left').textContent = streak >= 100 ? '🏆 100일 달성!' : `${100 - streak}일 남음`;
-    jk_renderMilestones(streak);
+
+    document.getElementById('jk-kicker').textContent = `DAY 100 · ${jkMd(start)} ~ ${jkMd(last)}`;
+    countElem.classList.remove('is-reset');
+    let progress = 0, legendL, legendR;
+    if (day < 1) {                       // 시작 전
+        countElem.textContent = `D-${1 - day}`;
+        textElem.textContent  = `${start.getMonth() + 1}월 ${start.getDate()}일 시작`;
+        legendL = '0 / 100일'; legendR = '출항 준비 중';
+    } else if (day <= JK_PROJECT.days) { // 진행 중
+        countElem.textContent = day;
+        textElem.textContent  = '일째';
+        progress = day / JK_PROJECT.days * 100;
+        legendL = `Day ${day} / ${JK_PROJECT.days}`;
+        legendR = day === JK_PROJECT.days ? '오늘이 마지막 날!' : `${JK_PROJECT.days - day}일 남음`;
+    } else {                             // 완주
+        countElem.textContent = JK_PROJECT.days;
+        textElem.textContent  = '일 완주 🏆';
+        progress = 100; legendL = '100 / 100일'; legendR = '항해 완료';
+    }
+    document.getElementById('jk-progress-fill').style.width = progress + '%';
+    document.getElementById('jk-progress-text').textContent = legendL;
+    document.getElementById('jk-progress-left').textContent = legendR;
+
+    // 아래 3칸: 연속 금주 · 기간 중 금주 성공 · 공연
+    document.getElementById('jk-streak').textContent = `${streak}일`;
+    const inRange = D_jk.records.filter(r => r.date >= JK_PROJECT.start && r.date <= jkYmd(last));
+    const soberDays = inRange.filter(r => r.sober === 'O').length;
+    document.getElementById('jk-sober-label').textContent = '기간 중 금주';
+    document.getElementById('jk-sober-count').textContent = day < 1 ? '시작 전' : `${soberDays}일`;
+    const toConcert = Math.round((concert - today) / 86400000);
+    document.getElementById('jk-concert').textContent =
+        toConcert > 0 ? `D-${toConcert}` : toConcert === 0 ? '오늘!' : '완료';
+
+    jk_renderMilestones();
 }
 
-function jk_renderMilestones(streak) {
+// 마일스톤 날짜는 프로젝트 시작일 기준으로 고정
+function jk_renderMilestones() {
     const el = document.getElementById('jk-milestones');
     if (!el) return;
-
-    // 현재 연속 스트릭의 시작일 계산
-    const sorted = [...D_jk.records].sort((a, b) => b.date.localeCompare(a.date));
-    let startDate = null;
-    if (streak > 0) {
-        // 가장 오래된 연속 O 기록 찾기
-        let count = 0;
-        for (const r of sorted) {
-            if (r.sober === 'O') count++;
-            else break;
-        }
-        // count번째 기록의 날짜가 연속 시작일
-        const startRecord = sorted[count - 1];
-        startDate = startRecord ? new Date(startRecord.date) : null;
-    }
-
-    const MILESTONES = [
-        { day: 30,  icon: '🌱', label: '30일' },
-        { day: 50,  icon: '⭐', label: '50일' },
-        { day: 100, icon: '🏆', label: '100일' },
-    ];
-
-    const today = new Date(); today.setHours(0,0,0,0);
-
-    el.innerHTML = MILESTONES.map(m => {
-        const isDone = streak >= m.day;
-
-        let dateStr = '-';
-        let ddayHtml = '';
-
-        if (startDate) {
-            // 목표 달성일 = 시작일 + (m.day - 1)일
-            const targetDate = new Date(startDate);
-            targetDate.setDate(targetDate.getDate() + m.day - 1);
-            const yyyy = targetDate.getFullYear();
-            const mm   = String(targetDate.getMonth() + 1).padStart(2, '0');
-            const dd   = String(targetDate.getDate()).padStart(2, '0');
-            dateStr = `${String(yyyy).slice(2)}.${mm}.${dd}`;
-
-            if (isDone) {
-                ddayHtml = `<div class="mc-dday done">달성 🎉</div>`;
-            } else {
-                const daysLeft = Math.ceil((targetDate - today) / 86400000);
-                if (daysLeft <= 7) {
-                    ddayHtml = `<div class="mc-dday soon">D-${daysLeft}</div>`;
-                } else {
-                    ddayHtml = `<div class="mc-dday future">D-${daysLeft}</div>`;
-                }
-            }
+    const start = jkDate(JK_PROJECT.start);
+    const today = jkToday();
+    el.innerHTML = JK_MILESTONES.map(m => {
+        const target = jkAdd(start, m.day - 1);
+        const daysLeft = Math.round((target - today) / 86400000);
+        let cls = '', dday;
+        if (daysLeft > 0) {
+            dday = `<div class="mc-dday${daysLeft <= 7 ? ' soon' : ''}">D-${daysLeft}</div>`;
         } else {
-            dateStr = '—';
+            // 그날이 지났으면: 시작일~그날까지 실패(X) 기록이 없으면 달성
+            const failed = D_jk.records.some(r => r.sober === 'X' && r.date >= JK_PROJECT.start && r.date <= jkYmd(target));
+            if (daysLeft === 0) dday = `<div class="mc-dday soon">오늘!</div>`;
+            else if (!failed) { cls = ' done'; dday = `<div class="mc-dday done">달성 🎉</div>`; }
+            else dday = `<div class="mc-dday passed">지남</div>`;
         }
-
-        return `<div class="milestone-chip${isDone ? ' done' : ''}">
+        return `<div class="milestone-chip${cls}">
             <div class="mc-icon">${m.icon}</div>
             <div style="min-width:0">
                 <div class="mc-label">${m.label}</div>
-                <div class="mc-date">${dateStr}</div>
-                ${ddayHtml}
+                <div class="mc-date">${String(target.getFullYear()).slice(2)}.${pad(target.getMonth() + 1)}.${pad(target.getDate())}</div>
+                ${dday}
             </div>
         </div>`;
     }).join('');
