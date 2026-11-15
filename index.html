@@ -434,10 +434,6 @@
                     <option value="O">금주 성공 O</option>
                     <option value="X">금주 실패 X</option>
                 </select>
-                <select id="exercise">
-                    <option value="O">운동 O</option>
-                    <option value="X">운동 X</option>
-                </select>
                 <button class="btn-save" id="save-btn" onclick="jk_addRecord()">기록하기</button>
             </div>
             <div class="reason-container" id="reason-container">
@@ -448,7 +444,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>날짜</th><th>금주 여부</th><th>운동</th>
+                        <th>날짜</th><th>금주 여부</th>
                         <th>관리</th>
                     </tr>
                 </thead>
@@ -832,12 +828,10 @@ function jk_renderTable() {
         const reasonHtml = r.reason ? `<span class="reason-label">사유: ${escHtml(r.reason)}</span>` : '';
         const safeDate     = escHtml(r.date);
         const safeSober    = escHtml(r.sober);
-        const safeExercise = escHtml(r.exercise);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="font-weight:600;color:#4b5563;">${safeDate}</td>
             <td><span class="${r.sober === 'O' ? 'status-o' : 'status-x'}">${safeSober}</span>${reasonHtml}</td>
-            <td class="${r.exercise === 'O' ? 'status-o' : 'status-x'}">${safeExercise}</td>
             <td>
                 <button class="btn-edit" onclick="jk_editItem('${safeDate}')">수정</button>
                 <button class="btn-del"  onclick="jk_deleteRecord('${safeDate}')">삭제</button>
@@ -855,7 +849,6 @@ function jk_toggleReason() {
 
 function jk_resetInputs() {
     document.getElementById('sober').value    = 'O';
-    document.getElementById('exercise').value = 'O';
     document.getElementById('reason').value   = '';
     jk_toggleReason();
     const btn = document.getElementById('save-btn');
@@ -866,14 +859,13 @@ function jk_resetInputs() {
 function jk_addRecord() {
     const date     = document.getElementById('targetDate').value;
     const sober    = document.getElementById('sober').value;
-    const exercise = document.getElementById('exercise').value;
     const reason   = sober === 'O' ? '' : document.getElementById('reason').value;
     if (!date) { alert('날짜를 선택해 주세요.'); return; }
 
     const idx = D_jk.records.findIndex(r => r.date === date);
-    const newRecord = { date, sober, exercise, reason };
+    const newRecord = { date, sober, reason };
     if (idx >= 0) {
-        D_jk.records[idx] = newRecord;
+        D_jk.records[idx] = { ...D_jk.records[idx], ...newRecord }; // 예전 운동 기록은 데이터에 그대로 보존
     } else {
         D_jk.records.push(newRecord);
     }
@@ -891,7 +883,6 @@ function jk_editItem(date) {
     if (!r) return;
     document.getElementById('targetDate').value  = r.date;
     document.getElementById('sober').value       = r.sober;
-    document.getElementById('exercise').value    = r.exercise;
     document.getElementById('reason').value      = r.sober === 'X' ? (r.reason || '') : '';
     document.getElementById('reason-container').style.display = r.sober === 'X' ? 'block' : 'none';
     const btn = document.getElementById('save-btn');
