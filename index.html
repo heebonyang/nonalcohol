@@ -165,27 +165,18 @@
             box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;
         }
         #app-jk .form-grid { display: flex; flex-direction: column; gap: 10px; }
-        #app-jk input[type="date"], #app-jk .reason-input {
+        #app-jk input[type="date"] {
             width: 100%; min-width: 0; height: 48px; padding: 0 14px;
             background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm);
             font-size: 16px; outline: none; color: var(--ink);
         }
         #app-jk input:focus { border-color: var(--accent); background: var(--surface); }
-        #app-jk .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface-3); padding: 4px; border-radius: 14px; }
-        #app-jk .seg button {
-            height: 42px; border: none; border-radius: 10px; background: transparent;
-            font-size: 0.92rem; font-weight: 700; color: var(--ink-3); transition: all 0.15s;
-        }
-        #app-jk .seg button.on[data-v="O"] { background: var(--surface); color: var(--good); box-shadow: var(--shadow); }
-        #app-jk .seg button.on[data-v="X"] { background: var(--surface); color: var(--bad); box-shadow: var(--shadow); }
-        #app-jk .reason-container { display: none; margin-top: 10px; }
-        #app-jk .reason-input { background: var(--bad-soft); border-color: transparent; }
         #app-jk .btn-save {
             height: 50px; border: none; border-radius: 14px; background: var(--ink); color: var(--bg);
             font-size: 1rem; font-weight: 700; transition: transform 0.1s, opacity 0.2s;
         }
         #app-jk .btn-save:active { transform: scale(0.98); }
-        #app-jk .btn-save.edit-mode { background: var(--warn); color: #fff; }
+        #app-jk .btn-save:disabled { background: var(--good-soft); color: var(--good); cursor: default; transform: none; }
 
         /* 기록 목록 */
         #app-jk .table-card {
@@ -480,16 +471,8 @@
         <div class="input-card">
             <div class="form-grid">
                 <input type="date" id="targetDate" onchange="jk_resetInputs()">
-                <input type="hidden" id="sober" value="O">
-                <div class="seg" role="radiogroup" aria-label="금주 여부">
-                    <button type="button" data-v="O" class="on" onclick="jk_setSober('O')">🙂 금주 성공</button>
-                    <button type="button" data-v="X" onclick="jk_setSober('X')">😓 마셨어요</button>
-                </div>
+                <button class="btn-save" id="save-btn" onclick="jk_addRecord()">🏅 오늘도 승리</button>
             </div>
-            <div class="reason-container" id="reason-container">
-                <input type="text" id="reason" class="reason-input" placeholder="어떤 상황이었는지 적어두면 다음에 도움이 돼요">
-            </div>
-            <button class="btn-save" id="save-btn" onclick="jk_addRecord()" style="width:100%;margin-top:10px;">기록하기</button>
         </div>
         <div class="table-card">
             <div class="list-head"><span>기록</span><span id="jk-record-count"></span></div>
@@ -897,73 +880,37 @@ function jk_renderTable() {
                 ${reasonHtml}
             </div>
             <div class="jk-actions">
-                <button class="btn-edit" onclick="jk_editItem('${safeDate}')">수정</button>
                 <button class="btn-del"  onclick="jk_deleteRecord('${safeDate}')">삭제</button>
             </div>
         </div>`;
     }).join('') : '<div class="jk-empty">아직 기록이 없어요. 오늘부터 시작해 볼까요?</div>';
     jk_updateSoberCounter();
+    jk_resetInputs();
 }
 
-function jk_setSober(v) {
-    document.getElementById('sober').value = v;
-    jk_toggleReason();
-}
-function jk_syncSober() {
-    const v = document.getElementById('sober').value;
-    document.querySelectorAll('#app-jk .seg button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-}
-
-function jk_toggleReason() {
-    const isX = document.getElementById('sober').value === 'X';
-    jk_syncSober();
-    document.getElementById('reason-container').style.display = isX ? 'block' : 'none';
-    if (!isX) document.getElementById('reason').value = '';
-}
-
+// 기록은 '금주 성공'만. 이미 승리로 기록한 날이면 버튼을 잠금
 function jk_resetInputs() {
-    document.getElementById('sober').value    = 'O';
-    document.getElementById('reason').value   = '';
-    jk_toggleReason();
-    const btn = document.getElementById('save-btn');
-    btn.innerText = '기록하기';
-    btn.classList.remove('edit-mode');
+    const date = document.getElementById('targetDate').value;
+    const btn  = document.getElementById('save-btn');
+    const done = D_jk.records.some(r => r.date === date && r.sober === 'O');
+    const isToday = date === todayStr();
+    btn.disabled = done;
+    btn.textContent = done ? '✓ 이 날은 이미 승리' : isToday ? '🏅 오늘도 승리' : '🏅 이 날도 승리';
 }
 
 function jk_addRecord() {
-    const date     = document.getElementById('targetDate').value;
-    const sober    = document.getElementById('sober').value;
-    const reason   = sober === 'O' ? '' : document.getElementById('reason').value;
+    const date = document.getElementById('targetDate').value;
     if (!date) { alert('날짜를 선택해 주세요.'); return; }
-
+    if (date > todayStr()) { alert('아직 오지 않은 날은 기록할 수 없어요.'); return; }
     const idx = D_jk.records.findIndex(r => r.date === date);
-    const newRecord = { date, sober, reason };
+    const newRecord = { date, sober: 'O', reason: '' };
     if (idx >= 0) {
-        D_jk.records[idx] = { ...D_jk.records[idx], ...newRecord }; // 예전 운동 기록은 데이터에 그대로 보존
+        D_jk.records[idx] = { ...D_jk.records[idx], ...newRecord }; // 예전 기록의 다른 필드는 보존
     } else {
         D_jk.records.push(newRecord);
     }
     jk_save();
-
-    document.getElementById('save-btn').innerText = '기록하기';
-    document.getElementById('save-btn').classList.remove('edit-mode');
-    document.getElementById('reason').value = '';
-    jk_toggleReason();
     jk_renderTable();
-}
-
-function jk_editItem(date) {
-    const r = D_jk.records.find(r => r.date === date);
-    if (!r) return;
-    document.getElementById('targetDate').value  = r.date;
-    document.getElementById('sober').value       = r.sober;
-    document.getElementById('reason').value      = r.sober === 'X' ? (r.reason || '') : '';
-    document.getElementById('reason-container').style.display = r.sober === 'X' ? 'block' : 'none';
-    jk_syncSober();
-    const btn = document.getElementById('save-btn');
-    btn.innerText = '수정 완료';
-    btn.classList.add('edit-mode');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function jk_deleteRecord(date) {
@@ -974,11 +921,8 @@ function jk_deleteRecord(date) {
     }
 }
 
-window.jk_toggleReason = jk_toggleReason;
-window.jk_setSober     = jk_setSober;
 window.jk_resetInputs  = jk_resetInputs;
 window.jk_addRecord    = jk_addRecord;
-window.jk_editItem     = jk_editItem;
 window.jk_deleteRecord = jk_deleteRecord;
 
 // ═══════════════════════════════════
@@ -2201,6 +2145,7 @@ window.subPayUnconfirm    = subPayUnconfirm;
 // ── DOMContentLoaded ──
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('targetDate').value = todayStr();
+    document.getElementById('targetDate').max   = todayStr();
     const _t = new Date();
     const _todayLabel = `${_t.getMonth() + 1}월 ${_t.getDate()}일 ${['일','월','화','수','목','금','토'][_t.getDay()]}요일`;
     document.getElementById('jk-today').textContent = _todayLabel;
