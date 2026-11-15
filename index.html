@@ -4,407 +4,439 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>생활 관리</title>
+    <meta name="theme-color" content="#F4F2EC" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1A1917" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f3f4f6; min-height: 100vh; color: #1f2937;
-            /* 하단 홈 인디케이터 영역 확보 */
-            padding-bottom: env(safe-area-inset-bottom);
+        /* ══════════════════════════════════════════════
+           생활 관리 — 디자인 시스템
+           따뜻한 아이보리 바탕 · 테라코타 포인트 · 세리프 숫자
+           세로 폰 화면 기준, 다크 모드 지원
+           ══════════════════════════════════════════════ */
+        :root {
+            --bg: #F4F2EC;
+            --surface: #FFFFFF;
+            --surface-2: #FAF8F3;
+            --surface-3: #F1EEE6;
+            --ink: #1F1E1C;
+            --ink-2: #57544E;
+            --ink-3: #8C887F;
+            --line: #E6E2D8;
+            --line-2: #EFECE4;
+            --accent: #C2603F;
+            --accent-ink: #FFFFFF;
+            --accent-soft: #F7E8E1;
+            --accent-text: #A6502F;
+            --good: #4F7A5B;
+            --good-soft: #E5EEE6;
+            --warn: #B7822A;
+            --warn-soft: #F8EED8;
+            --bad: #B54A34;
+            --bad-soft: #F7E2DC;
+            --shadow: 0 1px 2px rgba(31,30,28,0.04), 0 4px 16px rgba(31,30,28,0.05);
+            --radius: 18px;
+            --radius-sm: 12px;
+            --nav-h: 64px;
+            --serif: 'Noto Serif KR', 'Iowan Old Style', Georgia, serif;
+            --sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+            color-scheme: light;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1A1917;
+                --surface: #252420;
+                --surface-2: #2B2A26;
+                --surface-3: #33312C;
+                --ink: #F1EEE6;
+                --ink-2: #C4BFB4;
+                --ink-3: #8E897F;
+                --line: #3A3833;
+                --line-2: #322F2B;
+                --accent: #DA7B58;
+                --accent-ink: #1A1917;
+                --accent-soft: #3D2A22;
+                --accent-text: #E89A7C;
+                --good: #8DBB97;
+                --good-soft: #263329;
+                --warn: #DDB066;
+                --warn-soft: #3A3122;
+                --bad: #E58A74;
+                --bad-soft: #3D2620;
+                --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.18);
+                color-scheme: dark;
+            }
         }
 
-        /* ── 메인 탭 ── */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html { -webkit-text-size-adjust: 100%; }
+        body {
+            font-family: var(--sans);
+            background: var(--bg); color: var(--ink);
+            min-height: 100vh; min-height: 100dvh;
+            font-size: 15px; line-height: 1.45; letter-spacing: -0.01em;
+            /* 하단 탭 바 + 홈 인디케이터 영역 확보 */
+            padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px);
+        }
+        button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
+        button { cursor: pointer; }
+        .serif { font-family: var(--serif); }
+
+        /* ── 하단 탭 바 ── */
         .main-nav {
-            display: flex; background: white; position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            /* 상단 노치/Dynamic Island 영역 확보 */
-            padding-top: env(safe-area-inset-top);
-            padding-left: env(safe-area-inset-left);
-            padding-right: env(safe-area-inset-right);
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 100;
+            display: flex; justify-content: center;
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+            -webkit-backdrop-filter: saturate(1.4) blur(16px); backdrop-filter: saturate(1.4) blur(16px);
+            border-top: 1px solid var(--line);
+            padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         .main-tab {
-            flex: 1; padding: 16px; border: none; background: transparent;
-            font-size: 1rem; font-weight: 700; color: #6b7280; cursor: pointer;
-            border-bottom: 3px solid transparent; transition: all 0.2s;
-            font-family: inherit;
+            flex: 1; max-width: 220px; height: var(--nav-h);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+            border: none; background: none; color: var(--ink-3);
+            font-size: 0.72rem; font-weight: 600; letter-spacing: 0;
+            transition: color 0.2s;
         }
-        .main-tab:hover { background: #f9fafb; color: #1f2937; }
-        .main-tab.active { color: #0284c7; border-bottom-color: #0284c7; background: #f0f9ff; }
+        .main-tab .tab-ico {
+            font-size: 1.25rem; line-height: 1; filter: grayscale(1); opacity: 0.55;
+            transition: filter 0.2s, opacity 0.2s, transform 0.2s;
+        }
+        .main-tab.active { color: var(--ink); }
+        .main-tab.active .tab-ico { filter: none; opacity: 1; transform: translateY(-1px); }
+
         .app-section { display: none; }
-        .app-section.active { display: block; }
+        .app-section.active { display: block; animation: fade-in 0.25s ease; }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-        /* ══ 금주 앱 CSS ══ */
-        #app-jk { padding: 30px 20px; }
-        #app-jk .container { max-width: 1000px; margin: auto; }
+        /* ── 공통 레이아웃 ── */
+        #app-jk, #app-gk {
+            padding: calc(env(safe-area-inset-top) + 20px) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+        }
+        .container { max-width: 520px; margin: 0 auto; }
+        .page-head { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 2px 16px; }
+        .page-title { font-family: var(--serif); font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+        .page-sub { font-size: 0.8rem; color: var(--ink-3); font-weight: 500; }
+
+        /* ══ 금주 ══ */
         #app-jk .header-card {
-            background: #fff; padding: 30px; border-radius: 20px;
-            text-align: center; margin-bottom: 25px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 22px 20px 20px; margin-bottom: 12px; text-align: left;
         }
-        #app-jk .sub-title { font-size: 1.2rem; color: #6b7280; font-weight: 600; margin-bottom: 10px; }
-        #app-jk .main-streak { font-size: 4rem; font-weight: 800; color: #0284c7; display: block; }
-        #app-jk .streak-unit { font-size: 1.5rem; color: #1f2937; vertical-align: middle; }
-        #app-jk .input-card {
-            background: #fff; padding: 25px; border-radius: 20px;
-            margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        #app-jk .sub-title { font-size: 0.78rem; color: var(--ink-3); font-weight: 600; letter-spacing: 0.02em; }
+        #app-jk .streak-row { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
+        #app-jk .main-streak {
+            font-family: var(--serif); font-size: 4.2rem; font-weight: 700; line-height: 1;
+            color: var(--accent); letter-spacing: -0.03em;
         }
-        #app-jk .form-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
-        #app-jk input, #app-jk select {
-            border: 1px solid #d1d5db; padding: 12px 15px;
-            border-radius: 10px; font-size: 0.95rem; outline: none; font-family: inherit;
-        }
-        #app-jk .reason-container { width: 100%; display: none; margin-top: 15px; }
-        #app-jk .reason-input { width: 100%; border: 2px solid #fecaca !important; background: #fff1f2 !important; }
-        #app-jk .btn-save {
-            background: #0284c7; color: white; border: none;
-            padding: 12px 35px; border-radius: 10px; font-weight: 700;
-            cursor: pointer; font-family: inherit;
-        }
-        #app-jk .btn-save.edit-mode { background: #f59e0b; }
-        #app-jk .table-card {
-            background: #fff; border-radius: 20px; overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-        #app-jk table { width: 100%; border-collapse: collapse; }
-        #app-jk th {
-            background: #f9fafb; padding: 15px; color: #4b5563;
-            font-size: 0.85rem; border-bottom: 1px solid #e5e7eb;
-        }
-        #app-jk td { padding: 18px 15px; border-bottom: 1px solid #f3f4f6; text-align: center; }
-        #app-jk .status-o { color: #059669; font-weight: 800; }
-        #app-jk .status-x { color: #dc2626; font-weight: 800; }
-        #app-jk .reason-label { font-size: 0.8rem; color: #ef4444; display: block; margin-top: 5px; font-style: italic; }
-        #app-jk .btn-edit {
-            background: #e5e7eb; color: #374151; border: none;
-            padding: 6px 12px; border-radius: 6px; cursor: pointer;
-            margin-right: 5px; font-family: inherit;
-        }
-        #app-jk .btn-del {
-            background: #fee2e2; color: #b91c1c; border: none;
-            padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: inherit;
-        }
+        #app-jk .main-streak.is-reset { color: var(--ink-3); }
+        #app-jk .streak-unit { font-size: 1.05rem; color: var(--ink-2); font-weight: 600; }
+        #app-jk .jk-progress { margin-top: 18px; }
+        #app-jk .jk-progress-track { height: 8px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+        #app-jk .jk-progress-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width 0.5s ease; }
+        #app-jk .jk-progress-legend { display: flex; justify-content: space-between; margin-top: 7px; font-size: 0.74rem; color: var(--ink-3); font-weight: 500; }
 
-        /* ══ 금주 마일스톤 CSS ══ */
-        #app-jk .milestone-bar {
-            display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
-        }
+        /* 마일스톤: 세로 폰에서 3칸 한 줄 */
+        #app-jk .milestone-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
         #app-jk .milestone-chip {
-            flex: 1; min-width: 120px;
-            background: white; border-radius: 12px;
-            padding: 10px 14px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
-            display: flex; align-items: center; gap: 10px;
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);
+            padding: 12px 10px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0;
         }
-        #app-jk .milestone-chip.done {
-            background: linear-gradient(135deg, #0284c7, #0ea5e9);
-            color: white;
-        }
-        #app-jk .milestone-chip.done .mc-label,
-        #app-jk .milestone-chip.done .mc-date { color: rgba(255,255,255,0.9); }
-        #app-jk .mc-icon { font-size: 1.4rem; flex-shrink: 0; }
-        #app-jk .mc-label { font-size: 0.72rem; color: #6b7280; font-weight: 600; margin-bottom: 2px; }
-        #app-jk .mc-date  { font-size: 0.82rem; font-weight: 700; color: #1f2937; }
-        #app-jk .mc-dday  { font-size: 0.7rem; font-weight: 700; margin-top: 1px; }
-        #app-jk .mc-dday.soon   { color: #f59e0b; }
-        #app-jk .mc-dday.future { color: #9ca3af; }
-        #app-jk .mc-dday.done   { color: rgba(255,255,255,0.85); }
+        #app-jk .milestone-chip.done { background: var(--accent-soft); border-color: transparent; }
+        #app-jk .mc-icon { font-size: 1.15rem; line-height: 1; margin-bottom: 6px; }
+        #app-jk .mc-label { font-size: 0.7rem; color: var(--ink-3); font-weight: 600; }
+        #app-jk .mc-date { font-size: 0.92rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        #app-jk .mc-dday { font-size: 0.7rem; font-weight: 700; color: var(--ink-3); }
+        #app-jk .mc-dday.soon { color: var(--warn); }
+        #app-jk .mc-dday.done { color: var(--accent-text); }
 
-        /* ══ 가계부 앱 CSS ══ */
-        #app-gk { padding: 16px; }
-        #app-gk .container { max-width: 600px; margin: 0 auto; }
-        #app-gk .gk-tabs { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; }
+        /* 기록 입력 */
+        #app-jk .input-card {
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;
+        }
+        #app-jk .form-grid { display: flex; flex-direction: column; gap: 10px; }
+        #app-jk input[type="date"], #app-jk .reason-input {
+            width: 100%; min-width: 0; height: 48px; padding: 0 14px;
+            background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm);
+            font-size: 16px; outline: none; color: var(--ink);
+        }
+        #app-jk input:focus { border-color: var(--accent); background: var(--surface); }
+        #app-jk .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface-3); padding: 4px; border-radius: 14px; }
+        #app-jk .seg button {
+            height: 42px; border: none; border-radius: 10px; background: transparent;
+            font-size: 0.92rem; font-weight: 700; color: var(--ink-3); transition: all 0.15s;
+        }
+        #app-jk .seg button.on[data-v="O"] { background: var(--surface); color: var(--good); box-shadow: var(--shadow); }
+        #app-jk .seg button.on[data-v="X"] { background: var(--surface); color: var(--bad); box-shadow: var(--shadow); }
+        #app-jk .reason-container { display: none; margin-top: 10px; }
+        #app-jk .reason-input { background: var(--bad-soft); border-color: transparent; }
+        #app-jk .btn-save {
+            height: 50px; border: none; border-radius: 14px; background: var(--ink); color: var(--bg);
+            font-size: 1rem; font-weight: 700; transition: transform 0.1s, opacity 0.2s;
+        }
+        #app-jk .btn-save:active { transform: scale(0.98); }
+        #app-jk .btn-save.edit-mode { background: var(--warn); color: #fff; }
+
+        /* 기록 목록 */
+        #app-jk .table-card {
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 4px 16px; margin-bottom: 8px;
+        }
+        #app-jk .list-head { display: flex; justify-content: space-between; padding: 14px 0 6px; font-size: 0.78rem; font-weight: 700; color: var(--ink-3); }
+        #app-jk .jk-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line-2); }
+        #app-jk .jk-dot {
+            width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800;
+        }
+        #app-jk .jk-dot.o { background: var(--good-soft); color: var(--good); }
+        #app-jk .jk-dot.x { background: var(--bad-soft); color: var(--bad); }
+        #app-jk .jk-info { flex: 1; min-width: 0; }
+        #app-jk .jk-date { font-size: 0.92rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+        #app-jk .jk-date small { color: var(--ink-3); font-weight: 500; margin-left: 4px; }
+        #app-jk .reason-label { display: block; font-size: 0.78rem; color: var(--bad); margin-top: 2px; overflow-wrap: anywhere; }
+        #app-jk .jk-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        #app-jk .btn-edit, #app-jk .btn-del {
+            height: 32px; padding: 0 12px; border: none; border-radius: 999px; font-size: 0.78rem; font-weight: 600;
+        }
+        #app-jk .btn-edit { background: var(--surface-3); color: var(--ink-2); }
+        #app-jk .btn-del { background: var(--bad-soft); color: var(--bad); }
+        #app-jk .jk-empty { padding: 28px 0; text-align: center; color: var(--ink-3); font-size: 0.88rem; border-top: 1px solid var(--line-2); }
+
+        /* ══ 가계부 ══ */
+        /* 상단 세그먼트 탭 */
+        #app-gk .gk-tabs {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+            background: var(--surface-3); padding: 4px; border-radius: 14px; margin-bottom: 14px;
+        }
         #app-gk .gk-tab {
-            padding: 8px 18px; border-radius: 999px; border: none; cursor: pointer;
-            font-size: 0.83rem; font-weight: 600; white-space: nowrap;
-            transition: background 0.2s; font-family: inherit;
+            height: 38px; border: none; border-radius: 10px; background: transparent;
+            font-size: 0.88rem; font-weight: 600; color: var(--ink-3); transition: all 0.15s;
         }
-        #app-gk .gk-tab.active { background: #5a67d8; color: white; }
-        #app-gk .gk-tab:not(.active) { background: white; color: #4a5568; }
-        #app-gk .gk-tab:not(.active):hover { background: #e2e8f0; }
+        #app-gk .gk-tab.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-weight: 700; }
+
         #app-gk .card {
-            background: white; border-radius: 14px; padding: 18px;
-            margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 18px 16px; margin-bottom: 12px;
         }
-        #app-gk .card h2 { font-size: 0.95rem; color: #4a5568; margin-bottom: 14px; font-weight: 700; }
+        #app-gk .card h2 { font-size: 0.95rem; color: var(--ink); margin-bottom: 14px; font-weight: 700; }
         #app-gk .form-group { margin-bottom: 12px; }
-        #app-gk .form-group label { display: block; font-size: 0.75rem; color: #718096; margin-bottom: 5px; font-weight: 600; }
+        #app-gk .form-group label { display: block; font-size: 0.75rem; color: var(--ink-3); margin-bottom: 6px; font-weight: 600; }
         #app-gk .form-group input, #app-gk .form-group select {
-            width: 100%; padding: 10px 12px; border: 1.5px solid #e2e8f0;
-            border-radius: 8px; font-size: 0.92rem; background: white; font-family: inherit;
+            width: 100%; min-width: 0; height: 46px; padding: 0 12px;
+            background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm);
+            font-size: 16px; color: var(--ink); outline: none; -webkit-appearance: none; appearance: none;
         }
-        #app-gk .form-group input:focus, #app-gk .form-group select:focus {
-            outline: none; border-color: #5a67d8;
+        #app-gk .form-group select {
+            background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+            background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+            background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px;
         }
+        #app-gk .form-group input:focus, #app-gk .form-group select:focus { border-color: var(--accent); background-color: var(--surface); }
         #app-gk .gk-row { display: flex; gap: 10px; }
         #app-gk .gk-row .form-group { flex: 1; min-width: 0; }
         #app-gk .btn {
-            padding: 11px 18px; border: none; border-radius: 9px; cursor: pointer;
-            font-size: 0.9rem; font-weight: 700; width: 100%;
-            transition: opacity 0.2s; font-family: inherit;
+            height: 50px; padding: 0 18px; border: none; border-radius: 14px; width: 100%;
+            font-size: 0.98rem; font-weight: 700; transition: transform 0.1s, opacity 0.2s;
         }
-        #app-gk .btn:hover { opacity: 0.88; }
-        #app-gk .btn-primary { background: #5a67d8; color: white; }
-        #app-gk .btn-sm {
-            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
-            background: #fed7d7; color: #c53030; border: none; cursor: pointer;
-            font-weight: 600; font-family: inherit;
+        #app-gk .btn:active { transform: scale(0.98); }
+        #app-gk .btn-primary { background: var(--ink); color: var(--bg); }
+        #app-gk .btn-sm, #app-gk .btn-sm-edit, #app-gk .btn-sm-confirm, #app-gk .btn-sm-unconfirm {
+            height: 30px; padding: 0 11px; width: auto; border: none; border-radius: 999px;
+            font-size: 0.75rem; font-weight: 600; white-space: nowrap;
         }
-        #app-gk .btn-sm:hover { background: #fc8181; color: white; }
-        #app-gk .btn-sm-edit {
-            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
-            background: #bee3f8; color: #2b6cb0; border: none; cursor: pointer;
-            font-weight: 600; font-family: inherit;
-        }
-        #app-gk .btn-sm-edit:hover { background: #63b3ed; color: white; }
-        #app-gk .btn-sm-confirm {
-            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
-            background: #c6f6d5; color: #276749; border: none; cursor: pointer;
-            font-weight: 600; font-family: inherit;
-        }
-        #app-gk .btn-sm-confirm:hover { background: #48bb78; color: white; }
-        #app-gk .btn-sm-unconfirm {
-            font-size: 0.72rem; padding: 4px 10px; width: auto; border-radius: 999px;
-            background: #e2e8f0; color: #718096; border: none; cursor: pointer;
-            font-weight: 600; font-family: inherit;
-        }
-        #app-gk .btn-sm-unconfirm:hover { background: #a0aec0; color: white; }
-        #app-gk .list-item { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid #f0f4f8; }
-        #app-gk .list-item:last-child { border-bottom: none; }
-        #app-gk .list-item .info .name { font-weight: 600; font-size: 0.92rem; }
-        #app-gk .list-item .info .sub { font-size: 0.77rem; color: #a0aec0; margin-top: 2px; }
-        #app-gk .list-item .right { display: flex; align-items: center; gap: 10px; }
-        #app-gk .list-item .amount { font-weight: 700; color: #e53e3e; font-size: 0.95rem; }
-        #app-gk .empty { text-align: center; color: #a0aec0; padding: 20px; font-size: 0.87rem; }
-        #app-gk .divider { height: 1px; background: #f0f4f8; margin: 10px 0; }
+        #app-gk .btn-sm { background: var(--bad-soft); color: var(--bad); }
+        #app-gk .btn-sm-edit { background: var(--surface-3); color: var(--ink-2); }
+        #app-gk .btn-sm-confirm { background: var(--good-soft); color: var(--good); }
+        #app-gk .btn-sm-unconfirm { background: var(--surface-3); color: var(--ink-3); }
 
-        /* ══ 생활비 CSS ══ */
+        #app-gk .list-item { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 10px; padding: 12px 0; border-bottom: 1px solid var(--line-2); }
+        #app-gk .list-item:last-child { border-bottom: none; }
+        /* 버튼이 많아 좁아지면 버튼 묶음이 아랫줄로 내려감 */
+        #app-gk .list-item .info, #app-gk .list-item .sub-item-inner { flex: 1 1 150px; min-width: 0; }
+        #app-gk .list-item .right { margin-left: auto; }
+        #app-gk .list-item .info .name { font-weight: 600; font-size: 0.93rem; overflow-wrap: anywhere; }
+        #app-gk .list-item .info .sub { font-size: 0.77rem; color: var(--ink-3); margin-top: 2px; }
+        #app-gk .list-item .right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+        #app-gk .list-item .amount { font-weight: 700; color: var(--ink); font-size: 0.95rem; font-variant-numeric: tabular-nums; margin-right: 2px; }
+        #app-gk .empty { text-align: center; color: var(--ink-3); padding: 22px 0; font-size: 0.88rem; }
+        #app-gk .divider { height: 1px; background: var(--line-2); margin: 10px 0; }
+        .neg { color: var(--bad); }
+        .muted { color: var(--ink-3); font-weight: 400; }
+        .warn-text { color: var(--warn); }
+        .total-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; font-weight: 700; color: var(--ink-2); padding-top: 8px; }
+
+        /* ── 생활비 요약 카드 ── */
         #app-gk .lv-hero {
-            background: linear-gradient(135deg, #5a67d8 0%, #764ba2 100%);
-            border-radius: 20px; padding: 18px 20px 20px; color: #fff;
-            margin-bottom: 14px; box-shadow: 0 8px 24px rgba(90,103,216,0.3);
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 14px 16px 16px; margin-bottom: 12px;
         }
-        #app-gk .lv-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-        #app-gk .lv-nav button {
-            background: rgba(255,255,255,0.18); color: #fff; border: none; border-radius: 999px;
-            width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; font-family: inherit;
+        #app-gk .lv-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+        #app-gk .lv-nav > button {
+            width: 36px; height: 36px; flex-shrink: 0; border: none; border-radius: 50%;
+            background: var(--surface-3); color: var(--ink-2); font-size: 1.15rem; line-height: 1;
         }
-        #app-gk .lv-nav button:disabled { opacity: 0.3; cursor: default; }
-        #app-gk .lv-nav-title { font-weight: 800; font-size: 0.98rem; text-align: center; }
-        #app-gk .lv-nav-range { display: block; font-size: 0.7rem; font-weight: 600; opacity: 0.75; margin-top: 2px; }
-        #app-gk .lv-pay-check {
-            display: flex; align-items: center; justify-content: space-between; gap: 10px;
-            background: #fffbeb; border: 1.5px solid #f6e05e; border-radius: 14px;
-            padding: 12px 14px; margin-bottom: 14px;
-        }
-        #app-gk .lv-pay-check-text { font-size: 0.85rem; color: #744210; font-weight: 600; line-height: 1.4; }
-        #app-gk .lv-pay-check-text small { display: block; font-weight: 400; font-size: 0.72rem; color: #975a16; }
-        #app-gk .lv-pay-check-btn {
-            background: #f6ad55; color: #fff; border: none; border-radius: 999px; white-space: nowrap;
-            padding: 8px 14px; font-size: 0.82rem; font-weight: 800; cursor: pointer; font-family: inherit;
-        }
+        #app-gk .lv-nav > button:disabled { opacity: 0.35; cursor: default; }
+        #app-gk .lv-nav-title { flex: 1; text-align: center; font-weight: 700; font-size: 0.98rem; }
+        #app-gk .lv-nav-range { display: block; font-size: 0.74rem; font-weight: 500; color: var(--ink-3); margin-top: 1px; }
         #app-gk .lv-nav .lv-pay-undo {
-            width: auto; height: auto; border-radius: 0; background: none; border: none; color: #fff;
-            opacity: 0.7; font-size: 0.68rem; font-weight: 600; text-decoration: underline;
-            cursor: pointer; font-family: inherit; padding: 0; margin-left: 6px; vertical-align: baseline;
+            border: none; background: none; padding: 0; margin-left: 6px;
+            color: var(--ink-3); font-size: 0.72rem; text-decoration: underline; text-underline-offset: 2px;
         }
-        #app-gk .lv-label { font-size: 0.78rem; opacity: 0.85; display: flex; justify-content: space-between; align-items: center; }
+        #app-gk .lv-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--ink-3); font-weight: 600; }
         #app-gk .lv-goal-btn {
-            background: rgba(255,255,255,0.18); color: #fff; border: none; border-radius: 999px;
-            padding: 3px 10px; font-size: 0.7rem; font-weight: 600; cursor: pointer; font-family: inherit;
+            border: none; background: var(--surface-3); color: var(--ink-2); border-radius: 999px;
+            height: 28px; padding: 0 11px; font-size: 0.74rem; font-weight: 600;
         }
-        #app-gk .lv-spent { font-size: 2.2rem; font-weight: 800; line-height: 1.15; margin-top: 4px; letter-spacing: -0.02em; }
-        #app-gk .lv-spent small { font-size: 0.9rem; font-weight: 600; opacity: 0.75; margin-left: 4px; }
-        #app-gk .lv-bar { position: relative; height: 12px; background: rgba(255,255,255,0.22); border-radius: 999px; margin: 14px 0 6px; overflow: hidden; }
-        #app-gk .lv-bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s, background 0.4s; }
-        #app-gk .lv-bar-pace { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; opacity: 0.9; }
-        #app-gk .lv-bar-legend { display: flex; justify-content: space-between; font-size: 0.68rem; opacity: 0.75; }
-        #app-gk .lv-status { margin-top: 12px; background: rgba(255,255,255,0.16); border-radius: 12px; padding: 10px 12px; font-size: 0.84rem; font-weight: 600; }
+        #app-gk .lv-spent {
+            font-family: var(--serif); font-size: 2.6rem; font-weight: 700; line-height: 1.1;
+            margin-top: 6px; letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+        }
+        #app-gk .lv-spent small { font-family: var(--sans); font-size: 0.85rem; font-weight: 500; color: var(--ink-3); margin-left: 4px; letter-spacing: 0; }
+        #app-gk .lv-bar { position: relative; height: 10px; background: var(--surface-3); border-radius: 999px; margin: 16px 0 7px; overflow: hidden; }
+        #app-gk .lv-bar-fill { height: 100%; border-radius: 999px; transition: width 0.5s ease, background 0.3s; }
+        #app-gk .lv-bar-pace { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); opacity: 0.55; }
+        #app-gk .lv-bar-legend { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--ink-3); font-weight: 500; }
+        #app-gk .lv-status {
+            margin-top: 14px; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+            padding: 11px 13px; font-size: 0.86rem; font-weight: 600; color: var(--ink-2); line-height: 1.45;
+        }
         #app-gk .lv-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-        #app-gk .lv-stat { background: rgba(0,0,0,0.16); border-radius: 12px; padding: 10px 8px; text-align: center; }
-        #app-gk .lv-stat-label { font-size: 0.68rem; opacity: 0.8; margin-bottom: 3px; }
-        #app-gk .lv-stat-value { font-size: 0.95rem; font-weight: 800; }
-        #app-gk .lv-fixed-note { font-size: 0.74rem; color: #718096; background: #f7fafc; border-radius: 10px; padding: 9px 12px; margin-bottom: 14px; }
+        #app-gk .lv-stat { background: var(--surface-2); border-radius: var(--radius-sm); padding: 11px 6px; text-align: center; min-width: 0; }
+        #app-gk .lv-stat-label { font-size: 0.7rem; color: var(--ink-3); font-weight: 600; margin-bottom: 3px; white-space: nowrap; }
+        #app-gk .lv-stat-value { font-size: 0.95rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        #app-gk .lv-fixed-note {
+            font-size: 0.76rem; color: var(--ink-3); line-height: 1.5;
+            padding: 0 4px; margin: -2px 0 14px;
+        }
+        #app-gk .lv-fixed-note strong { color: var(--ink-2); }
+
+        /* 급여 받음 배너 */
+        #app-gk .lv-pay-check {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            background: var(--accent-soft); border-radius: var(--radius); padding: 14px 14px 14px 16px; margin-bottom: 12px;
+        }
+        #app-gk .lv-pay-check-text { font-size: 0.92rem; color: var(--ink); font-weight: 700; line-height: 1.35; }
+        #app-gk .lv-pay-check-text small { display: block; font-weight: 500; font-size: 0.74rem; color: var(--ink-2); margin-top: 2px; }
+        #app-gk .lv-pay-check-btn {
+            flex-shrink: 0; height: 40px; padding: 0 16px; border: none; border-radius: 999px;
+            background: var(--accent); color: var(--accent-ink); font-size: 0.86rem; font-weight: 700;
+        }
+
+        /* 분류 칩 */
         #app-gk .lv-cats { display: flex; flex-wrap: wrap; gap: 6px; }
         #app-gk .lv-cat {
-            border: 1.5px solid #e2e8f0; background: #fff; color: #4a5568; border-radius: 999px;
-            padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+            height: 36px; padding: 0 14px; border: 1px solid var(--line); background: var(--surface);
+            color: var(--ink-2); border-radius: 999px; font-size: 0.85rem; font-weight: 600;
+            display: inline-flex; align-items: center;
         }
-        #app-gk .lv-cat.active { border-color: #5a67d8; background: #ebf4ff; color: #434190; }
+        #app-gk .lv-cat.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
         #app-gk .lv-cat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        #app-gk .lv-cat-title { font-size: 0.75rem; color: #718096; font-weight: 600; }
+        #app-gk .lv-cat-title { font-size: 0.75rem; color: var(--ink-3); font-weight: 600; }
         #app-gk .lv-cat-edit-toggle {
-            display: inline-flex; align-items: center; gap: 4px;
-            background: #ebf4ff; border: none; color: #4c51bf; border-radius: 999px;
-            padding: 5px 12px; font-size: 0.74rem; font-weight: 700;
-            cursor: pointer; font-family: inherit;
+            border: none; background: var(--surface-3); color: var(--ink-2); border-radius: 999px;
+            height: 28px; padding: 0 11px; font-size: 0.74rem; font-weight: 600;
         }
-        #app-gk .lv-cat-edit-toggle:hover { background: #c3dafe; }
-        #app-gk .lv-cat-edit-toggle.on { background: #5a67d8; color: #fff; }
+        #app-gk .lv-cat-edit-toggle.on { background: var(--accent); color: var(--accent-ink); }
         #app-gk .lv-cats.editing {
-            background: #f7fafc; border: 1.5px dashed #c3dafe; border-radius: 12px; padding: 10px;
+            background: var(--surface-2); border: 1px dashed var(--line); border-radius: var(--radius-sm); padding: 10px;
+            touch-action: none; -webkit-touch-callout: none;
         }
         #app-gk .lv-cats.editing .lv-cat { cursor: default; }
         #app-gk .lv-cat-x {
-            margin-left: 6px; color: #e53e3e; font-weight: 800; cursor: pointer;
-            background: none; border: none; padding: 0; font-size: 0.85rem; font-family: inherit;
+            margin-left: 8px; border: none; background: none; padding: 0;
+            color: var(--bad); font-size: 0.8rem; font-weight: 800;
         }
-        #app-gk .lv-cat-rename { background: none; border: none; padding: 0; color: inherit; font: inherit; cursor: pointer; }
-        #app-gk .lv-cat-add { border-style: dashed; color: #5a67d8; }
-        #app-gk .lv-cat-hint { font-size: 0.72rem; color: #a0aec0; margin-top: 6px; }
-        #app-gk .lv-cat-drag { display: inline-flex; align-items: center; user-select: none; -webkit-user-select: none; transition: transform 0.12s, box-shadow 0.12s; }
-        #app-gk .lv-cats.editing { touch-action: none; -webkit-touch-callout: none; }
+        #app-gk .lv-cat-rename { border: none; background: none; padding: 0; color: inherit; font: inherit; }
+        #app-gk .lv-cat-add { border-style: dashed; color: var(--accent-text); background: transparent; }
+        #app-gk .lv-cat-hint { font-size: 0.72rem; color: var(--ink-3); margin-top: 7px; }
+        #app-gk .lv-cat-drag { user-select: none; -webkit-user-select: none; transition: transform 0.12s, box-shadow 0.12s; }
         #app-gk .lv-cats.editing .lv-cat-drag { cursor: grab; }
-        #app-gk .lv-cat-handle { color: #a0aec0; margin-right: 5px; font-size: 0.9rem; line-height: 1; pointer-events: none; }
+        #app-gk .lv-cat-handle { color: var(--ink-3); margin-right: 6px; font-size: 0.85rem; line-height: 1; pointer-events: none; }
         #app-gk .lv-cat-drag.dragging {
-            border-color: #5a67d8; background: #ebf4ff; transform: scale(1.06);
-            box-shadow: 0 4px 12px rgba(90,103,216,0.3); z-index: 1; position: relative;
+            border-color: var(--accent); background: var(--accent-soft); transform: scale(1.06);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.12); z-index: 1; position: relative;
         }
         #app-gk .lv-cat-drag.dragging, #app-gk .lv-cat-drag.dragging * { cursor: grabbing; }
-        #app-gk .lv-cat-drag.dragging .lv-cat-handle { color: #5a67d8; }
-        #app-gk .lv-breakdown-row { margin-bottom: 9px; }
+        #app-gk .lv-cat-drag.dragging .lv-cat-handle { color: var(--accent); }
+
+        /* 분류별 지출 */
+        #app-gk .lv-breakdown-row { margin-bottom: 12px; }
         #app-gk .lv-breakdown-row:last-child { margin-bottom: 0; }
-        #app-gk .lv-breakdown-head { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; }
-        #app-gk .lv-breakdown-head span:last-child { font-weight: 700; color: #2d3748; }
-        #app-gk .lv-breakdown-bar { height: 6px; background: #edf2f7; border-radius: 999px; overflow: hidden; }
-        #app-gk .lv-breakdown-bar div { height: 100%; background: #7f9cf5; border-radius: 999px; }
-        #app-gk .lv-day-head { display: flex; justify-content: space-between; font-size: 0.76rem; font-weight: 700; color: #718096; padding: 12px 0 2px; border-bottom: 1px solid #edf2f7; }
+        #app-gk .lv-breakdown-head { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
+        #app-gk .lv-breakdown-head span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
+        #app-gk .lv-breakdown-bar { height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
+        #app-gk .lv-breakdown-bar div { height: 100%; background: var(--accent); border-radius: 999px; opacity: 0.85; }
+        #app-gk .lv-day-head {
+            display: flex; justify-content: space-between; padding: 14px 0 6px;
+            font-size: 0.76rem; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums;
+        }
         #app-gk .lv-day-head:first-child { padding-top: 0; }
+        #app-gk #lv-list .list-item { border-bottom: none; border-top: 1px solid var(--line-2); }
+        #app-gk #lv-list .lv-day-head + .list-item { border-top: none; }
 
-        /* ══ 구독 관리 CSS ══ */
-        #app-gk .sub-badge {
-            font-size: 0.65rem; padding: 2px 6px; border-radius: 999px;
-            font-weight: 600; vertical-align: middle; margin-left: 3px;
-        }
-        #app-gk .sub-badge-monthly { background: #ebf4ff; color: #2b6cb0; }
-        #app-gk .sub-badge-yearly  { background: #fefcbf; color: #744210; }
-        #app-gk .sub-toggle { position: relative; display: inline-block; width: 36px; height: 20px; cursor: pointer; flex-shrink: 0; }
+        /* ── 구독 ── */
+        #app-gk .sub-badge { font-size: 0.66rem; padding: 2px 7px; border-radius: 999px; font-weight: 600; vertical-align: middle; margin-left: 4px; }
+        #app-gk .sub-badge-monthly { background: var(--surface-3); color: var(--ink-2); }
+        #app-gk .sub-badge-yearly  { background: var(--warn-soft); color: var(--warn); }
+        #app-gk .sub-toggle { position: relative; display: inline-block; width: 40px; height: 24px; cursor: pointer; flex-shrink: 0; }
         #app-gk .sub-toggle input { opacity: 0; width: 0; height: 0; }
-        #app-gk .sub-toggle-slider {
-            position: absolute; inset: 0; background: #e2e8f0;
-            border-radius: 999px; transition: 0.2s;
-        }
+        #app-gk .sub-toggle-slider { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: 0.2s; }
         #app-gk .sub-toggle-slider:before {
-            content: ''; position: absolute; width: 14px; height: 14px;
-            background: white; border-radius: 50%; top: 3px; left: 3px; transition: 0.2s;
+            content: ''; position: absolute; width: 18px; height: 18px; top: 3px; left: 3px;
+            background: #fff; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        #app-gk .sub-toggle input:checked + .sub-toggle-slider { background: #5a67d8; }
+        #app-gk .sub-toggle input:checked + .sub-toggle-slider { background: var(--good); }
         #app-gk .sub-toggle input:checked + .sub-toggle-slider:before { transform: translateX(16px); }
-        #app-gk .sub-inactive { opacity: 0.4; }
-        #app-gk .sub-next-date { font-size: 0.72rem; color: #a0aec0; margin-top: 2px; }
-        #app-gk .sub-next-date.soon { color: #e53e3e; font-weight: 600; }
-        #app-gk .sub-item-inner { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        #app-gk .sub-inactive { opacity: 0.45; }
+        #app-gk .sub-next-date { font-size: 0.74rem; color: var(--ink-3); margin-top: 2px; }
+        #app-gk .sub-next-date.soon { color: var(--accent-text); font-weight: 600; }
+        #app-gk .sub-item-inner { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 
-        /* ══ 대출 관리 CSS ══ */
+        /* ── 대출 ── */
         #app-gk .loan-card {
-            background: #fff8f8; border: 1.5px solid #fed7d7;
-            border-radius: 12px; padding: 14px; margin-bottom: 10px;
+            background: var(--surface-2); border: 1px solid var(--line-2);
+            border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px;
         }
         #app-gk .loan-card:last-child { margin-bottom: 0; }
-        #app-gk .loan-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
-        #app-gk .loan-card-name { font-size: 0.95rem; font-weight: 700; color: #2d3748; }
-        #app-gk .loan-card-memo { font-size: 0.72rem; color: #a0aec0; margin-top: 2px; }
+        #app-gk .loan-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
+        #app-gk .loan-card-name { font-size: 0.98rem; font-weight: 700; }
+        #app-gk .loan-card-memo { font-size: 0.74rem; color: var(--ink-3); margin-top: 2px; }
         #app-gk .loan-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
-        #app-gk .loan-meta-item { background: white; border-radius: 8px; padding: 8px 10px; }
-        #app-gk .loan-meta-label { font-size: 0.68rem; color: #718096; margin-bottom: 2px; }
-        #app-gk .loan-meta-value { font-size: 0.88rem; font-weight: 700; color: #2d3748; }
-        #app-gk .loan-next-pay { font-size: 0.77rem; color: #c53030; font-weight: 600; margin-bottom: 10px; }
-        #app-gk .loan-next-pay.far { color: #718096; font-weight: 400; }
-        #app-gk .btn-schedule-pay { background: #ebf8ff; color: #2b6cb0; border: none; border-radius: 6px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
-        #app-gk .btn-schedule-pay:hover { background: #bee3f8; }
-        /* ══ 대출 계산 미리보기 CSS ══ */
-        #app-gk .loan-calc-preview {
-            background: #f0fff4; border: 1.5px solid #9ae6b4;
-            border-radius: 10px; padding: 12px 14px; margin: 10px 0;
-        }
-        #app-gk .loan-preview-title { font-size: 0.8rem; font-weight: 700; color: #276749; margin-bottom: 8px; }
+        #app-gk .loan-meta-item { background: var(--surface); border-radius: 10px; padding: 9px 11px; }
+        #app-gk .loan-meta-label { font-size: 0.7rem; color: var(--ink-3); margin-bottom: 2px; }
+        #app-gk .loan-meta-value { font-size: 0.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+        #app-gk .loan-next-pay { font-size: 0.78rem; color: var(--accent-text); font-weight: 600; margin-bottom: 4px; }
+        #app-gk .loan-next-pay.far { color: var(--ink-3); font-weight: 500; }
+        #app-gk .btn-schedule-pay { background: var(--surface-3); color: var(--ink-2); border: none; border-radius: 8px; padding: 4px 9px; font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+        #app-gk .loan-calc-preview { background: var(--good-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin: 4px 0 12px; }
+        #app-gk .loan-preview-title { font-size: 0.8rem; font-weight: 700; color: var(--good); margin-bottom: 8px; }
         #app-gk .loan-preview-row {
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 0.8rem; padding: 3px 0; border-bottom: 1px solid #c6f6d5;
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--good) 18%, transparent);
         }
         #app-gk .loan-preview-row:last-child { border-bottom: none; }
-        #app-gk .loan-preview-label { color: #4a5568; }
-        #app-gk .loan-preview-val { font-weight: 700; color: #2d3748; }
-        #app-gk .loan-preview-val.red { color: #e53e3e; }
-        #app-gk .loan-preview-sub { font-size: 0.72rem; color: #718096; }
-        /* ══ 상환 일정 CSS ══ */
+        #app-gk .loan-preview-label { color: var(--ink-2); }
+        #app-gk .loan-preview-val { font-weight: 700; text-align: right; }
+        #app-gk .loan-preview-val.red { color: var(--bad); }
+        #app-gk .loan-preview-sub { font-size: 0.72rem; color: var(--ink-3); }
         #app-gk .loan-repay-badge {
-            font-size: 0.67rem; padding: 2px 7px; border-radius: 999px;
-            font-weight: 600; background: #fef3c7; color: #92400e; margin-left: 5px;
-            vertical-align: middle;
+            font-size: 0.66rem; padding: 2px 7px; border-radius: 999px; font-weight: 600;
+            background: var(--warn-soft); color: var(--warn); margin-left: 5px; vertical-align: middle;
         }
         #app-gk .loan-schedule-list { display: flex; flex-direction: column; gap: 6px; }
-        #app-gk .loan-overdue {font-size: 0.68em; color: #c53030; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 3px; padding: 1px 5px; margin-left: 3px; font-weight: 600; vertical-align: middle; }
+        #app-gk .loan-overdue { font-size: 0.68em; color: var(--bad); background: var(--bad-soft); border-radius: 4px; padding: 1px 5px; margin-left: 4px; font-weight: 600; vertical-align: middle; }
 
-        /* ══ 모바일 반응형 ══ */
-        @media (max-width: 600px) {
-            /* 탭: 좌우 safe-area 패딩 포함 */
-            .main-tab {
-                padding: 13px 8px; font-size: 0.88rem;
-            }
-
-            /* 금주 앱 */
-            #app-jk {
-                padding: 14px 12px;
-                padding-left: max(12px, env(safe-area-inset-left));
-                padding-right: max(12px, env(safe-area-inset-right));
-                overflow-x: hidden;
-            }
-            #app-jk .container { width: 100%; }
-            /* 마일스톤 칩 min-width 해제 → 3개가 화면을 넘치는 원인 */
-            #app-jk .milestone-chip { min-width: 0; }
-            #app-jk .header-card { padding: 20px 16px; margin-bottom: 14px; }
-            #app-jk .sub-title { font-size: 1rem; }
-            #app-jk .main-streak { font-size: 3rem; }
-            #app-jk .streak-unit { font-size: 1.2rem; }
-            #app-jk .input-card { padding: 16px 14px; margin-bottom: 14px; overflow: hidden; }
-
-            /* 폼: 2열 그리드로 전환 */
-            #app-jk .form-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-                overflow: hidden;
-            }
-            /* 날짜·저장 버튼은 전체 너비 */
-            #app-jk #targetDate { grid-column: 1 / -1; width: 100%; }
-            #app-jk .btn-save {
-                grid-column: 1 / -1; width: 100%;
-                padding: 14px; font-size: 1rem;
-            }
-            /* iOS Safari 자동 줌 방지 + 그리드 셀 넘침 방지 */
-            #app-jk input, #app-jk select { font-size: 16px; width: 100%; min-width: 0; }
-
-            /* 테이블: 가로 스크롤 */
-            #app-jk .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 16px; }
-            #app-jk table { min-width: 500px; }
-            #app-jk th { padding: 11px 8px; font-size: 0.78rem; }
-            #app-jk td { padding: 13px 8px; font-size: 0.84rem; }
-            #app-jk .btn-edit,
-            #app-jk .btn-del { padding: 5px 8px; font-size: 0.78rem; }
-            #app-jk .btn-edit { margin-right: 3px; }
-
-            /* 가계부 앱 */
-            #app-gk {
-                padding: 12px;
-                padding-left: max(12px, env(safe-area-inset-left));
-                padding-right: max(12px, env(safe-area-inset-right));
-            }
-            #app-gk .card { padding: 14px; }
-            /* iOS Safari 자동 줌 방지 */
-            #app-gk .form-group input,
-            #app-gk .form-group select,
-            #app-gk .form-group input[type="month"] { font-size: 16px; }
-
-        }
-
-        /* ══ iPhone SE (375px) 등 초소형 화면 ══ */
-        @media (max-width: 390px) {
-            .main-tab { font-size: 0.8rem; padding: 11px 5px; }
-            #app-jk .main-streak { font-size: 2.5rem; }
-            #app-jk .milestone-chip { min-width: 100px; padding: 8px 10px; }
-            #app-jk .mc-icon { font-size: 1.2rem; }
-            #app-gk .gk-tab { padding: 7px 12px; font-size: 0.78rem; }
+        /* ── 작은 화면 (iPhone SE·mini) ── */
+        @media (max-width: 374px) {
+            #app-jk .main-streak { font-size: 3.4rem; }
+            #app-gk .lv-spent { font-size: 2.2rem; }
+            #app-jk .mc-date { font-size: 0.82rem; }
+            #app-gk .lv-stat-value { font-size: 0.86rem; }
         }
     </style>
 </head>
@@ -412,44 +444,46 @@
 
 <!-- ══ 메인 탭 내비게이션 ══ -->
 <nav class="main-nav">
-    <button class="main-tab active" onclick="switchApp('jk', this)">🍺 금주 100일</button>
-    <button class="main-tab" onclick="switchApp('gk', this)">💰 가계부</button>
+    <button class="main-tab active" onclick="switchApp('jk', this)"><span class="tab-ico">🍺</span><span>금주 100일</span></button>
+    <button class="main-tab" onclick="switchApp('gk', this)"><span class="tab-ico">💰</span><span>가계부</span></button>
 </nav>
 
 <!-- ══ 금주 앱 ══ -->
 <div id="app-jk" class="app-section active">
     <div class="container">
+        <div class="page-head">
+            <h1 class="page-title">금주 100일</h1>
+            <span class="page-sub" id="jk-today"></span>
+        </div>
         <div class="header-card">
-            <div class="sub-title">금주 100일 프로젝트</div>
-            <div>
+            <div class="sub-title">연속 금주</div>
+            <div class="streak-row">
                 <span class="main-streak" id="day-count">0</span>
                 <span class="streak-unit" id="streak-text">일차 금주 중</span>
+            </div>
+            <div class="jk-progress">
+                <div class="jk-progress-track"><div class="jk-progress-fill" id="jk-progress-fill" style="width:0%"></div></div>
+                <div class="jk-progress-legend"><span id="jk-progress-text">0 / 100일</span><span id="jk-progress-left"></span></div>
             </div>
         </div>
         <div class="milestone-bar" id="jk-milestones"></div>
         <div class="input-card">
             <div class="form-grid">
                 <input type="date" id="targetDate" onchange="jk_resetInputs()">
-                <select id="sober" onchange="jk_toggleReason()">
-                    <option value="O">금주 성공 O</option>
-                    <option value="X">금주 실패 X</option>
-                </select>
-                <button class="btn-save" id="save-btn" onclick="jk_addRecord()">기록하기</button>
+                <input type="hidden" id="sober" value="O">
+                <div class="seg" role="radiogroup" aria-label="금주 여부">
+                    <button type="button" data-v="O" class="on" onclick="jk_setSober('O')">🙂 금주 성공</button>
+                    <button type="button" data-v="X" onclick="jk_setSober('X')">🍺 마셨어요</button>
+                </div>
             </div>
             <div class="reason-container" id="reason-container">
-                <input type="text" id="reason" class="reason-input" placeholder="실패 원인을 기록하세요">
+                <input type="text" id="reason" class="reason-input" placeholder="어떤 상황이었는지 적어두면 다음에 도움이 돼요">
             </div>
+            <button class="btn-save" id="save-btn" onclick="jk_addRecord()" style="width:100%;margin-top:10px;">기록하기</button>
         </div>
         <div class="table-card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>날짜</th><th>금주 여부</th>
-                        <th>관리</th>
-                    </tr>
-                </thead>
-                <tbody id="data-list"></tbody>
-            </table>
+            <div class="list-head"><span>기록</span><span id="jk-record-count"></span></div>
+            <div id="data-list"></div>
         </div>
     </div>
 </div>
@@ -457,6 +491,10 @@
 <!-- ══ 가계부 앱 ══ -->
 <div id="app-gk" class="app-section">
     <div class="container">
+        <div class="page-head">
+            <h1 class="page-title">가계부</h1>
+            <span class="page-sub" id="gk-today"></span>
+        </div>
         <div class="gk-tabs">
             <button class="gk-tab active" onclick="showTab('living')">생활비</button>
             <button class="gk-tab" onclick="showTab('subscription')">구독</button>
@@ -529,9 +567,9 @@
                 <div id="loan-schedule-list"></div>
                 <div id="loan-schedule-total-wrap" style="display:none">
                     <div class="divider"></div>
-                    <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;color:#4a5568;padding-top:8px;">
+                    <div class="total-row">
                         <span>납부 예정 합계</span>
-                        <span id="loan-schedule-total" style="color:#e53e3e;"></span>
+                        <span id="loan-schedule-total" class="neg"></span>
                     </div>
                 </div>
             </div>
@@ -613,9 +651,9 @@
             <div class="card" id="sub-schedule-card" style="display:none">
                 <h2 id="sub-schedule-card-title">이번달 결제 예정</h2>
                 <div id="sub-schedule-list"></div>
-                <div id="sub-schedule-total-wrap" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #e2e8f0; justify-content:space-between; align-items:center;">
-                    <span style="font-size:0.85rem; color:#4a5568; font-weight:600;">미결제 합계</span>
-                    <span id="sub-schedule-total" style="color:#e53e3e; font-weight:700;"></span>
+                <div id="sub-schedule-total-wrap" class="total-row" style="display:none; margin-top:10px; padding-top:12px; border-top:1px solid var(--line-2);">
+                    <span>미결제 합계</span>
+                    <span id="sub-schedule-total" class="neg"></span>
                 </div>
             </div>
             <div class="card">
@@ -705,6 +743,7 @@ function switchApp(name, btn) {
     document.querySelectorAll('.main-tab').forEach(el => el.classList.remove('active'));
     document.getElementById('app-' + name).classList.add('active');
     btn.classList.add('active');
+    window.scrollTo(0, 0);
 }
 window.switchApp = switchApp;
 
@@ -743,13 +782,12 @@ function jk_updateSoberCounter() {
     const countElem = document.getElementById('day-count');
     const textElem  = document.getElementById('streak-text');
     countElem.innerText = streak;
-    if (streak === 0) {
-        countElem.style.color = '#dc2626';
-        textElem.innerText = '일차 - 다시 시작해봐요!';
-    } else {
-        countElem.style.color = '#0284c7';
-        textElem.innerText = '일차 금주 중';
-    }
+    countElem.classList.toggle('is-reset', streak === 0);
+    textElem.innerText = streak === 0 ? '일 · 오늘부터 다시 시작해요' : '일째';
+    const pct = Math.min(100, streak);
+    document.getElementById('jk-progress-fill').style.width = pct + '%';
+    document.getElementById('jk-progress-text').textContent = `${Math.min(streak, 100)} / 100일`;
+    document.getElementById('jk-progress-left').textContent = streak >= 100 ? '🏆 100일 달성!' : `${100 - streak}일 남음`;
     jk_renderMilestones(streak);
 }
 
@@ -793,26 +831,26 @@ function jk_renderMilestones(streak) {
             const yyyy = targetDate.getFullYear();
             const mm   = String(targetDate.getMonth() + 1).padStart(2, '0');
             const dd   = String(targetDate.getDate()).padStart(2, '0');
-            dateStr = `${yyyy}.${mm}.${dd}`;
+            dateStr = `${String(yyyy).slice(2)}.${mm}.${dd}`;
 
             if (isDone) {
-                ddayHtml = `<div class="mc-dday done">달성 완료 🎉</div>`;
+                ddayHtml = `<div class="mc-dday done">달성 🎉</div>`;
             } else {
                 const daysLeft = Math.ceil((targetDate - today) / 86400000);
                 if (daysLeft <= 7) {
-                    ddayHtml = `<div class="mc-dday soon">D-${daysLeft} 🔥</div>`;
+                    ddayHtml = `<div class="mc-dday soon">D-${daysLeft}</div>`;
                 } else {
                     ddayHtml = `<div class="mc-dday future">D-${daysLeft}</div>`;
                 }
             }
         } else {
-            dateStr = '기록 없음';
+            dateStr = '—';
         }
 
         return `<div class="milestone-chip${isDone ? ' done' : ''}">
             <div class="mc-icon">${m.icon}</div>
-            <div>
-                <div class="mc-label">${m.label} 달성 예정</div>
+            <div style="min-width:0">
+                <div class="mc-label">${m.label}</div>
                 <div class="mc-date">${dateStr}</div>
                 ${ddayHtml}
             </div>
@@ -821,28 +859,42 @@ function jk_renderMilestones(streak) {
 }
 
 function jk_renderTable() {
-    const tbody = document.getElementById('data-list');
-    tbody.innerHTML = '';
+    const list = document.getElementById('data-list');
     const sorted = [...D_jk.records].sort((a, b) => b.date.localeCompare(a.date));
-    sorted.forEach(r => {
-        const reasonHtml = r.reason ? `<span class="reason-label">사유: ${escHtml(r.reason)}</span>` : '';
-        const safeDate     = escHtml(r.date);
-        const safeSober    = escHtml(r.sober);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="font-weight:600;color:#4b5563;">${safeDate}</td>
-            <td><span class="${r.sober === 'O' ? 'status-o' : 'status-x'}">${safeSober}</span>${reasonHtml}</td>
-            <td>
+    const WD = ['일','월','화','수','목','금','토'];
+    document.getElementById('jk-record-count').textContent = sorted.length ? `${sorted.length}일` : '';
+    list.innerHTML = sorted.length ? sorted.map(r => {
+        const ok = r.sober === 'O';
+        const d = new Date(r.date + 'T00:00:00');
+        const safeDate = escHtml(r.date);
+        const reasonHtml = r.reason ? `<span class="reason-label">${escHtml(r.reason)}</span>` : '';
+        return `<div class="jk-row">
+            <div class="jk-dot ${ok ? 'o' : 'x'}">${ok ? 'O' : 'X'}</div>
+            <div class="jk-info">
+                <div class="jk-date">${d.getMonth() + 1}월 ${d.getDate()}일<small>${WD[d.getDay()]}요일</small></div>
+                ${reasonHtml}
+            </div>
+            <div class="jk-actions">
                 <button class="btn-edit" onclick="jk_editItem('${safeDate}')">수정</button>
                 <button class="btn-del"  onclick="jk_deleteRecord('${safeDate}')">삭제</button>
-            </td>`;
-        tbody.appendChild(tr);
-    });
+            </div>
+        </div>`;
+    }).join('') : '<div class="jk-empty">아직 기록이 없어요. 오늘부터 시작해 볼까요?</div>';
     jk_updateSoberCounter();
+}
+
+function jk_setSober(v) {
+    document.getElementById('sober').value = v;
+    jk_toggleReason();
+}
+function jk_syncSober() {
+    const v = document.getElementById('sober').value;
+    document.querySelectorAll('#app-jk .seg button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
 }
 
 function jk_toggleReason() {
     const isX = document.getElementById('sober').value === 'X';
+    jk_syncSober();
     document.getElementById('reason-container').style.display = isX ? 'block' : 'none';
     if (!isX) document.getElementById('reason').value = '';
 }
@@ -885,6 +937,7 @@ function jk_editItem(date) {
     document.getElementById('sober').value       = r.sober;
     document.getElementById('reason').value      = r.sober === 'X' ? (r.reason || '') : '';
     document.getElementById('reason-container').style.display = r.sober === 'X' ? 'block' : 'none';
+    jk_syncSober();
     const btn = document.getElementById('save-btn');
     btn.innerText = '수정 완료';
     btn.classList.add('edit-mode');
@@ -900,6 +953,7 @@ function jk_deleteRecord(date) {
 }
 
 window.jk_toggleReason = jk_toggleReason;
+window.jk_setSober     = jk_setSober;
 window.jk_resetInputs  = jk_resetInputs;
 window.jk_addRecord    = jk_addRecord;
 window.jk_editItem     = jk_editItem;
@@ -1029,7 +1083,7 @@ function autoCalcLoanPayment() {
         </div>
         <div class="loan-preview-row">
             <span class="loan-preview-label">└ 첫 달 원금 / 이자</span>
-            <span class="loan-preview-sub">${fmtMoney(firstPrin)} / <span style="color:#e53e3e">${fmtMoney(firstInt)}</span></span>
+            <span class="loan-preview-sub">${fmtMoney(firstPrin)} / <span class="neg">${fmtMoney(firstInt)}</span></span>
         </div>
         <div class="loan-preview-row">
             <span class="loan-preview-label">총 납부 이자 합계</span>
@@ -1048,7 +1102,7 @@ function autoCalcLoanPayment() {
         </div>
         <div class="loan-preview-row">
             <span class="loan-preview-label">└ 매달 원금 / 첫 달 이자</span>
-            <span class="loan-preview-sub">${fmtMoney(prin1)} / <span style="color:#e53e3e">${fmtMoney(int1)}</span></span>
+            <span class="loan-preview-sub">${fmtMoney(prin1)} / <span class="neg">${fmtMoney(int1)}</span></span>
         </div>
         <div class="loan-preview-row">
             <span class="loan-preview-label">마지막 달 납부액 (약)</span>
@@ -1277,7 +1331,7 @@ function renderLoans() {
             <div class="loan-meta-grid">
                 <div class="loan-meta-item">
                     <div class="loan-meta-label">잔여 대출금</div>
-                    <div class="loan-meta-value" style="color:#e53e3e;">${fmtMoney(loan.remainingBalance || 0)}</div>
+                    <div class="loan-meta-value neg">${fmtMoney(loan.remainingBalance || 0)}</div>
                 </div>
                 <div class="loan-meta-item">
                     <div class="loan-meta-label">연 금리</div>
@@ -1297,7 +1351,7 @@ function renderLoans() {
                 </div>` : ''}
                 ${loan.gracePeriodEndDate ? `<div class="loan-meta-item">
                     <div class="loan-meta-label">거치기한</div>
-                    <div class="loan-meta-value" style="color:#d69e2e;">${fmtYearMonth(loan.gracePeriodEndDate)}</div>
+                    <div class="loan-meta-value warn-text">${fmtYearMonth(loan.gracePeriodEndDate)}</div>
                 </div>` : ''}
             </div>
             <div class="${nextClass}">${nextStr}</div>
@@ -1392,7 +1446,7 @@ function editLoan(id) {
     autoCalcLoanPayment();
     const btn = document.getElementById('loan-submit-btn');
     btn.textContent = '✏️ 수정 완료';
-    btn.style.background = '#f6ad55';
+    btn.style.background = 'var(--warn)';
     document.getElementById('loan-form-title').textContent = '대출 수정';
 
     // 폼 카드 상단으로 정확히 스크롤
@@ -1618,7 +1672,7 @@ function editSubscription(id) {
     }
     const btn = document.getElementById('sub-submit-btn');
     btn.textContent = '✏️ 수정 완료';
-    btn.style.background = '#f6ad55';
+    btn.style.background = 'var(--warn)';
     document.getElementById('sub-form-title').textContent = '구독 서비스 수정';
     document.getElementById('tab-subscription').scrollIntoView({ behavior: 'smooth' });
 }
@@ -1949,7 +2003,7 @@ function renderLiving() {
 
     const fill = document.getElementById('lv-bar-fill');
     fill.style.width = Math.min(100, pct) + '%';
-    fill.style.background = pct > 100 ? '#fc8181' : pct >= 80 ? '#f6e05e' : '#68d391';
+    fill.style.background = pct > 100 ? 'var(--bad)' : pct >= 80 ? 'var(--warn)' : 'var(--good)';
     document.getElementById('lv-percent').textContent = `${Math.round(pct)}% 사용`;
 
     const paceEl = document.getElementById('lv-bar-pace');
@@ -2012,7 +2066,7 @@ function renderLiving() {
         document.getElementById('lv-breakdown').innerHTML = Object.entries(byCat)
             .sort((a, b) => b[1] - a[1])
             .map(([c, v]) => `<div class="lv-breakdown-row">
-                <div class="lv-breakdown-head"><span>${escHtml(c)} <span style="color:#a0aec0;font-weight:400;">${Math.round(v / spent * 100)}%</span></span><span>${fmtMoney(v)}</span></div>
+                <div class="lv-breakdown-head"><span>${escHtml(c)} <span class="muted">${Math.round(v / spent * 100)}%</span></span><span>${fmtMoney(v)}</span></div>
                 <div class="lv-breakdown-bar"><div style="width:${v / max * 100}%"></div></div>
             </div>`).join('');
     } else {
@@ -2080,7 +2134,7 @@ function lvEdit(id) {
     document.getElementById('lv-form-title').textContent = '생활비 수정';
     const btn = document.getElementById('lv-submit-btn');
     btn.textContent = '✏️ 수정 완료';
-    btn.style.background = '#f6ad55';
+    btn.style.background = 'var(--warn)';
     document.getElementById('lv-form-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -2125,6 +2179,10 @@ window.subPayUnconfirm    = subPayUnconfirm;
 // ── DOMContentLoaded ──
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('targetDate').value = todayStr();
+    const _t = new Date();
+    const _todayLabel = `${_t.getMonth() + 1}월 ${_t.getDate()}일 ${['일','월','화','수','목','금','토'][_t.getDay()]}요일`;
+    document.getElementById('jk-today').textContent = _todayLabel;
+    document.getElementById('gk-today').textContent = _todayLabel;
     document.getElementById('lv-date').value    = todayStr();
     renderLvCats();
     lvCatDragInit();
