@@ -185,6 +185,42 @@
         #app-jk .btn-save:active { transform: scale(0.98); }
         #app-jk .btn-save:disabled { background: var(--good-soft); color: var(--good); cursor: default; transform: none; }
 
+        /* 휴지통 */
+        #app-jk .trash-card {
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;
+        }
+        #app-jk .trash-head { display: flex; justify-content: space-between; align-items: baseline; }
+        #app-jk .trash-title { font-size: 0.95rem; font-weight: 700; }
+        #app-jk .trash-count { font-size: 0.82rem; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+        #app-jk .trash-count.over { color: var(--bad); }
+        #app-jk .trash-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
+        #app-jk .trash-slot {
+            height: 48px; border-radius: 10px; border: 1.5px dashed var(--line);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 0.68rem; color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums;
+        }
+        #app-jk .trash-slot.used { border: none; background: var(--bad-soft); color: var(--bad); }
+        #app-jk .trash-slot.used b { font-size: 0.9rem; line-height: 1.1; }
+        #app-jk .trash-over:empty { display: none; }
+        #app-jk .trash-over { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        #app-jk .trash-over span { font-size: 0.72rem; font-weight: 700; color: #fff; background: var(--bad); border-radius: 999px; padding: 3px 9px; }
+        #app-jk .trash-status { margin-top: 10px; font-size: 0.84rem; font-weight: 600; color: var(--ink-2); line-height: 1.45; }
+        #app-jk .rules { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-2); }
+        #app-jk .rules-title { font-size: 0.78rem; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
+        #app-jk .rules-list { padding-left: 18px; font-size: 0.8rem; color: var(--ink-2); line-height: 1.65; }
+        #app-jk .rules-list b { color: var(--ink); }
+        #app-jk .trash-use-btn {
+            width: 100%; height: 40px; margin-top: 8px; border: none; border-radius: 12px;
+            background: transparent; color: var(--ink-3); font-size: 0.84rem; font-weight: 600;
+        }
+        #app-jk .trash-use-btn:disabled { opacity: 0.4; }
+        #app-jk .jk-dot.x { font-size: 0.95rem; }
+        #app-jk .jk-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; border-radius: 999px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; }
+        #app-jk .jk-tag.slot { background: var(--bad-soft); color: var(--bad); }
+        #app-jk .jk-tag.over { background: var(--bad); color: #fff; }
+        #app-jk .jk-tag.warn { background: var(--warn-soft); color: var(--warn); }
+
         /* 기록 목록 */
         #app-jk .table-card {
             background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
@@ -535,16 +571,30 @@
             </div>
             <div class="jk-meta">
                 <div class="jk-meta-item"><span class="jk-meta-label">연속 금주</span><span class="jk-meta-value" id="jk-streak">0일</span></div>
-                <div class="jk-meta-item"><span class="jk-meta-label" id="jk-sober-label">기간 중 금주</span><span class="jk-meta-value" id="jk-sober-count">—</span></div>
+                <div class="jk-meta-item"><span class="jk-meta-label" id="jk-sober-label">누적 금주</span><span class="jk-meta-value" id="jk-sober-count">—</span></div>
                 <div class="jk-meta-item"><span class="jk-meta-label">🎤 부산 공연</span><span class="jk-meta-value" id="jk-concert">—</span></div>
             </div>
         </div>
         <div class="milestone-bar" id="jk-milestones"></div>
+
+        <!-- 🗑️ 휴지통: 100일 중 5칸까지 (규칙은 코드에 고정, 수정 불가) -->
+        <div class="trash-card">
+            <div class="trash-head"><span class="trash-title">🗑️ 휴지통</span><span class="trash-count" id="jk-trash-count"></span></div>
+            <div class="trash-slots" id="jk-trash-slots"></div>
+            <div class="trash-over" id="jk-trash-over"></div>
+            <div class="trash-status" id="jk-trash-status"></div>
+            <div class="rules">
+                <div class="rules-title">📜 나의 다섯 줄</div>
+                <ol class="rules-list" id="jk-rules"></ol>
+            </div>
+        </div>
+
         <div class="input-card">
             <div class="form-grid">
                 <input type="date" id="targetDate" onchange="jk_resetInputs()">
                 <button class="btn-save" id="save-btn" onclick="jk_addRecord()">🏅 오늘도 승리</button>
             </div>
+            <button class="trash-use-btn" id="trash-use-btn" onclick="jk_useTrash()">🗑️ 휴지통 쓰기</button>
         </div>
         <div class="table-card">
             <div class="list-head"><span>기록</span><span id="jk-record-count"></span></div>
@@ -894,13 +944,15 @@ window.switchApp = switchApp;
 const JK_DOC_REF = doc(db, 'challenge', 'main');
 let D_jk = { records: [] };
 
+// 연속 금주: 오늘(오늘 기록이 없으면 어제)부터 거꾸로, 날짜가 끊기지 않고 이어진 승리 일수
 function getCurrentStreak(records) {
-    const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+    const map = new Map(records.map(r => [r.date, r.sober]));
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    let d = new Date(t);
+    const ymd = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    if (!map.has(ymd(d))) d.setDate(d.getDate() - 1);
     let streak = 0;
-    for (const r of sorted) {
-        if (r.sober === 'O') streak++;
-        else break;
-    }
+    while (map.get(ymd(d)) === 'O') { streak++; d.setDate(d.getDate() - 1); }
     return streak;
 }
 
@@ -924,6 +976,30 @@ const JK_PROJECT = Object.freeze({
     days:    100,            // Day 100 = 2027-03-23 (화)
     concert: '2027-03-27',   // 부산 공연 (토)
 });
+// ── 휴지통 규칙 (고정, 앱에서 수정 불가) ──
+const JK_TRASH = Object.freeze({ slots: 5, successDays: 95 });
+const JK_RULES = Object.freeze([
+    '<b>목표</b>: 0칸 사용 (100일 연속 금주)',
+    '<b>성공 기준</b>: 휴지통 5칸 이내 (95일 이상)',
+    '<b>연속 사용 금지</b>: 이틀 연속으로는 쓰지 않음',
+    '<b>초과 시</b>: 6번째부터는 "초과 1"로 적고 도전은 계속함',
+    '<b>기록</b>: 연속 일수와 누적 일수를 같이 적음',
+]);
+function jkEndStr() { return jkYmd(jkAdd(jkDate(JK_PROJECT.start), JK_PROJECT.days - 1)); }
+// 프로젝트 기간 안에서 쓴 휴지통 (날짜순) + 몇 번째인지·초과인지·연속 사용인지
+function jkTrashUses() {
+    const end = jkEndStr();
+    const xs = D_jk.records.filter(r => r.sober === 'X' && r.date >= JK_PROJECT.start && r.date <= end)
+                           .sort((a, b) => a.date.localeCompare(b.date));
+    const set = new Set(xs.map(r => r.date));
+    return xs.map((r, i) => {
+        const d = jkDate(r.date);
+        const consecutive = set.has(jkYmd(jkAdd(d, -1))) || set.has(jkYmd(jkAdd(d, 1)));
+        return { ...r, n: i + 1, over: i >= JK_TRASH.slots ? i - JK_TRASH.slots + 1 : 0, consecutive };
+    });
+}
+function jkTrashLabel(u) { return u.over ? `초과 ${u.over}` : `휴지통 ${u.n}/${JK_TRASH.slots}`; }
+
 const JK_MILESTONES = Object.freeze([
     { day: 30,  icon: '🌱', label: 'Day 30'  },
     { day: 50,  icon: '⭐', label: 'Day 50'  },
@@ -972,13 +1048,43 @@ function jk_updateSoberCounter() {
     document.getElementById('jk-streak').textContent = `${streak}일`;
     const inRange = D_jk.records.filter(r => r.date >= JK_PROJECT.start && r.date <= jkYmd(last));
     const soberDays = inRange.filter(r => r.sober === 'O').length;
-    document.getElementById('jk-sober-label').textContent = '기간 중 금주';
+    document.getElementById('jk-sober-label').textContent = '누적 금주';
     document.getElementById('jk-sober-count').textContent = day < 1 ? '시작 전' : `${soberDays}일`;
     const toConcert = Math.round((concert - today) / 86400000);
     document.getElementById('jk-concert').textContent =
         toConcert > 0 ? `D-${toConcert}` : toConcert === 0 ? '오늘!' : '완료';
 
     jk_renderMilestones();
+    jk_renderTrash();
+}
+
+function jk_renderTrash() {
+    const uses = jkTrashUses();
+    const used = uses.length, over = Math.max(0, used - JK_TRASH.slots);
+    const started = jkDayIndex() >= 1, ended = jkDayIndex() > JK_PROJECT.days;
+    const countEl = document.getElementById('jk-trash-count');
+    countEl.textContent = over ? `5 / 5칸 · 초과 ${over}` : `${used} / ${JK_TRASH.slots}칸`;
+    countEl.classList.toggle('over', over > 0);
+    const slots = Array.from({ length: JK_TRASH.slots }, (_, i) => {
+        const u = uses[i];
+        return u ? `<div class="trash-slot used"><b>🗑️</b>${jkDate(u.date).getMonth() + 1}.${jkDate(u.date).getDate()}</div>`
+                 : `<div class="trash-slot">${i + 1}</div>`;
+    }).join('');
+    document.getElementById('jk-trash-slots').innerHTML = slots;
+    document.getElementById('jk-trash-over').innerHTML = uses.slice(JK_TRASH.slots)
+        .map(u => `<span>초과 ${u.over} · ${jkDate(u.date).getMonth() + 1}.${jkDate(u.date).getDate()}</span>`).join('');
+
+    const consec = uses.some(u => u.consecutive);
+    const statusEl = document.getElementById('jk-trash-status');
+    if (!started) statusEl.textContent = '12월 14일부터 세요. 목표는 0칸, 5칸까지는 성공이에요.';
+    else if (ended) statusEl.textContent = over ? `100일 완주! 초과 ${over}칸 — 끝까지 도전한 것 자체가 승리예요.`
+        : used === 0 ? '🏆 휴지통 0칸, 완벽한 100일!' : `🎉 성공! 휴지통 ${used}칸으로 ${JK_PROJECT.days - used}일 금주.`;
+    else if (over) statusEl.textContent = `초과 ${over} — 성공 기준은 넘었지만 도전은 계속돼요. 오늘 하루에 집중해요.`;
+    else if (used === 0) statusEl.textContent = '아직 한 칸도 안 썼어요. 이대로 0칸으로 가 봐요.';
+    else statusEl.textContent = `${JK_TRASH.slots - used}칸 남았어요. 남은 날을 다 지키면 ${JK_PROJECT.days - used}일 금주로 성공이에요.`;
+    if (consec) statusEl.textContent += ' ⚠️ 이틀 연속 사용 기록이 있어요.';
+
+    document.getElementById('jk-rules').innerHTML = JK_RULES.map(r => `<li>${r}</li>`).join('');
 }
 
 // 마일스톤 날짜는 프로젝트 시작일 기준으로 고정
@@ -994,11 +1100,12 @@ function jk_renderMilestones() {
         if (daysLeft > 0) {
             dday = `<div class="mc-dday${daysLeft <= 7 ? ' soon' : ''}">D-${daysLeft}</div>`;
         } else {
-            // 그날이 지났으면: 시작일~그날까지 실패(X) 기록이 없으면 달성
-            const failed = D_jk.records.some(r => r.sober === 'X' && r.date >= JK_PROJECT.start && r.date <= jkYmd(target));
+            // 그날이 지났으면: 그날까지 휴지통 0칸 = 완벽, 5칸 이내 = 달성, 초과 = 통과
+            const usedBy = jkTrashUses().filter(u => u.date <= jkYmd(target)).length;
             if (daysLeft === 0) dday = `<div class="mc-dday soon">오늘!</div>`;
-            else if (!failed) { cls = ' done'; dday = `<div class="mc-dday done">달성 🎉</div>`; }
-            else dday = `<div class="mc-dday passed">지남</div>`;
+            else if (usedBy === 0) { cls = ' done'; dday = `<div class="mc-dday done">완벽 🎉</div>`; }
+            else if (usedBy <= JK_TRASH.slots) { cls = ' done'; dday = `<div class="mc-dday done">달성 · 🗑️${usedBy}</div>`; }
+            else dday = `<div class="mc-dday passed">통과 · 초과</div>`;
         }
         return `<div class="milestone-chip${cls}">
             <div class="mc-icon">${m.icon}</div>
@@ -1015,16 +1122,19 @@ function jk_renderTable() {
     const list = document.getElementById('data-list');
     const sorted = [...D_jk.records].sort((a, b) => b.date.localeCompare(a.date));
     const WD = ['일','월','화','수','목','금','토'];
+    const uses = jkTrashUses();
     document.getElementById('jk-record-count').textContent = sorted.length ? `${sorted.length}일` : '';
     list.innerHTML = sorted.length ? sorted.map(r => {
         const ok = r.sober === 'O';
         const d = new Date(r.date + 'T00:00:00');
         const safeDate = escHtml(r.date);
         const reasonHtml = r.reason ? `<span class="reason-label">${escHtml(r.reason)}</span>` : '';
+        const u = !ok ? uses.find(x => x.date === r.date) : null;
+        const tags = u ? `<span class="jk-tag ${u.over ? 'over' : 'slot'}">${jkTrashLabel(u)}</span>${u.consecutive ? '<span class="jk-tag warn">연속</span>' : ''}` : '';
         return `<div class="jk-row">
-            <div class="jk-dot ${ok ? 'o' : 'x'}">${ok ? 'O' : 'X'}</div>
+            <div class="jk-dot ${ok ? 'o' : 'x'}">${ok ? 'O' : '🗑️'}</div>
             <div class="jk-info">
-                <div class="jk-date">${d.getMonth() + 1}월 ${d.getDate()}일<small>${WD[d.getDay()]}요일</small></div>
+                <div class="jk-date">${d.getMonth() + 1}월 ${d.getDate()}일<small>${WD[d.getDay()]}요일</small>${tags}</div>
                 ${reasonHtml}
             </div>
             <div class="jk-actions">
@@ -1044,6 +1154,36 @@ function jk_resetInputs() {
     const isToday = date === todayStr();
     btn.disabled = done;
     btn.textContent = done ? '✓ 이 날은 이미 승리' : isToday ? '🏅 오늘도 승리' : '🏅 이 날도 승리';
+    const tBtn = document.getElementById('trash-use-btn');
+    const usedThatDay = D_jk.records.some(r => r.date === date && r.sober === 'X');
+    tBtn.disabled = usedThatDay || !date || date < JK_PROJECT.start || date > jkEndStr();
+    tBtn.textContent = usedThatDay ? '🗑️ 이 날은 휴지통을 썼어요' : date && date < JK_PROJECT.start ? '🗑️ 휴지통은 12월 14일부터' : '🗑️ 휴지통 쓰기';
+}
+
+// 휴지통 쓰기: 규칙 안내(남은 칸·초과·이틀 연속)를 보여 주고, 정직하게 기록
+function jk_useTrash() {
+    const date = document.getElementById('targetDate').value;
+    if (!date) { alert('날짜를 선택해 주세요.'); return; }
+    if (date > todayStr()) { alert('아직 오지 않은 날은 기록할 수 없어요.'); return; }
+    if (date < JK_PROJECT.start || date > jkEndStr()) { alert('휴지통은 100일(12/14~3/23) 동안만 써요.'); return; }
+    const others = jkTrashUses().filter(u => u.date !== date);
+    const n = others.filter(u => u.date < date).length + 1;            // 이 날짜가 몇 번째가 되는지
+    const d = jkDate(date);
+    const consecutive = others.some(u => u.date === jkYmd(jkAdd(d, -1)) || u.date === jkYmd(jkAdd(d, 1)));
+    const wasWin = D_jk.records.some(r => r.date === date && r.sober === 'O');
+    let msg = n <= JK_TRASH.slots
+        ? `🗑️ 휴지통 ${n}/${JK_TRASH.slots}칸을 써요.\n남은 칸: ${JK_TRASH.slots - others.length - 1}칸`
+        : `🗑️ ${n}번째 — "초과 ${n - JK_TRASH.slots}"로 기록돼요.\n성공 기준(5칸)은 넘었지만 도전은 계속돼요.`;
+    if (consecutive) msg += `\n\n⚠️ 규칙: 이틀 연속으로는 쓰지 않음.\n그래도 정직하게 기록할까요?`;
+    if (wasWin) msg += `\n\n이 날의 승리 기록이 휴지통으로 바뀌어요.`;
+    if (!confirm(msg)) return;
+    const reason = (prompt('어떤 상황이었는지 짧게 남겨 둘까요? (선택)', '') || '').trim().slice(0, 60);
+    const idx = D_jk.records.findIndex(r => r.date === date);
+    const rec = { date, sober: 'X', reason };
+    if (idx >= 0) D_jk.records[idx] = { ...D_jk.records[idx], ...rec };
+    else D_jk.records.push(rec);
+    jk_save();
+    jk_renderTable();
 }
 
 function jk_addRecord() {
@@ -1072,6 +1212,7 @@ function jk_deleteRecord(date) {
 window.jk_resetInputs  = jk_resetInputs;
 window.jk_addRecord    = jk_addRecord;
 window.jk_deleteRecord = jk_deleteRecord;
+window.jk_useTrash     = jk_useTrash;
 
 // ═══════════════════════════════════
 // ── 가계부 앱 (gk) ──
