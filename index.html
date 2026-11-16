@@ -238,6 +238,10 @@
         }
         #app-jk .trash-use-btn:disabled { opacity: 0.4; }
         #app-jk .jk-dot.x { font-size: 0.95rem; }
+        #app-jk .jk-missing:empty { display: none; }
+        #app-jk .jk-missing { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--warn-soft); font-size: 0.8rem; color: var(--ink-2); line-height: 1.5; }
+        #app-jk .jk-missing b { color: var(--warn); }
+        #app-jk .jk-missing button { border: none; background: var(--surface); color: var(--ink); border-radius: 999px; height: 28px; padding: 0 10px; margin: 6px 6px 0 0; font-size: 0.76rem; font-weight: 700; }
         #app-jk .jk-tag { display: inline-block; font-size: 0.68rem; font-weight: 700; border-radius: 999px; padding: 2px 7px; margin-left: 6px; vertical-align: 1px; }
         #app-jk .jk-tag.slot { background: var(--bad-soft); color: var(--bad); }
         #app-jk .jk-tag.over { background: var(--bad); color: #fff; }
@@ -620,6 +624,7 @@
                 <button class="btn-save" id="save-btn" onclick="jk_addRecord()">🏅 오늘도 승리</button>
             </div>
             <button class="trash-use-btn" id="trash-use-btn" onclick="jk_useTrash()">🗑️ 휴지통 쓰기</button>
+            <div class="jk-missing" id="jk-missing"></div>
         </div>
         <div class="table-card">
             <div class="list-head"><span>기록</span><span id="jk-record-count"></span></div>
@@ -869,7 +874,7 @@
                 <h2 id="sub-schedule-card-title">이번달 결제 예정</h2>
                 <div id="sub-schedule-list"></div>
                 <div id="sub-schedule-total-wrap" class="total-row" style="display:none; margin-top:10px; padding-top:12px; border-top:1px solid var(--line-2);">
-                    <span>미결제 합계</span>
+                    <span>남은 결제 합계</span>
                     <span id="sub-schedule-total" class="neg"></span>
                 </div>
             </div>
@@ -1181,6 +1186,17 @@ function jk_resetInputs() {
     const isToday = date === todayStr();
     btn.disabled = done;
     btn.textContent = done ? '✓ 이 날은 이미 승리' : isToday ? '🏅 오늘도 승리' : '🏅 이 날도 승리';
+    // 100일 중 어제까지 기록이 빈 날: 누르면 그 날짜로 바로 이동
+    const missEl = document.getElementById('jk-missing');
+    const recorded = new Set(D_jk.records.map(r => r.date));
+    const miss = [];
+    const yest = jkAdd(jkToday(), -1), endD = jkDate(jkEndStr());
+    for (let d = jkDate(JK_PROJECT.start); d <= yest && d <= endD; d = jkAdd(d, 1)) { if (!recorded.has(jkYmd(d))) miss.push(jkYmd(d)); }
+    missEl.innerHTML = miss.length
+        ? `📝 <b>기록 안 한 날 ${miss.length}일</b> · 기록하면 연속 일수가 다시 이어져요<br>` +
+          miss.slice(-7).map(m => `<button onclick="jk_pickDate('${m}')">${Number(m.slice(5, 7))}/${Number(m.slice(8))}</button>`).join('') +
+          (miss.length > 7 ? ` <span class="muted">외 ${miss.length - 7}일</span>` : '')
+        : '';
     const tBtn = document.getElementById('trash-use-btn');
     const usedThatDay = D_jk.records.some(r => r.date === date && r.sober === 'X');
     tBtn.disabled = usedThatDay || !date || date < JK_PROJECT.start || date > jkEndStr();
@@ -1240,6 +1256,7 @@ window.jk_resetInputs  = jk_resetInputs;
 window.jk_addRecord    = jk_addRecord;
 window.jk_deleteRecord = jk_deleteRecord;
 window.jk_useTrash     = jk_useTrash;
+window.jk_pickDate     = (d) => { const el = document.getElementById('targetDate'); el.value = d; jk_resetInputs(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
 
 // ═══════════════════════════════════
 // ── 가계부 앱 (gk) ──
@@ -1633,7 +1650,11 @@ function renderLoans() {
     if (scheduleCardEl && scheduleListEl) {
         const t0 = loanToday();
         const allItems = loans.flatMap(loan => {
-            const { payments } = calcPaymentsThisMonth(loan);
+            // 이번 달 회차 + 지난 10일 안의 회차(달이 바뀌어도 뒤늦게 기록할 수 있게)
+            const sch = calcRepaymentSchedule(loan) || [];
+            const recent = new Date(t0); recent.setDate(recent.getDate() - 10);
+            const payments = sch.filter(x => (x.payDate.getFullYear() === t0.getFullYear() && x.payDate.getMonth() === t0.getMonth())
+                                           || (x.payDate >= recent && x.payDate < t0));
             const completedMap = {};
             (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
             return payments.map(m => ({
@@ -1645,7 +1666,7 @@ function renderLoans() {
         }).sort((a, b) => a.date - b.date);
 
         if (allItems.length > 0) {
-            const nowM = new Date(); document.getElementById('loan-schedule-card-title').textContent = `${nowM.getMonth()+1}월 납부 예정`;
+            const nowM = new Date(); document.getElementById('loan-schedule-card-title').textContent = `${nowM.getMonth()+1}월 납부 · 최근 납부`;
             scheduleListEl.innerHTML = allItems.map(it => {
                 const mo = it.date.getMonth() + 1, day = it.date.getDate();
                 const dateStr = `${mo}/${day}`;
@@ -1654,7 +1675,7 @@ function renderLoans() {
                     ? `이자 ${fmtMoney(it.interest)}`
                     : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
                 if (it.isPast && !it.isDone) {
-                    return `<div class="list-item" style="opacity:0.6"><div class="info"><div class="name">✓ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} · 자동이체로 납부된 것으로 반영</div></div></div>`;
+                    return `<div class="list-item" style="opacity:0.75"><div class="info"><div class="name">✓ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} · 자동이체로 반영됨</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">실제 금액 기록</button></div></div>`;
                 }
                 if (it.isDone) {
                     return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">기록 취소</button></div></div>`;
@@ -1877,8 +1898,10 @@ function loanNoticeComplete(id, date, principal, expectedAmount) {
     if (!loan) return;
     const input = prompt(`실제 납부액을 입력하세요 (예상: ${expectedAmount.toLocaleString()}원)`, expectedAmount);
     if (input === null) return;
-    const actualAmount = parseInt(input) || 0;
+    const actualAmount = parseInt(String(input).replace(/[^0-9]/g, '')) || 0;
     if (!actualAmount || actualAmount <= 0) { alert('실제 납부액을 입력해 주세요.'); return; }
+    if (Math.abs(actualAmount - expectedAmount) > Math.max(1000, expectedAmount * 0.2)
+        && !confirm(`${loan.name} 예상 ${fmtMoney(expectedAmount)}과 많이 달라요.\n${fmtMoney(actualAmount)}으로 기록할까요?`)) return;
     if (!loan.completedSchedule) loan.completedSchedule = [];
     loan.completedSchedule = loan.completedSchedule.filter(c => c.date !== date);
     loan.completedSchedule.push({ date, actualAmount });
@@ -2140,7 +2163,7 @@ function renderSubscriptions() {
 
     // 이번달 결제 예정 카드
     if (scheduleCardEl && scheduleListEl) {
-        document.getElementById('sub-schedule-card-title').textContent = `${new Date().getMonth()+1}월 결제 예정`;
+        document.getElementById('sub-schedule-card-title').textContent = `${new Date().getMonth()+1}월 결제`;
         const allItems = [];
         subs.filter(s => s.active).forEach(sub => {
             const completedMap = {};
@@ -2170,13 +2193,16 @@ function renderSubscriptions() {
         } else {
             scheduleCardEl.style.display = '';
             scheduleListEl.innerHTML = allItems.map(it => {
+                if (!it.isDone && it.date < today) {   // 결제일이 지났으면 마통에서 자동 결제된 것으로 봄 (금액이 달랐으면 기록 가능)
+                    return `<div class="list-item" style="opacity:0.75"><div class="info"><div class="name">✓ ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)} · 자동 결제됨</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">실제 금액 기록</button></div></div>`;
+                }
                 if (it.isDone) {
                     return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="subPayUnconfirm('${it.sub.id}','${it.dateStr}',${it.actualAmount})">확인취소</button></div></div>`;
                 } else {
-                    return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)}</div></div><div class="right"><span class="amount">−${fmtMoney(it.sub.amount)}</span><button class="btn-sm-confirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">지출완료</button><button class="btn-sm-edit" onclick="editSubscription('${it.sub.id}')">수정</button><button class="btn-sm" onclick="deleteSubscription('${it.sub.id}')">삭제</button></div></div>`;
+                    return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)}</div></div><div class="right"><span class="amount">−${fmtMoney(it.sub.amount)}</span><button class="btn-sm-confirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">결제 기록</button></div></div>`;
                 }
             }).join('');
-            const pendingTotal = allItems.filter(it => !it.isDone).reduce((s, it) => s + it.sub.amount, 0);
+            const pendingTotal = allItems.filter(it => !it.isDone && it.date >= today).reduce((s, it) => s + it.sub.amount, 0);
             const totalWrap = document.getElementById('sub-schedule-total-wrap');
             if (pendingTotal > 0) {
                 document.getElementById('sub-schedule-total').textContent = fmtMoney(pendingTotal);
