@@ -430,7 +430,7 @@
         #app-gk .loan-preview-sub { font-size: 0.72rem; color: var(--ink-3); }
         #app-gk .loan-repay-badge {
             font-size: 0.66rem; padding: 2px 7px; border-radius: 999px; font-weight: 600;
-            background: var(--warn-soft); color: var(--warn); margin-left: 5px; vertical-align: middle;
+            background: var(--warn-soft); color: var(--warn); margin-left: 5px; vertical-align: middle; white-space: nowrap; display: inline-block;
         }
         #app-gk .loan-schedule-list { display: flex; flex-direction: column; gap: 6px; }
         #app-gk .loan-overdue { font-size: 0.68em; color: var(--bad); background: var(--bad-soft); border-radius: 4px; padding: 1px 5px; margin-left: 4px; font-weight: 600; vertical-align: middle; }
@@ -591,9 +591,9 @@
                 <div id="loan-list"><div class="empty">등록된 대출이 없습니다</div></div>
             </div>
 
-            <!-- 대출 추가/수정 폼 -->
-            <div class="card">
-                <h2 id="loan-form-title">대출 추가</h2>
+            <!-- 대출 수정 폼: 평소엔 숨김, 수정 버튼을 누를 때만 열림 (새 대출 추가는 없음) -->
+            <div class="card" id="loan-form-card" style="display:none">
+                <h2 id="loan-form-title">대출 수정</h2>
                 <div class="form-group">
                     <label>대출명</label>
                     <input type="text" id="loan-name" placeholder="예: 주택담보대출, 전세자금대출">
@@ -660,7 +660,8 @@
                     <label>메모 (선택)</label>
                     <input type="text" id="loan-memo" placeholder="예: 2028년 12월 만기">
                 </div>
-                <button class="btn btn-primary" id="loan-submit-btn" onclick="addLoan()">+ 대출 추가</button>
+                <button class="btn btn-primary" id="loan-submit-btn" onclick="addLoan()" style="background:var(--warn)">✏️ 수정 완료</button>
+                <button class="btn" onclick="cancelLoanEdit()" style="margin-top:8px;background:var(--surface-3);color:var(--ink-2)">취소</button>
             </div>
 
         </div>
@@ -1309,20 +1310,12 @@ function addLoan() {
     const creditLimit      = parseInt(document.getElementById('loan-limit').value) || null;
     const memo             = document.getElementById('loan-memo').value.trim();
     if (!name) { alert('대출명을 입력해 주세요.'); return; }
+    if (!_editingLoanId) return;   // 새 대출 추가는 하지 않음 — 빚을 다 갚을 때까지
 
-    if (!D.loans) D.loans = [];
-
-    if (_editingLoanId) {
-        const idx = D.loans.findIndex(x => x.id === _editingLoanId);
-        if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, balanceAsOf, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo };
-        _editingLoanId = null;
-        const btn = document.getElementById('loan-submit-btn');
-        btn.textContent = '+ 대출 추가';
-        btn.style.background = '';
-        document.getElementById('loan-form-title').textContent = '대출 추가';
-    } else {
-        D.loans.push({ id: uid(), name, remainingBalance, balanceAsOf, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo });
-    }
+    const idx = (D.loans || []).findIndex(x => x.id === _editingLoanId);
+    if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, balanceAsOf, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo };
+    _editingLoanId = null;
+    document.getElementById('loan-form-card').style.display = 'none';
 
     save();
     ['loan-name','loan-balance','loan-rate','loan-payday','loan-memo','loan-grace-date','loan-end-date'].forEach(id => {
@@ -1377,10 +1370,10 @@ function editLoan(id) {
     }
 
     autoCalcLoanPayment();
-    const btn = document.getElementById('loan-submit-btn');
-    btn.textContent = '✏️ 수정 완료';
-    btn.style.background = 'var(--warn)';
-    document.getElementById('loan-form-title').textContent = '대출 수정';
+    const formCardEl = document.getElementById('loan-form-card');
+    formCardEl.style.display = '';
+    autoCalcLoanPayment();
+    document.getElementById('loan-form-title').textContent = `대출 수정 · ${loan.name}`;
 
     // 폼 카드 상단으로 정확히 스크롤
     const formCard = document.getElementById('loan-form-title').closest('.card');
@@ -1396,6 +1389,12 @@ function loanBulkSetAsOf() {
     if (!confirm(`${targets.map(l => l.name).join(', ')}\n\n${targets.length}건의 잔액 기준일을 ${date}로 설정할까요?\n(지금 저장된 잔액이 이 날짜의 장학재단 잔액이어야 해요)`)) return;
     targets.forEach(l => { l.balanceAsOf = date; });
     save(); renderLoans();
+}
+
+function cancelLoanEdit() {
+    _editingLoanId = null;
+    document.getElementById('loan-form-card').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function deleteLoan(id) {
@@ -2013,6 +2012,7 @@ window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
 window.loanBulkSetAsOf    = loanBulkSetAsOf;
+window.cancelLoanEdit     = cancelLoanEdit;
 window.loanNoticeComplete  = loanNoticeComplete;
 window.loanNoticeUnconfirm = loanNoticeUnconfirm;
 window.loanRepayTypeChange = loanRepayTypeChange;
