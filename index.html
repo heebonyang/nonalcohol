@@ -407,6 +407,10 @@
         #app-gk .loan-next-pay { font-size: 0.78rem; color: var(--accent-text); font-weight: 600; margin-bottom: 4px; }
         #app-gk .loan-next-pay.far { color: var(--ink-3); font-weight: 500; }
         #app-gk .btn-schedule-pay { background: var(--surface-3); color: var(--ink-2); border: none; border-radius: 8px; padding: 4px 9px; font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+        #app-gk .loan-form-hint { font-size: 0.74rem; color: var(--ink-3); line-height: 1.5; margin: -4px 2px 14px; }
+        #app-gk .loan-form-hint b { color: var(--ink-2); }
+        #app-gk .loan-asof-warn { font-size: 0.74rem; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 7px 10px; margin-bottom: 10px; line-height: 1.45; }
+        #app-gk .loan-meta-sub { font-size: 0.68rem; color: var(--ink-3); margin-top: 2px; font-weight: 500; }
         #app-gk .loan-calc-preview { background: var(--good-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin: 4px 0 12px; }
         #app-gk .loan-preview-title { font-size: 0.8rem; font-weight: 700; color: var(--good); margin-bottom: 8px; }
         #app-gk .loan-preview-row {
@@ -580,12 +584,23 @@
                 </div>
                 <div class="gk-row">
                     <div class="form-group">
-                        <label id="loan-balance-label">대출 원금 / 잔여금 (원)</label>
-                        <input type="number" id="loan-balance" placeholder="0" min="0" oninput="autoCalcLoanPayment()">
+                        <label id="loan-balance-label">대출 잔액 (원)</label>
+                        <input type="number" id="loan-balance" placeholder="0" min="0" inputmode="numeric" oninput="autoCalcLoanPayment()">
                     </div>
                     <div class="form-group">
+                        <label>잔액 기준일</label>
+                        <input type="date" id="loan-asof" oninput="autoCalcLoanPayment()">
+                    </div>
+                </div>
+                <div class="loan-form-hint">한국장학재단 상환 조회의 <b>대출잔액</b>과 <b>조회한 날짜</b>를 넣으면, 그 뒤 납부일마다 원금·이자를 자동으로 계산해 잔액에 반영해요.</div>
+                <div class="gk-row">
+                    <div class="form-group">
                         <label>연 금리 (%)</label>
-                        <input type="number" id="loan-rate" placeholder="3.5" min="0" step="0.01" oninput="autoCalcLoanPayment()">
+                        <input type="number" id="loan-rate" placeholder="2.9" min="0" step="0.01" inputmode="decimal" oninput="autoCalcLoanPayment()">
+                    </div>
+                    <div class="form-group">
+                        <label>매월 납부일 (일)</label>
+                        <input type="number" id="loan-payday" placeholder="25" min="1" max="31" inputmode="numeric" oninput="autoCalcLoanPayment()">
                     </div>
                 </div>
                 <div class="gk-row">
@@ -599,7 +614,7 @@
                         </select>
                     </div>
                     <div class="form-group" id="loan-grace-group">
-                        <label>거치기한 (이자만 납부 종료일)</label>
+                        <label>거치 종료일 (선택)</label>
                         <input type="date" id="loan-grace-date" oninput="autoCalcLoanPayment()">
                     </div>
                 </div>
@@ -607,10 +622,6 @@
                     <div class="form-group">
                         <label>대출기한 (최종 상환일)</label>
                         <input type="date" id="loan-end-date" oninput="autoCalcLoanPayment()">
-                    </div>
-                    <div class="form-group">
-                        <label>매월 납부일 (일)</label>
-                        <input type="number" id="loan-payday" placeholder="25" min="1" max="31">
                     </div>
                 </div>
                 <div class="gk-row" id="loan-overdraft-group" style="display:none">
@@ -620,7 +631,7 @@
                     </div>
                     <div class="form-group">
                         <label>매월 이자 납부일 (일)</label>
-                        <input type="number" id="loan-payday-od" placeholder="25" min="1" max="31" oninput="syncOverdraftPayday()">
+                        <input type="number" id="loan-payday-od" placeholder="25" min="1" max="31" oninput="syncOverdraftPayday(); autoCalcLoanPayment()">
                     </div>
                 </div>
                 <!-- 자동 계산 미리보기 -->
@@ -977,221 +988,152 @@ function loanRepayTypeChange() {
     document.getElementById('loan-grace-group').style.display    = isOD ? 'none' : '';
     document.getElementById('loan-end-group').style.display      = isOD ? 'none' : '';
     document.getElementById('loan-overdraft-group').style.display = isOD ? '' : 'none';
-    document.getElementById('loan-balance-label').textContent    = isOD ? '현재 마이너스 잔액 (원)' : '대출 원금 / 잔여금 (원)';
+    document.getElementById('loan-balance-label').textContent    = isOD ? '현재 마이너스 잔액 (원)' : '대출 잔액 (원)';
     autoCalcLoanPayment();
 }
 function syncOverdraftPayday() {
     document.getElementById('loan-payday').value = document.getElementById('loan-payday-od').value;
 }
 
-function autoCalcLoanPayment() {
-    const type         = document.getElementById('loan-repay-type').value;
-    const balance      = parseInt(document.getElementById('loan-balance').value)  || 0;
-    const rate         = parseFloat(document.getElementById('loan-rate').value)   || 0;
-    const graceDateVal = document.getElementById('loan-grace-date').value;
-    const endDateVal   = document.getElementById('loan-end-date').value;
-    const preview      = document.getElementById('loan-calc-preview');
-    const body         = document.getElementById('loan-preview-body');
-
-    // 마이너스 통장: 날짜 불필요, 잔액+금리만 있으면 미리보기
-    if (type === 'overdraft') {
-        if (!balance || !rate) { preview.style.display = 'none'; return; }
-        const r = rate / 100 / 12;
-        const monthlyInt = Math.round(balance * r);
-        document.getElementById('loan-monthly').value = monthlyInt;
-        body.innerHTML = `
-            <div class="loan-preview-row">
-                <span class="loan-preview-label">월 이자 납부액 (현 잔액 기준)</span>
-                <span class="loan-preview-val red">${fmtMoney(monthlyInt)}</span>
-            </div>
-            <div class="loan-preview-row">
-                <span class="loan-preview-label">연간 이자 합계 (잔액 불변 시)</span>
-                <span class="loan-preview-val red">${fmtMoney(monthlyInt * 12)}</span>
-            </div>`;
-        preview.style.display = 'block';
-        return;
-    }
-
-    if (!balance || !rate || !endDateVal || !type) { preview.style.display = 'none'; return; }
-
-    const today     = new Date(); today.setHours(0,0,0,0);
-    const graceDate = graceDateVal ? new Date(graceDateVal) : null;
-    const endDate   = new Date(endDateVal);
-    const grace     = graceDate ? monthDiff(today, graceDate) : 0;
-    const refDate   = (graceDate && grace > 0) ? graceDate : today;
-    const months    = monthDiff(refDate, endDate);
-
-    if (months <= 0) { preview.style.display = 'none'; return; }
-
-    const r = rate / 100 / 12;
-    const graceInterest = Math.round(balance * r);
-    let rows = '';
-    let repMonthly = 0;
-
-    if (grace > 0) {
-        rows += `<div class="loan-preview-row">
-            <span class="loan-preview-label">거치기한 월 납부액 (이자만, ${grace}개월)</span>
-            <span class="loan-preview-val red">${fmtMoney(graceInterest)}</span>
-        </div>`;
-    }
-
-    if (type === 'annuity') {
-        repMonthly = r === 0
-            ? Math.round(balance / months)
-            : Math.round(balance * (r * Math.pow(1+r, months)) / (Math.pow(1+r, months) - 1));
-        const firstInt  = Math.round(balance * r);
-        const firstPrin = repMonthly - firstInt;
-        const totalInt  = repMonthly * months - balance + (grace > 0 ? graceInterest * grace : 0);
-        rows += `<div class="loan-preview-row">
-            <span class="loan-preview-label">대출기한 월 납부액 (고정, ${months}개월)</span>
-            <span class="loan-preview-val">${fmtMoney(repMonthly)}</span>
-        </div>
-        <div class="loan-preview-row">
-            <span class="loan-preview-label">└ 첫 달 원금 / 이자</span>
-            <span class="loan-preview-sub">${fmtMoney(firstPrin)} / <span class="neg">${fmtMoney(firstInt)}</span></span>
-        </div>
-        <div class="loan-preview-row">
-            <span class="loan-preview-label">총 납부 이자 합계</span>
-            <span class="loan-preview-val red">${fmtMoney(Math.max(0, totalInt))}</span>
-        </div>`;
-    } else if (type === 'principal_equal') {
-        const prin1     = Math.round(balance / months);
-        const int1      = Math.round(balance * r);
-        const intLast   = Math.round(prin1 * r);
-        repMonthly      = prin1 + int1;
-        const totalInt  = Math.round(r * (balance * months - prin1 * months * (months - 1) / 2))
-                          + (grace > 0 ? graceInterest * grace : 0);
-        rows += `<div class="loan-preview-row">
-            <span class="loan-preview-label">대출기한 첫 달 납부액</span>
-            <span class="loan-preview-val">${fmtMoney(repMonthly)}</span>
-        </div>
-        <div class="loan-preview-row">
-            <span class="loan-preview-label">└ 매달 원금 / 첫 달 이자</span>
-            <span class="loan-preview-sub">${fmtMoney(prin1)} / <span class="neg">${fmtMoney(int1)}</span></span>
-        </div>
-        <div class="loan-preview-row">
-            <span class="loan-preview-label">마지막 달 납부액 (약)</span>
-            <span class="loan-preview-val">${fmtMoney(prin1 + intLast)}</span>
-        </div>
-        <div class="loan-preview-row">
-            <span class="loan-preview-label">총 납부 이자 합계</span>
-            <span class="loan-preview-val red">${fmtMoney(Math.max(0, totalInt))}</span>
-        </div>`;
-    }
-
-    document.getElementById('loan-monthly').value = repMonthly;
-    body.innerHTML = rows;
-    preview.style.display = 'block';
+// ═══ 대출 계산 ═══
+// 기준: 사용자가 입력한 '잔액'과 그 '기준일'. 기준일 이후 매월 납부일에 자동이체로 납부한다고 보고
+// 원금·이자를 계산해 잔액에서 차감한다. (납부 기록 버튼은 기록용, 잔액을 바꾸지 않음)
+// 이자: 일할 계산 = 잔액 × 연이율 × (직전 납부일~이번 납부일 일수) / 365, 원 미만 버림
+// 원금균등: 남은 원금 ÷ 남은 상환 횟수(매달 같은 원금) / 원리금균등: 매달 같은 금액, 이자를 뺀 나머지가 원금
+// 거치 종료일 당일 납부분까지는 이자만, 그다음 납부일부터 원금 상환. 마지막 회차에 남은 원금 정리
+const LOAN_DAY = 86400000;
+function loanParse(str) { return str ? new Date(str + 'T00:00:00') : null; }
+function loanToday() { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+function loanPayDate(y, m0, payDay) {           // m0: 0부터(넘치면 다음 해로). 31일처럼 없는 날은 말일로
+    const last = new Date(y, m0 + 1, 0).getDate();
+    return new Date(y, m0, Math.min(payDay, last));
+}
+function loanInterest(balance, rate, from, to) {
+    const days = Math.round((to - from) / LOAN_DAY);
+    return Math.floor(balance * (rate / 100) * days / 365);
 }
 
 function calcRepaymentSchedule(loan) {
-    if (!loan.repaymentType || loan.interestRate == null || !loan.remainingBalance) return null;
-
-    const today = new Date(); today.setHours(0,0,0,0);
+    if (!loan || !loan.repaymentType || loan.interestRate == null || !loan.remainingBalance) return null;
+    const rate   = Number(loan.interestRate);
     const payDay = loan.paymentDay || 1;
-    let payDate  = new Date(today.getFullYear(), today.getMonth(), payDay);
-    if (payDate < today) payDate = new Date(today.getFullYear(), today.getMonth() + 1, payDay);
-
-    // 마이너스 통장: 현 잔액 기준 12개월 이자만 예측
-    if (loan.repaymentType === 'overdraft') {
-        const r = loan.interestRate / 100 / 12;
-        const interest = Math.round(loan.remainingBalance * r);
-        return Array.from({ length: 12 }, (_, i) => {
-            const d = new Date(payDate.getFullYear(), payDate.getMonth() + i, payDay);
-            return {
-                month: i + 1,
-                date: `${d.getFullYear()}.${pad(d.getMonth() + 1)}`,
-                principal: 0, interest,
-                payment: interest,
-                balance: loan.remainingBalance,
-                isGrace: false, isOverdraft: true
-            };
-        });
-    }
-
-    // 날짜 기반으로 동적 계산 (저장된 날짜 우선)
-    let grace, n;
-    if (loan.loanEndDate) {
-        const graceDate = loan.gracePeriodEndDate ? new Date(loan.gracePeriodEndDate) : null;
-        const endDate   = new Date(loan.loanEndDate);
-        grace           = graceDate ? monthDiff(today, graceDate) : 0;
-        const refDate   = (graceDate && grace > 0) ? graceDate : today;
-        n               = monthDiff(refDate, endDate);
-    } else {
-        grace = loan.gracePeriod || 0;
-        n     = loan.remainingMonths;
-    }
-    if (!n) return null;
-
-    const r     = loan.interestRate / 100 / 12;
+    const asOf   = loanParse(loan.balanceAsOf) || loanToday();
+    // 이자가 쌓이기 시작한 날 = 기준일 당일 또는 그 이전의 마지막 납부일
+    let prev = loanPayDate(asOf.getFullYear(), asOf.getMonth(), payDay);
+    if (prev > asOf) prev = loanPayDate(asOf.getFullYear(), asOf.getMonth() - 1, payDay);
+    const nextDate = k => loanPayDate(prev.getFullYear(), prev.getMonth() + k, payDay);
+    const key = d => `${d.getFullYear()}.${pad(d.getMonth() + 1)}`;
     let balance = loan.remainingBalance;
     const schedule = [];
 
-    // 거치기한: 이자만 납부
-    for (let i = 0; i < grace; i++) {
-        const interest = Math.round(balance * r);
-        schedule.push({
-            month: i + 1,
-            date: `${payDate.getFullYear()}.${pad(payDate.getMonth() + 1)}`,
-            principal: 0, interest,
-            payment: interest, balance,
-            isGrace: true
-        });
-        payDate = new Date(payDate.getFullYear(), payDate.getMonth() + 1, payDay);
+    // 마이너스 통장: 잔액 그대로, 앞으로 12번 이자만
+    if (loan.repaymentType === 'overdraft') {
+        let from = prev;
+        for (let k = 1; k <= 12; k++) {
+            const d = nextDate(k);
+            const interest = loanInterest(balance, rate, from, d);
+            schedule.push({ date: key(d), payDate: d, principal: 0, interest, payment: interest, balance, isGrace: false, isOverdraft: true });
+            from = d;
+        }
+        return schedule;
     }
 
-    // 대출기한
-    let fixedPayment = 0;
-    if (loan.repaymentType === 'annuity') {
-        fixedPayment = r === 0
-            ? Math.round(balance / n)
-            : Math.round(balance * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
-    }
-
-    for (let i = 0; i < n && balance > 0; i++) {
-        const interest = Math.round(balance * r);
-        let principal;
-        if (loan.repaymentType === 'principal_equal') {
-            const base = Math.round(loan.remainingBalance / n);
-            principal  = (i === n - 1) ? balance : Math.min(base, balance);
-        } else {
-            principal = (i === n - 1) ? balance : Math.max(0, fixedPayment - interest);
+    const end = loanParse(loan.loanEndDate);
+    if (!end) return null;
+    const graceEnd = loanParse(loan.gracePeriodEndDate);
+    const dates = [];
+    for (let k = 1; k <= 600; k++) { const d = nextDate(k); if (d > end) break; dates.push(d); }
+    if (!dates.length) return null;
+    const n = dates.filter(d => !graceEnd || d > graceEnd).length;   // 남은 원금 상환 횟수
+    const r = rate / 100 / 12;
+    const fixedPrincipal = n ? Math.round(balance / n) : 0;
+    const annuity = n ? (r === 0 ? Math.round(balance / n)
+                                 : Math.round(balance * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1))) : 0;
+    let from = prev, idx = 0;
+    for (const d of dates) {
+        const interest = loanInterest(balance, rate, from, d);
+        const isGrace = !!graceEnd && d <= graceEnd;
+        let principal = 0;
+        if (!isGrace) {
+            idx++;
+            if (idx === n) principal = balance;
+            else if (loan.repaymentType === 'principal_equal') principal = Math.min(fixedPrincipal, balance);
+            else principal = Math.min(balance, Math.max(0, annuity - interest));
         }
         balance = Math.max(0, balance - principal);
-        schedule.push({
-            month: grace + i + 1,
-            date: `${payDate.getFullYear()}.${pad(payDate.getMonth() + 1)}`,
-            principal, interest,
-            payment: principal + interest, balance,
-            isGrace: false
-        });
-        payDate = new Date(payDate.getFullYear(), payDate.getMonth() + 1, payDay);
+        schedule.push({ date: key(d), payDate: d, principal, interest, payment: principal + interest, balance, isGrace });
+        from = d;
+        if (balance <= 0 && !isGrace) break;
     }
     return schedule;
 }
 
-function calcPaymentsThisMonth(loan) {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    const full = calcRepaymentSchedule(loan);
-    if (!full) return { payments: [], totalInterest: 0 };
-    const payDay = loan.paymentDay || 1;
-    const payments = full.filter(item => {
-        const [y, m] = item.date.split('.').map(Number);
-        const d = new Date(y, m - 1, payDay);
-        return d >= monthStart && d <= monthEnd;
-    });
-    const totalInterest = payments.reduce((s, p) => s + p.interest, 0);
-    return { payments, totalInterest };
+// 오늘 기준 상태: 지난 납부일까지 반영한 현재 잔액(추정), 다음 납부, 남은 횟수·이자
+function loanStatus(loan) {
+    const sch = calcRepaymentSchedule(loan);
+    if (!sch || !sch.length) return null;
+    const today = loanToday();
+    const past = sch.filter(x => x.payDate < today);
+    const upcoming = sch.filter(x => x.payDate >= today);
+    return {
+        schedule: sch,
+        balanceNow: past.length ? past[past.length - 1].balance : loan.remainingBalance,
+        next: upcoming[0] || null,
+        remainingCount: upcoming.filter(x => !x.isGrace && !x.isOverdraft).length,
+        remainingInterest: upcoming.reduce((s, x) => s + x.interest, 0),
+        last: sch[sch.length - 1],
+    };
 }
 
+function autoCalcLoanPayment() {
+    const preview = document.getElementById('loan-calc-preview');
+    const body    = document.getElementById('loan-preview-body');
+    const rateVal = parseFloat(document.getElementById('loan-rate').value);
+    const temp = {
+        repaymentType: document.getElementById('loan-repay-type').value,
+        remainingBalance: parseInt(document.getElementById('loan-balance').value) || 0,
+        interestRate: isNaN(rateVal) ? null : rateVal,
+        paymentDay: parseInt(document.getElementById('loan-payday').value) || 1,
+        balanceAsOf: document.getElementById('loan-asof').value || null,
+        gracePeriodEndDate: document.getElementById('loan-grace-date').value || null,
+        loanEndDate: document.getElementById('loan-end-date').value || null,
+    };
+    const st = loanStatus(temp);
+    if (!st || !st.next) { preview.style.display = 'none'; document.getElementById('loan-monthly').value = ''; return; }
+    const n = st.next;
+    const row = (label, val, cls = '') => `<div class="loan-preview-row"><span class="loan-preview-label">${label}</span><span class="loan-preview-val ${cls}">${val}</span></div>`;
+    let rows = '';
+    if (temp.repaymentType === 'overdraft') {
+        rows += row(`다음 이자 (${fmtDate(n.payDate)})`, fmtMoney(n.interest), 'red');
+        rows += row('1년 이자 합계 (잔액 그대로일 때)', fmtMoney(st.remainingInterest), 'red');
+    } else {
+        rows += row('현재 잔액 (추정)', fmtMoney(st.balanceNow));
+        rows += row(`다음 납부 (${fmtDate(n.payDate)})`, fmtMoney(n.payment));
+        rows += row('└ 원금 / 이자', `<span class="loan-preview-sub">${fmtMoney(n.principal)} / <span class="neg">${fmtMoney(n.interest)}</span></span>`);
+        const graceLeft = st.schedule.filter(x => x.isGrace && x.payDate >= loanToday()).length;
+        if (graceLeft) rows += row('남은 거치 (이자만)', `${graceLeft}회`);
+        rows += row('남은 상환 횟수', `${st.remainingCount}회 · ${fmtYearMonth(fmtDate(st.last.payDate))} 완납`);
+        rows += row('앞으로 낼 이자 합계', fmtMoney(st.remainingInterest), 'red');
+    }
+    document.getElementById('loan-monthly').value = n.payment;
+    body.innerHTML = rows;
+    preview.style.display = 'block';
+}
+
+// 이번 달(달력 기준)에 납부일이 있는 회차
+function calcPaymentsThisMonth(loan) {
+    const sch = calcRepaymentSchedule(loan);
+    if (!sch) return { payments: [], totalInterest: 0 };
+    const t = loanToday();
+    const payments = sch.filter(x => x.payDate.getFullYear() === t.getFullYear() && x.payDate.getMonth() === t.getMonth());
+    return { payments, totalInterest: payments.reduce((s, p) => s + p.interest, 0) };
+}
 
 function getLoanNextPayDate(loan) {
     if (!loan.paymentDay) return null;
     const today = new Date(); today.setHours(0,0,0,0);
-    let d = new Date(today.getFullYear(), today.getMonth(), loan.paymentDay);
-    if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, loan.paymentDay);
+    let d = loanPayDate(today.getFullYear(), today.getMonth(), loan.paymentDay);
+    if (d < today) d = loanPayDate(today.getFullYear(), today.getMonth() + 1, loan.paymentDay);
     return d;
 }
 
@@ -1213,23 +1155,17 @@ function renderLoans() {
 
     // 이번달 납부 예정 카드
     if (scheduleCardEl && scheduleListEl) {
-        const nowForPastDue = new Date(); nowForPastDue.setHours(0,0,0,0);
+        const t0 = loanToday();
         const allItems = loans.flatMap(loan => {
             const { payments } = calcPaymentsThisMonth(loan);
             const completedMap = {};
             (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
-            const payDay = loan.paymentDay || 1;
-            // 지난 납부일은 미확인이어도 납부 완료로 간주(연체 처리 안 함)
-            const futureItems = payments
-                .map(m => {
-                    const [y, mo] = m.date.split('.').map(Number);
-                    const d = new Date(y, mo - 1, payDay);
-                    const isDone = m.date in completedMap;
-                    return { loanId: loan.id, loanName: loan.name, rawDate: m.date, date: d, payment: m.payment, interest: m.interest, principal: m.principal, isGrace: m.isGrace, isOverdraft: m.isOverdraft, isDone, isPastDue: false, actualAmount: completedMap[m.date] };
-                })
-                .filter(it => it.isDone || it.date >= nowForPastDue);
-            const combined = [...futureItems].sort((a, b) => a.date - b.date);
-            return combined;
+            return payments.map(m => ({
+                loanId: loan.id, loanName: loan.name, rawDate: m.date, date: m.payDate,
+                payment: m.payment, interest: m.interest, principal: m.principal,
+                isGrace: m.isGrace, isOverdraft: m.isOverdraft,
+                isDone: m.date in completedMap, isPast: m.payDate < t0, actualAmount: completedMap[m.date],
+            }));
         }).sort((a, b) => a.date - b.date);
 
         if (allItems.length > 0) {
@@ -1237,16 +1173,19 @@ function renderLoans() {
             scheduleListEl.innerHTML = allItems.map(it => {
                 const mo = it.date.getMonth() + 1, day = it.date.getDate();
                 const dateStr = `${mo}/${day}`;
-                const pastDueBadge = it.isPastDue ? `<span class="loan-overdue">연체</span>` : '';
+                const pastDueBadge = '';
                 const breakdown = (it.isGrace || it.isOverdraft)
                     ? `이자 ${fmtMoney(it.interest)}`
                     : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
-                if (it.isDone) {
-                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">확인취소</button></div></div>`;
+                if (it.isPast && !it.isDone) {
+                    return `<div class="list-item" style="opacity:0.6"><div class="info"><div class="name">✓ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} · 자동이체로 납부된 것으로 반영</div></div></div>`;
                 }
-                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown} · <strong>−${fmtMoney(it.payment)}</strong></div></div><div class="right" style="flex-shrink:0;"><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부완료</button><button class="btn-sm-edit" onclick="editLoan('${it.loanId}')">수정</button><button class="btn-sm" onclick="deleteLoan('${it.loanId}')">삭제</button></div></div>`;
+                if (it.isDone) {
+                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">기록 취소</button></div></div>`;
+                }
+                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown} · <strong>−${fmtMoney(it.payment)}</strong></div></div><div class="right" style="flex-shrink:0;"><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부 기록</button></div></div>`;
             }).join('');
-            const pendingTotal = allItems.filter(it => !it.isDone).reduce((s, it) => s + it.payment, 0);
+            const pendingTotal = allItems.filter(it => !it.isDone && !it.isPast).reduce((s, it) => s + it.payment, 0);
             if (pendingTotal > 0) {
                 document.getElementById('loan-schedule-total').textContent = fmtMoney(pendingTotal);
                 scheduleTotalWrap.style.display = 'block';
@@ -1275,6 +1214,7 @@ function renderLoans() {
         const isSoon   = daysLeft !== null && daysLeft <= 7;
         const nextStr  = nextDate ? `다음 납부일: ${fmtDate(nextDate)}${isSoon ? ` (${daysLeft === 0 ? '오늘' : `${daysLeft}일 후`})` : ''}` : '납부일 미설정';
         const nextClass = isSoon ? 'loan-next-pay' : 'loan-next-pay far';
+        const st = loanStatus(loan);
 
         // 상환 방식 뱃지
         const repayLabel = loan.repaymentType === 'annuity'         ? '원리금균등'
@@ -1293,31 +1233,31 @@ function renderLoans() {
                     <button class="btn-sm" onclick="deleteLoan('${loan.id}')">삭제</button>
                 </div>
             </div>
+            ${!loan.balanceAsOf ? `<div class="loan-asof-warn">⚠️ 잔액 기준일이 없어 오늘 기준으로 계산 중이에요. 수정을 눌러 최신 잔액과 조회한 날짜를 넣어 주세요.</div>` : ''}
             <div class="loan-meta-grid">
                 <div class="loan-meta-item">
-                    <div class="loan-meta-label">잔여 대출금</div>
-                    <div class="loan-meta-value neg">${fmtMoney(loan.remainingBalance || 0)}</div>
+                    <div class="loan-meta-label">현재 잔액 (추정)</div>
+                    <div class="loan-meta-value neg">${fmtMoney(st ? st.balanceNow : (loan.remainingBalance || 0))}</div>
+                    <div class="loan-meta-sub">입력 ${fmtMoney(loan.remainingBalance || 0)}${loan.balanceAsOf ? ` · ${loan.balanceAsOf.slice(2).replace(/-/g, '.')} 기준` : ''}</div>
                 </div>
                 <div class="loan-meta-item">
                     <div class="loan-meta-label">연 금리</div>
                     <div class="loan-meta-value">${loan.interestRate != null ? loan.interestRate + '%' : '-'}</div>
+                    <div class="loan-meta-sub">매월 ${loan.paymentDay || '-'}일 납부</div>
                 </div>
                 <div class="loan-meta-item">
-                    <div class="loan-meta-label">월 납부액</div>
-                    <div class="loan-meta-value">${fmtMoney(loan.monthlyPayment || 0)}</div>
+                    <div class="loan-meta-label">다음 납부액</div>
+                    <div class="loan-meta-value">${st && st.next ? fmtMoney(st.next.payment) : '-'}</div>
+                    ${st && st.next ? `<div class="loan-meta-sub">${st.next.principal ? `원금 ${fmtMoney(st.next.principal)} + ` : ''}이자 ${fmtMoney(st.next.interest)}</div>` : ''}
                 </div>
-                <div class="loan-meta-item">
-                    <div class="loan-meta-label">납부일</div>
-                    <div class="loan-meta-value">매월 ${loan.paymentDay || '-'}일</div>
-                </div>
-                ${loan.loanEndDate ? `<div class="loan-meta-item">
-                    <div class="loan-meta-label">대출기한</div>
-                    <div class="loan-meta-value">${fmtYearMonth(loan.loanEndDate)}</div>
-                </div>` : ''}
-                ${loan.gracePeriodEndDate ? `<div class="loan-meta-item">
-                    <div class="loan-meta-label">거치기한</div>
-                    <div class="loan-meta-value warn-text">${fmtYearMonth(loan.gracePeriodEndDate)}</div>
-                </div>` : ''}
+                ${loan.repaymentType === 'overdraft' ? `<div class="loan-meta-item">
+                    <div class="loan-meta-label">1년 이자 (예상)</div>
+                    <div class="loan-meta-value">${st ? fmtMoney(st.remainingInterest) : '-'}</div>
+                </div>` : `<div class="loan-meta-item">
+                    <div class="loan-meta-label">남은 상환</div>
+                    <div class="loan-meta-value">${st ? `${st.remainingCount}회` : '-'}</div>
+                    <div class="loan-meta-sub">${st ? `${fmtYearMonth(fmtDate(st.last.payDate))} 완납 · 이자 ${fmtMoney(st.remainingInterest)}` : ''}</div>
+                </div>`}
             </div>
             <div class="${nextClass}">${nextStr}</div>
         </div>`;
@@ -1328,6 +1268,7 @@ function renderLoans() {
 function addLoan() {
     const name             = document.getElementById('loan-name').value.trim();
     const remainingBalance = parseInt(document.getElementById('loan-balance').value) || 0;
+    const balanceAsOf      = document.getElementById('loan-asof').value || todayStr();
     const interestRate     = parseFloat(document.getElementById('loan-rate').value) || null;
     const repaymentType    = document.getElementById('loan-repay-type').value || null;
     const gracePeriodEndDate = document.getElementById('loan-grace-date').value || null;
@@ -1348,20 +1289,21 @@ function addLoan() {
 
     if (_editingLoanId) {
         const idx = D.loans.findIndex(x => x.id === _editingLoanId);
-        if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo };
+        if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, balanceAsOf, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo };
         _editingLoanId = null;
         const btn = document.getElementById('loan-submit-btn');
         btn.textContent = '+ 대출 추가';
         btn.style.background = '';
         document.getElementById('loan-form-title').textContent = '대출 추가';
     } else {
-        D.loans.push({ id: uid(), name, remainingBalance, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo });
+        D.loans.push({ id: uid(), name, remainingBalance, balanceAsOf, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo });
     }
 
     save();
     ['loan-name','loan-balance','loan-rate','loan-payday','loan-memo','loan-grace-date','loan-end-date'].forEach(id => {
         document.getElementById(id).value = '';
     });
+    document.getElementById('loan-asof').value = todayStr();
     document.getElementById('loan-repay-type').value = '';
     document.getElementById('loan-monthly').value = '';
     document.getElementById('loan-calc-preview').style.display = 'none';
@@ -1377,6 +1319,7 @@ function editLoan(id) {
     _editingLoanId = id;
     document.getElementById('loan-name').value       = loan.name;
     document.getElementById('loan-balance').value    = loan.remainingBalance || '';
+    document.getElementById('loan-asof').value       = loan.balanceAsOf || todayStr();
     document.getElementById('loan-rate').value       = loan.interestRate != null ? loan.interestRate : '';
     document.getElementById('loan-repay-type').value = loan.repaymentType || '';
     document.getElementById('loan-payday').value     = loan.paymentDay || '';
@@ -1426,39 +1369,25 @@ function deleteLoan(id) {
     save(); renderLoans();
 }
 
+// 납부 기록은 실제 낸 금액을 남겨두는 용도. 잔액은 기준일+일정으로 자동 계산되므로 바꾸지 않음
 function loanNoticeUnconfirm(id, date, principal, actualAmount) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
-    if (!confirm(`납부 완료를 취소하시겠습니까?\n실제 납부액 ${fmtMoney(actualAmount)}이 복원됩니다.${principal > 0 ? `\n원금 ${fmtMoney(principal)}이 잔여 대출금에 다시 추가됩니다.` : ''}`)) return;
-    // 연동된 지출 항목 제거
-    const entry = (loan.completedSchedule || []).find(c => c.date === date);
-    if (entry && entry.spendingLogId) {
-        D.spendingLog = (D.spendingLog || []).filter(x => x.id !== entry.spendingLogId);
-    }
+    if (!confirm(`납부 기록(${fmtMoney(actualAmount)})을 지울까요?`)) return;
     loan.completedSchedule = (loan.completedSchedule || []).filter(c => c.date !== date);
-    if (principal > 0) {
-        loan.remainingBalance = (loan.remainingBalance || 0) + principal;
-    }
     save(); renderLoans();
 }
 
 function loanNoticeComplete(id, date, principal, expectedAmount) {
     const loan = (D.loans || []).find(x => x.id === id);
     if (!loan) return;
-    const input = prompt(`실제 납부액을 입력하세요 (예정: ${expectedAmount.toLocaleString()}원)`, expectedAmount);
+    const input = prompt(`실제 납부액을 입력하세요 (예상: ${expectedAmount.toLocaleString()}원)`, expectedAmount);
     if (input === null) return;
     const actualAmount = parseInt(input) || 0;
     if (!actualAmount || actualAmount <= 0) { alert('실제 납부액을 입력해 주세요.'); return; }
-    const msg = principal > 0
-        ? `납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}\n원금 ${fmtMoney(principal)}원이 잔여 대출금에서 차감됩니다.`
-        : `이자 납부 완료 처리합니다.\n실제 납부액: ${fmtMoney(actualAmount)}`;
-    if (!confirm(msg)) return;
     if (!loan.completedSchedule) loan.completedSchedule = [];
     loan.completedSchedule = loan.completedSchedule.filter(c => c.date !== date);
     loan.completedSchedule.push({ date, actualAmount });
-    if (principal > 0) {
-        loan.remainingBalance = Math.max(0, (loan.remainingBalance || 0) - principal);
-    }
     save(); renderLoans();
 }
 
@@ -2065,6 +1994,7 @@ window.subPayUnconfirm    = subPayUnconfirm;
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('targetDate').value = todayStr();
     document.getElementById('targetDate').max   = todayStr();
+    document.getElementById('loan-asof').value  = todayStr();
     const _t = new Date();
     const _todayLabel = `${_t.getMonth() + 1}월 ${_t.getDate()}일 ${['일','월','화','수','목','금','토'][_t.getDay()]}요일`;
     document.getElementById('jk-today').textContent = _todayLabel;
