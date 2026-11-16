@@ -407,6 +407,12 @@
         #app-gk .loan-next-pay { font-size: 0.78rem; color: var(--accent-text); font-weight: 600; margin-bottom: 4px; }
         #app-gk .loan-next-pay.far { color: var(--ink-3); font-weight: 500; }
         #app-gk .btn-schedule-pay { background: var(--surface-3); color: var(--ink-2); border: none; border-radius: 8px; padding: 4px 9px; font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+        #app-gk .loan-asof-bulk { background: var(--warn-soft); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+        #app-gk .loan-asof-bulk-text { font-size: 0.9rem; color: var(--ink); line-height: 1.4; }
+        #app-gk .loan-asof-bulk-text small { display: block; font-size: 0.75rem; color: var(--ink-2); margin-top: 2px; }
+        #app-gk .loan-asof-bulk-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+        #app-gk .loan-asof-bulk-row input { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 16px; color: var(--ink); }
+        #app-gk .loan-asof-bulk-row .btn-sm-confirm { height: 40px; padding: 0 14px; }
         #app-gk .loan-form-hint { font-size: 0.74rem; color: var(--ink-3); line-height: 1.5; margin: -4px 2px 14px; }
         #app-gk .loan-form-hint b { color: var(--ink-2); }
         #app-gk .loan-asof-warn { font-size: 0.74rem; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 7px 10px; margin-bottom: 10px; line-height: 1.45; }
@@ -566,6 +572,16 @@
                         <span>납부 예정 합계</span>
                         <span id="loan-schedule-total" class="neg"></span>
                     </div>
+                </div>
+            </div>
+
+            <!-- 기준일 없는 대출 일괄 설정 -->
+            <div class="loan-asof-bulk" id="loan-asof-bulk" style="display:none">
+                <div class="loan-asof-bulk-text"><b id="loan-asof-bulk-count"></b>
+                    <small>장학재단에서 잔액을 확인한 날짜를 골라 한 번에 넣을 수 있어요.</small></div>
+                <div class="loan-asof-bulk-row">
+                    <input type="date" id="loan-asof-bulk-date">
+                    <button class="btn-sm-confirm" onclick="loanBulkSetAsOf()">한 번에 설정</button>
                 </div>
             </div>
 
@@ -999,7 +1015,7 @@ function syncOverdraftPayday() {
 // 기준: 사용자가 입력한 '잔액'과 그 '기준일'. 기준일 이후 매월 납부일에 자동이체로 납부한다고 보고
 // 원금·이자를 계산해 잔액에서 차감한다. (납부 기록 버튼은 기록용, 잔액을 바꾸지 않음)
 // 이자: 일할 계산 = 잔액 × 연이율 × (직전 납부일~이번 납부일 일수) / 365, 원 미만 버림
-// 원금균등: 남은 원금 ÷ 남은 상환 횟수(매달 같은 원금) / 원리금균등: 매달 같은 금액, 이자를 뺀 나머지가 원금
+// 원금균등: 남은 원금 ÷ 남은 상환 횟수(매달 같은 원금, 10원 미만 버림) / 원리금균등: 매달 같은 금액, 이자를 뺀 나머지가 원금
 // 거치 종료일 당일 납부분까지는 이자만, 그다음 납부일부터 원금 상환. 마지막 회차에 남은 원금 정리
 const LOAN_DAY = 86400000;
 function loanParse(str) { return str ? new Date(str + 'T00:00:00') : null; }
@@ -1046,7 +1062,7 @@ function calcRepaymentSchedule(loan) {
     if (!dates.length) return null;
     const n = dates.filter(d => !graceEnd || d > graceEnd).length;   // 남은 원금 상환 횟수
     const r = rate / 100 / 12;
-    const fixedPrincipal = n ? Math.round(balance / n) : 0;
+    const fixedPrincipal = n ? Math.floor(balance / n / 10) * 10 : 0;   // 장학재단: 월 원금 10원 미만 버림
     const annuity = n ? (r === 0 ? Math.round(balance / n)
                                  : Math.round(balance * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1))) : 0;
     let from = prev, idx = 0;
@@ -1139,6 +1155,15 @@ function getLoanNextPayDate(loan) {
 
 function renderLoans() {
     const loans = D.loans || [];
+    const noAsOf = loans.filter(l => !l.balanceAsOf && l.repaymentType && l.repaymentType !== 'overdraft');
+    const bulk = document.getElementById('loan-asof-bulk');
+    bulk.style.display = noAsOf.length ? '' : 'none';
+    if (noAsOf.length) {
+        document.getElementById('loan-asof-bulk-count').textContent = `잔액 기준일이 없는 대출 ${noAsOf.length}건`;
+        const di = document.getElementById('loan-asof-bulk-date');
+        if (!di.value) di.value = todayStr();
+        di.max = todayStr();
+    }
     const el = document.getElementById('loan-list');
     const scheduleCardEl = document.getElementById('loan-schedule-card');
     const scheduleListEl = document.getElementById('loan-schedule-list');
@@ -1361,6 +1386,16 @@ function editLoan(id) {
     const formCard = document.getElementById('loan-form-title').closest('.card');
     const navH = document.querySelector('.main-nav')?.offsetHeight || 60;
     window.scrollTo({ top: formCard.getBoundingClientRect().top + window.scrollY - navH - 12, behavior: 'smooth' });
+}
+
+function loanBulkSetAsOf() {
+    const date = document.getElementById('loan-asof-bulk-date').value;
+    if (!date) { alert('날짜를 골라 주세요.'); return; }
+    const targets = (D.loans || []).filter(l => !l.balanceAsOf && l.repaymentType && l.repaymentType !== 'overdraft');
+    if (!targets.length) return;
+    if (!confirm(`${targets.map(l => l.name).join(', ')}\n\n${targets.length}건의 잔액 기준일을 ${date}로 설정할까요?\n(지금 저장된 잔액이 이 날짜의 장학재단 잔액이어야 해요)`)) return;
+    targets.forEach(l => { l.balanceAsOf = date; });
+    save(); renderLoans();
 }
 
 function deleteLoan(id) {
@@ -1977,6 +2012,7 @@ window.showTab        = showTab;
 window.addLoan            = addLoan;
 window.editLoan           = editLoan;
 window.deleteLoan         = deleteLoan;
+window.loanBulkSetAsOf    = loanBulkSetAsOf;
 window.loanNoticeComplete  = loanNoticeComplete;
 window.loanNoticeUnconfirm = loanNoticeUnconfirm;
 window.loanRepayTypeChange = loanRepayTypeChange;
