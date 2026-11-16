@@ -116,6 +116,28 @@
         .main-tab.active { color: var(--ink); }
         .main-tab.active .tab-ico { filter: none; opacity: 1; transform: translateY(-1px); }
 
+        /* 동기화 상태 */
+        .sync-bar {
+            position: sticky; top: 0; z-index: 120; padding: calc(env(safe-area-inset-top) + 8px) 16px 8px;
+            font-size: 0.8rem; font-weight: 600; text-align: center; background: var(--surface-3); color: var(--ink-2);
+        }
+        .sync-bar.hidden { display: none; }
+        .sync-bar.warn { background: var(--warn-soft); color: var(--warn); }
+        .sync-bar.bad { background: var(--bad-soft); color: var(--bad); }
+        .sync-bar button { border: none; background: var(--bad); color: #fff; border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; margin-left: 4px; }
+        body.not-ready .app-section { pointer-events: none; opacity: 0.55; }
+        .sync-toast {
+            position: fixed; left: 50%; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px); transform: translate(-50%, 20px);
+            max-width: calc(100% - 32px); width: max-content; z-index: 130; opacity: 0; pointer-events: none;
+            background: var(--ink); color: var(--bg); border-radius: 12px; padding: 10px 14px; font-size: 0.84rem; font-weight: 600;
+            transition: opacity 0.2s, transform 0.2s; box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+        }
+        .sync-toast.show { opacity: 1; transform: translate(-50%, 0); }
+        .sync-toast.warn { background: var(--warn); color: #fff; }
+        .sync-toast.bad { background: var(--bad); color: #fff; }
+        .backup-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 18px 4px 4px; font-size: 0.74rem; color: var(--ink-3); }
+        .backup-foot button { border: none; background: var(--surface-3); color: var(--ink-2); border-radius: 999px; height: 30px; padding: 0 12px; font-size: 0.74rem; font-weight: 600; white-space: nowrap; }
+
         .app-section { display: none; }
         .app-section.active { display: block; animation: fade-in 0.25s ease; }
         @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -546,6 +568,9 @@
 </head>
 <body>
 
+<div class="sync-bar hidden" id="sync-bar"></div>
+<div class="sync-toast" id="sync-toast"></div>
+
 <!-- ══ 메인 탭 내비게이션 ══ -->
 <nav class="main-nav">
     <button class="main-tab active" onclick="switchApp('jk', this)"><span class="tab-ico">🌊</span><span>금주 100일</span></button>
@@ -600,6 +625,7 @@
             <div class="list-head"><span>기록</span><span id="jk-record-count"></span></div>
             <div id="data-list"></div>
         </div>
+        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">💾 내 데이터 내려받기</button></div>
     </div>
 </div>
 
@@ -882,12 +908,15 @@
             </div>
         </div>
 
+        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">💾 내 데이터 내려받기</button></div>
     </div>
 </div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+         doc, getDoc, setDoc, updateDoc, deleteField, onSnapshot, collection, getDocs, deleteDoc
+       } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyCE7iN5FD2d8HegeNx0BQt6Af935k4_yjI",
@@ -898,7 +927,17 @@ const firebaseConfig = {
     appId: "1:429464917450:web:a6304e8624a5a336bfeb33"
 };
 const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+// 기기(IndexedDB)에 먼저 저장하는 캐시. 지원하지 않는 브라우저면 기본 방식으로
+let db;
+try {
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+        ignoreUndefinedProperties: true,
+    });
+} catch (e) {
+    console.warn('기기 저장 캐시를 쓸 수 없어 기본 방식으로 연결해요:', e);
+    db = getFirestore(app);
+}
 
 // ── 공통 유틸 ──
 function todayStr() {
@@ -956,19 +995,7 @@ function getCurrentStreak(records) {
     return streak;
 }
 
-async function jk_load() {
-    try {
-        const snap = await getDoc(JK_DOC_REF);
-        if (snap.exists()) D_jk = { records: [], ...snap.data() };
-    } catch (e) {
-        console.error('금주 로드 실패:', e);
-    }
-    jk_renderTable();
-}
-
-function jk_save() {
-    setDoc(JK_DOC_REF, D_jk).catch(err => console.error('금주 저장 실패:', err));
-}
+function jk_save() { persist(SYNC.jk, D_jk); }
 
 // ── Day100 프로젝트 일정 (heebonmd.web.app 기준, 앱에서 수정 불가) ──
 const JK_PROJECT = Object.freeze({
@@ -1235,18 +1262,176 @@ const DEFAULT = {
     livingCats: null,    // 생활비 분류 목록 (null이면 기본값)           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
     overdraftReminderMonth: ''  // 'YYYY-MM' - 마지막으로 알림 확인한 월
 };
-let D = { ...DEFAULT };
+const freshDefault = () => JSON.parse(JSON.stringify(DEFAULT));   // 기본값 목록을 공유하지 않도록 매번 새로 복사
+let D = freshDefault();
 
-async function loadFromFirestore() {
-    try {
-        const snap = await getDoc(GK_DOC_REF);
-        if (snap.exists()) D = { ...DEFAULT, ...snap.data() };
-        // 급여 기록 기능 폐지: 남아 있는 급여 체크·월급날 데이터는 다음 저장 때 함께 지워짐
-        delete D.paychecks; delete D.payday;
-    } catch(e) { console.error('로드 실패:', e); }
+function save() { persist(SYNC.gk, D); }
+
+// ═══════════════════════════════════
+// ── 데이터 보호: 실시간 동기화 · 기기 저장 · 바뀐 항목만 저장 · 자동 백업 ──
+// ═══════════════════════════════════
+// · 기기(IndexedDB)에 먼저 저장 → 인터넷이 끊겨도 기록이 남고, 연결되면 자동으로 올라감
+// · onSnapshot으로 항상 최신 상태 유지 → 오래 열어 둔 화면이 다른 기기의 변경을 덮어쓰지 않음
+// · 저장은 바뀐 최상위 항목만 updateDoc → 다른 항목은 건드리지 않음
+// · 처음 불러오기 전에는 저장 금지 → 빈 데이터로 덮어쓰는 사고 방지
+// · 하루 한 번 backups/{YYYY-MM-DD}에 전체 백업, 30일 보관
+const SYNC = {};
+function syncStore(name, ref, { apply, render }) {
+    const st = { name, ref, ready: false, exists: false, failed: false, fromServer: false, synced: {}, pending: 0 };
+    SYNC[name] = st;
+    onSnapshot(ref, snap => {
+        // 기기 캐시에 아직 없으면(처음 여는 기기) 서버 응답을 기다림
+        if (!snap.exists() && snap.metadata.fromCache) return;
+        const data = snap.exists() ? snap.data() : {};
+        st.exists = snap.exists();
+        st.synced = {};
+        Object.keys(data).forEach(k => { st.synced[k] = JSON.stringify(data[k]); });
+        st.ready = true; st.failed = false;
+        if (!snap.metadata.fromCache) st.fromServer = true;
+        apply(data);
+        render();
+        syncUi();
+        maybeDailyBackup();
+    }, err => {
+        console.error(`${name} 불러오기 실패:`, err);
+        st.failed = true;
+        syncUi();
+    });
+    return st;
 }
-function save() {
-    setDoc(GK_DOC_REF, D).catch(err => console.error('저장 실패:', err));
+
+function persist(st, obj) {
+    if (!st || !st.ready) {
+        syncToast('아직 데이터를 불러오는 중이라 저장하지 않았어요. 잠시 후 다시 해 주세요.', 'warn');
+        return;
+    }
+    const payload = {};
+    Object.keys(obj).forEach(k => {
+        if (obj[k] === undefined) return;
+        if (JSON.stringify(obj[k]) !== st.synced[k]) payload[k] = obj[k];
+    });
+    Object.keys(st.synced).forEach(k => { if (!(k in obj)) payload[k] = deleteField(); });
+    if (!Object.keys(payload).length) return;
+    Object.keys(payload).forEach(k => { st.synced[k] = k in obj ? JSON.stringify(obj[k]) : undefined; });
+    Object.keys(st.synced).forEach(k => { if (st.synced[k] === undefined) delete st.synced[k]; });
+    const write = st.exists ? updateDoc(st.ref, payload) : setDoc(st.ref, obj);
+    st.exists = true;
+    st.pending++;
+    const slow = setTimeout(syncUi, 4000);
+    write.then(() => { st.pending--; clearTimeout(slow); st.lastSavedAt = Date.now(); syncUi(); })
+         .catch(err => {
+             st.pending--; clearTimeout(slow);
+             console.error(`${st.name} 저장 실패:`, err);
+             syncToast('⚠️ 저장에 실패했어요. 인터넷을 확인하고 앱을 다시 열어 주세요.', 'bad', true);
+         });
+    st.writeStartedAt = Date.now();
+}
+
+// 상단 상태 줄: 불러오는 중 / 불러오기 실패 / 연결 기다리는 중
+function syncUi() {
+    const stores = Object.values(SYNC);
+    const ready = stores.length && stores.every(s => s.ready);
+    const failed = stores.some(s => s.failed && !s.ready);
+    const waiting = stores.some(s => s.pending > 0 && Date.now() - (s.writeStartedAt || 0) > 3500);
+    document.body.classList.toggle('not-ready', !ready);
+    const bar = document.getElementById('sync-bar');
+    if (failed) {
+        bar.className = 'sync-bar bad';
+        bar.innerHTML = '⚠️ 데이터를 불러오지 못했어요. 기록하기 전에 <button onclick="location.reload()">다시 불러오기</button>';
+    } else if (!ready) {
+        bar.className = 'sync-bar';
+        bar.textContent = '☁️ 데이터를 불러오는 중…';
+    } else if (waiting || !navigator.onLine) {
+        bar.className = 'sync-bar warn';
+        bar.textContent = '⏳ 인터넷 연결을 기다리는 중 · 기록은 이 기기에 안전하게 저장돼 있어요';
+    } else {
+        bar.className = 'sync-bar hidden';
+        bar.textContent = '';
+    }
+    renderBackupInfo();
+}
+window.addEventListener('online', syncUi);
+window.addEventListener('offline', syncUi);
+
+let _toastTimer = null;
+function syncToast(msg, kind = '', sticky = false) {
+    const el = document.getElementById('sync-toast');
+    el.className = `sync-toast show ${kind}`;
+    el.textContent = msg;
+    clearTimeout(_toastTimer);
+    if (!sticky) _toastTimer = setTimeout(() => { el.className = 'sync-toast'; }, 3500);
+}
+
+// ── 자동 백업 (하루 한 번, 서버에서 받은 최신 데이터가 있을 때만) ──
+let _backupDone = '';
+let _lastBackup = null;
+async function maybeDailyBackup() {
+    const stores = Object.values(SYNC);
+    if (!stores.length || !stores.every(s => s.ready && s.fromServer)) return;
+    const today = todayStr();
+    if (_backupDone === today) return;
+    _backupDone = today;
+    try {
+        const ref = doc(db, 'backups', today);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+            await setDoc(ref, { at: Date.now(), budget: JSON.parse(JSON.stringify(D)), challenge: JSON.parse(JSON.stringify(D_jk)) });
+        }
+        const all = await getDocs(collection(db, 'backups'));
+        const ids = all.docs.map(d => d.id).sort();
+        _lastBackup = ids[ids.length - 1] || today;
+        await Promise.all(ids.slice(0, Math.max(0, ids.length - 30)).map(id => deleteDoc(doc(db, 'backups', id))));
+        renderBackupInfo();
+    } catch (e) {
+        console.error('자동 백업 실패:', e);
+        _backupDone = '';
+    }
+}
+function renderBackupInfo() {
+    document.querySelectorAll('.backup-info').forEach(el => {
+        el.textContent = _lastBackup ? `자동 백업 ${_lastBackup.slice(5).replace('-', '.')} · 30일 보관` : '자동 백업 대기 중';
+    });
+}
+
+// ── 내 데이터 내려받기 (JSON) ──
+function downloadMyData() {
+    const data = { exportedAt: new Date().toISOString(), budget: D, challenge: D_jk };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `nonalcohol-backup-${todayStr()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+window.downloadMyData = downloadMyData;
+
+// ── 날짜 자동 갱신: 앱으로 돌아오거나 자정이 지나면 날짜에 따라 달라지는 화면을 다시 그림 ──
+let _renderedDay = '';
+function refreshForToday(force = false) {
+    const today = todayStr();
+    if (!force && today === _renderedDay) return;
+    const prev = _renderedDay;
+    _renderedDay = today;
+    const t = new Date();
+    const label = `${t.getMonth() + 1}월 ${t.getDate()}일 ${['일','월','화','수','목','금','토'][t.getDay()]}요일`;
+    document.getElementById('jk-today').textContent = label;
+    document.getElementById('gk-today').textContent = label;
+    const td = document.getElementById('targetDate');
+    if (!td.value || td.value === prev) td.value = today;
+    td.max = today;
+    const lv = document.getElementById('lv-date');
+    const lvDefault = today < LV_START ? LV_START : today;
+    if (!lv.value || lv.value === prev || lv.value === (prev < LV_START ? LV_START : prev)) lv.value = lvDefault;
+    if (prev) {   // 날짜가 바뀌었을 때만 다시 그림 (첫 그리기는 데이터 도착 시)
+        if (SYNC.jk && SYNC.jk.ready) jk_renderTable();
+        if (SYNC.gk && SYNC.gk.ready) renderAllGk();
+    }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { refreshForToday(); syncUi(); } });
+setInterval(() => { if (document.visibilityState === 'visible') refreshForToday(); }, 60000);
+
+function renderAllGk() {
+    renderSubscriptions(); renderLoans(); renderLvCats(); renderLiving(); renderDebtHero();
 }
 
 function showTab(name) {
@@ -2534,15 +2719,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('lv-date').max      = LV_END;
     renderLvCats();
     lvCatDragInit();
+    refreshForToday(true);
+    ['lv-amount', 'lv-memo'].forEach(id => document.getElementById(id)
+        .addEventListener('keydown', e => { if (e.key === 'Enter') lvAdd(); }));
+    syncUi();
 
-    await Promise.all([
-        jk_load(),
-        loadFromFirestore().then(() => {
-            renderSubscriptions(); renderLoans(); renderLvCats(); renderLiving(); renderDebtHero();
-            ['lv-amount', 'lv-memo'].forEach(id => document.getElementById(id)
-                .addEventListener('keydown', e => { if (e.key === 'Enter') lvAdd(); }));
-        })
-    ]);
+    syncStore('jk', JK_DOC_REF, {
+        apply: data => { D_jk = { records: [], ...data }; },
+        render: () => jk_renderTable(),
+    });
+    syncStore('gk', GK_DOC_REF, {
+        apply: data => {
+            D = { ...freshDefault(), ...data };
+            // 급여 기록 기능 폐지: 남아 있는 급여 체크·월급날 데이터는 다음 저장 때 함께 지워짐
+            delete D.paychecks; delete D.payday;
+        },
+        render: () => renderAllGk(),
+    });
 });
 </script>
 
