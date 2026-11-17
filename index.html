@@ -135,8 +135,20 @@
         .sync-toast.show { opacity: 1; transform: translate(-50%, 0); }
         .sync-toast.warn { background: var(--warn); color: #fff; }
         .sync-toast.bad { background: var(--bad); color: #fff; }
-        .backup-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 18px 4px 4px; font-size: 0.74rem; color: var(--ink-3); }
-        .backup-foot button { border: none; background: var(--surface-3); color: var(--ink-2); border-radius: 999px; height: 30px; padding: 0 12px; font-size: 0.74rem; font-weight: 600; white-space: nowrap; }
+        .backup-foot { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 20px 4px 4px; font-size: 0.7rem; color: var(--ink-3); }
+        .backup-foot button { border: none; background: none; color: var(--ink-3); padding: 0; font-size: 0.7rem; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
+        .backup-foot .backup-info::after { content: '·'; margin-left: 6px; }
+
+        /* 접기/펼치기 (미니멀: 매일 안 보는 건 접어 둠) */
+        .fold-body { display: none; }
+        .fold.open > .fold-body { display: block; }
+        .fold-toggle {
+            display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px;
+            border: none; background: none; padding: 0; color: var(--ink-3); font-size: 0.8rem; font-weight: 600; text-align: left;
+        }
+        .fold-toggle .chev { transition: transform 0.2s; font-size: 0.7rem; }
+        .fold.open > .fold-toggle .chev, .fold.open > * > .fold-toggle .chev { transform: rotate(180deg); }
+        .fold-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-2); }
 
         .app-section { display: none; }
         .app-section.active { display: block; animation: fade-in 0.25s ease; }
@@ -210,13 +222,16 @@
         /* 휴지통 */
         #app-jk .trash-card {
             background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-            box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;
+            padding: 14px 16px; margin-bottom: 12px;
         }
+        #app-jk .trash-card .fold-toggle { color: var(--ink); }
+        #app-jk .trash-card .trash-title { font-size: 0.9rem; }
+        #app-jk .trash-card.open .trash-use-btn { margin-top: 12px; border: 1px solid var(--line); }
         #app-jk .trash-head { display: flex; justify-content: space-between; align-items: baseline; }
         #app-jk .trash-title { font-size: 0.95rem; font-weight: 700; }
         #app-jk .trash-count { font-size: 0.82rem; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums; }
         #app-jk .trash-count.over { color: var(--bad); }
-        #app-jk .trash-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; }
+        #app-jk .trash-slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 14px; }
         #app-jk .trash-slot {
             height: 48px; border-radius: 10px; border: 1.5px dashed var(--line);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -270,6 +285,8 @@
         }
         #app-jk .btn-edit { background: var(--surface-3); color: var(--ink-2); }
         #app-jk .btn-del { background: var(--bad-soft); color: var(--bad); }
+        #app-jk .records-more { padding: 12px 0 10px; border-top: 1px solid var(--line-2); }
+        #app-jk .fold.open .records-more .chev { transform: rotate(180deg); }
         #app-jk .jk-empty { padding: 28px 0; text-align: center; color: var(--ink-3); font-size: 0.88rem; border-top: 1px solid var(--line-2); }
 
         /* ══ 가계부 ══ */
@@ -288,6 +305,9 @@
             background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
             box-shadow: var(--shadow); padding: 18px 16px; margin-bottom: 12px;
         }
+        #app-gk .past-toggle { padding: 12px 0 2px; border-top: 1px solid var(--line-2); }
+        #app-gk .past-fold.open .past-toggle { padding-bottom: 6px; }
+        #app-gk .card-fold { color: var(--ink); font-size: 0.95rem; font-weight: 700; }
         #app-gk .card h2 { font-size: 0.95rem; color: var(--ink); margin-bottom: 14px; font-weight: 700; }
         #app-gk .form-group { margin-bottom: 12px; }
         #app-gk .form-group label { display: block; font-size: 0.75rem; color: var(--ink-3); margin-bottom: 6px; font-weight: 600; }
@@ -360,6 +380,8 @@
         #app-gk .form-group label .dot { margin-right: 4px; }
 
         /* ── 1순위: 마이너스 통장 ── */
+        #app-gk .od-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-2); }
+        #app-gk .od-hero.open .od-more { margin-top: 14px; }
         #app-gk .od-hero {
             background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
             box-shadow: var(--shadow); padding: 18px 18px 16px; margin-bottom: 14px;
@@ -427,6 +449,7 @@
         #app-gk .lv-stat { background: var(--surface-2); border-radius: var(--radius-sm); padding: 11px 6px; text-align: center; min-width: 0; }
         #app-gk .lv-stat-label { font-size: 0.7rem; color: var(--ink-3); font-weight: 600; margin-bottom: 3px; white-space: nowrap; }
         #app-gk .lv-stat-value { font-size: 0.95rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        #app-gk .lv-fixed-note[hidden] { display: none !important; }
         #app-gk .lv-fixed-note {
             font-size: 0.76rem; color: var(--ink-3); line-height: 1.5;
             padding: 0 4px; margin: -2px 0 14px;
@@ -520,8 +543,13 @@
         /* ── 대출 ── */
         #app-gk .loan-card {
             background: var(--surface-2); border: 1px solid var(--line-2);
-            border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px;
+            border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px;
         }
+        #app-gk .loan-row { color: var(--ink); }
+        #app-gk .loan-row-name { flex: 1; min-width: 0; font-size: 0.92rem; font-weight: 700; }
+        #app-gk .loan-row-right { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+        #app-gk .loan-row-right b { font-size: 0.9rem; }
+        #app-gk .loan-row-right small { font-size: 0.7rem; color: var(--ink-3); font-weight: 500; }
         #app-gk .loan-card:last-child { margin-bottom: 0; }
         #app-gk .loan-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
         #app-gk .loan-card-name { font-size: 0.98rem; font-weight: 700; }
@@ -607,14 +635,17 @@
         <div class="milestone-bar" id="jk-milestones"></div>
 
         <!-- 🗑️ 휴지통: 100일 중 5칸까지 (규칙은 코드에 고정, 수정 불가) -->
-        <div class="trash-card">
-            <div class="trash-head"><span class="trash-title">🗑️ 휴지통</span><span class="trash-count" id="jk-trash-count"></span></div>
+        <div class="trash-card fold" id="fold-trash">
+            <button class="fold-toggle trash-head" onclick="toggleFold('fold-trash')"><span class="trash-title">🗑️ 휴지통</span><span><span class="trash-count" id="jk-trash-count"></span> <span class="chev">▾</span></span></button>
+            <div class="fold-body">
             <div class="trash-slots" id="jk-trash-slots"></div>
             <div class="trash-over" id="jk-trash-over"></div>
             <div class="trash-status" id="jk-trash-status"></div>
             <div class="rules">
                 <div class="rules-title">📜 나의 다섯 줄</div>
                 <ol class="rules-list" id="jk-rules"></ol>
+            </div>
+            <button class="trash-use-btn" id="trash-use-btn" onclick="jk_useTrash()">🗑️ 휴지통 쓰기</button>
             </div>
         </div>
 
@@ -623,14 +654,15 @@
                 <input type="date" id="targetDate" onchange="jk_resetInputs()">
                 <button class="btn-save" id="save-btn" onclick="jk_addRecord()">🏅 오늘도 승리</button>
             </div>
-            <button class="trash-use-btn" id="trash-use-btn" onclick="jk_useTrash()">🗑️ 휴지통 쓰기</button>
             <div class="jk-missing" id="jk-missing"></div>
         </div>
-        <div class="table-card">
-            <div class="list-head"><span>기록</span><span id="jk-record-count"></span></div>
+        <div class="table-card fold" id="fold-records">
+            <div class="list-head"><span>최근 기록</span><span id="jk-record-count"></span></div>
             <div id="data-list"></div>
+            <div class="fold-body"><div id="data-list-more"></div></div>
+            <button class="fold-toggle records-more" id="records-more" onclick="toggleFold('fold-records')"><span id="records-more-label"></span><span class="chev">▾</span></button>
         </div>
-        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">💾 내 데이터 내려받기</button></div>
+        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">내려받기</button></div>
     </div>
 </div>
 
@@ -643,13 +675,14 @@
         </div>
 
         <!-- 내 돈 지도: 1순위 목표 마통 + 세 통장 -->
-        <div class="od-hero" id="od-hero" style="display:none">
+        <div class="od-hero fold" id="od-hero" style="display:none">
             <div class="od-kicker"><span><span class="dot dot-od"></span>1순위 · 마이너스 통장 갚기</span><span class="od-asof" id="od-asof"></span></div>
             <div class="od-balance serif" id="od-balance">0원</div>
             <div class="od-progress">
                 <div class="od-track"><div class="od-fill" id="od-fill"></div></div>
                 <div class="od-legend"><span id="od-pct"></span><span id="od-start"></span></div>
             </div>
+            <div class="fold-body">
             <div class="od-stats">
                 <div class="od-stat"><span class="od-stat-label">하루 이자</span><span class="od-stat-value" id="od-daily"></span></div>
                 <div class="od-stat"><span class="od-stat-label" id="od-next-label">다음 이자</span><span class="od-stat-value" id="od-next"></span></div>
@@ -695,6 +728,8 @@
             </div>
             <div class="od-history" id="od-history"></div>
             <div class="od-next-goal" id="od-next-goal"></div>
+            </div>
+            <button class="fold-toggle od-more" onclick="toggleFold('od-hero')"><span id="od-summary"></span><span><span class="od-more-label">자세히</span> <span class="chev">▾</span></span></button>
         </div>
 
         <div class="gk-tabs">
@@ -731,7 +766,7 @@
                     <div class="lv-stat"><div class="lv-stat-label" id="lv-stat3-label">오늘 쓴 돈</div><div class="lv-stat-value" id="lv-stat3"></div></div>
                 </div>
             </div>
-            <div class="lv-fixed-note" id="lv-fixed-note" style="display:none"></div>
+            <div class="lv-fixed-note" id="lv-fixed-note" style="display:none" hidden></div>
 
             <div class="card" id="lv-form-card">
                 <h2 id="lv-form-title">생활비 기록</h2>
@@ -751,9 +786,9 @@
                 <button class="btn btn-primary" id="lv-submit-btn" onclick="lvAdd()">+ 기록하기</button>
             </div>
 
-            <div class="card" id="lv-breakdown-card" style="display:none">
-                <h2>분류별 지출</h2>
-                <div id="lv-breakdown"></div>
+            <div class="card fold" id="lv-breakdown-card" style="display:none">
+                <button class="fold-toggle card-fold" onclick="toggleFold('lv-breakdown-card')"><span>분류별 지출</span><span class="chev">▾</span></button>
+                <div class="fold-body"><div id="lv-breakdown" style="margin-top:14px"></div></div>
             </div>
 
             <div class="card" id="lv-list-card">
@@ -763,7 +798,6 @@
         </div>
 
         <div id="tab-loan" style="display:none">
-            <div class="tab-note"><span class="dot dot-od"></span>대출 납부는 마통에서 빠져나가요</div>
             <!-- D-day 납부 예정 목록 -->
             <div class="card" id="loan-schedule-card" style="display:none">
                 <h2 id="loan-schedule-card-title">이번달 납부 예정</h2>
@@ -869,7 +903,6 @@
         </div>
 
         <div id="tab-subscription" style="display:none">
-            <div class="tab-note"><span class="dot dot-od"></span>구독료는 마통에서 빠져나가요</div>
             <div class="card" id="sub-schedule-card" style="display:none">
                 <h2 id="sub-schedule-card-title">이번달 결제 예정</h2>
                 <div id="sub-schedule-list"></div>
@@ -882,8 +915,9 @@
                 <h2>등록된 구독 서비스</h2>
                 <div id="sub-list"><div class="empty">등록된 구독 서비스가 없습니다</div></div>
             </div>
-            <div class="card">
-                <h2 id="sub-form-title">구독 서비스 추가</h2>
+            <div class="card fold" id="sub-form-card">
+                <button class="fold-toggle card-fold" onclick="toggleFold('sub-form-card')"><span id="sub-form-title">구독 서비스 추가</span><span class="chev">▾</span></button>
+                <div class="fold-body" style="margin-top:14px">
                 <div class="form-group">
                     <label>서비스명</label>
                     <input type="text" id="sub-name" placeholder="예: Netflix, 유튜브 프리미엄">
@@ -910,10 +944,11 @@
                     </div>
                 </div>
                 <button class="btn btn-primary" id="sub-submit-btn" onclick="addSubscription()">+ 구독 추가</button>
+                </div>
             </div>
         </div>
 
-        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">💾 내 데이터 내려받기</button></div>
+        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">내려받기</button></div>
     </div>
 </div>
 
@@ -1156,7 +1191,7 @@ function jk_renderTable() {
     const WD = ['일','월','화','수','목','금','토'];
     const uses = jkTrashUses();
     document.getElementById('jk-record-count').textContent = sorted.length ? `${sorted.length}일` : '';
-    list.innerHTML = sorted.length ? sorted.map(r => {
+    const rowHtml = r => {
         const ok = r.sober === 'O';
         const d = new Date(r.date + 'T00:00:00');
         const safeDate = escHtml(r.date);
@@ -1173,7 +1208,12 @@ function jk_renderTable() {
                 <button class="btn-del"  onclick="jk_deleteRecord('${safeDate}')">삭제</button>
             </div>
         </div>`;
-    }).join('') : '<div class="jk-empty">아직 기록이 없어요. 오늘부터 시작해 볼까요?</div>';
+    };
+    const SHOW = 5;
+    list.innerHTML = sorted.length ? sorted.slice(0, SHOW).map(rowHtml).join('') : '<div class="jk-empty">아직 기록이 없어요. 오늘부터 시작해 볼까요?</div>';
+    document.getElementById('data-list-more').innerHTML = sorted.slice(SHOW).map(rowHtml).join('');
+    document.getElementById('records-more').style.display = sorted.length > SHOW ? '' : 'none';
+    document.getElementById('records-more-label').textContent = `전체 기록 ${sorted.length}일`;
     jk_updateSoberCounter();
     jk_resetInputs();
 }
@@ -1422,6 +1462,23 @@ function downloadMyData() {
 }
 window.downloadMyData = downloadMyData;
 
+// ── 접기/펼치기: 펼친 상태는 이 기기에만 기억 ──
+function foldOpen(id) { try { return localStorage.getItem('fold:' + id) === '1'; } catch (e) { return false; } }
+function toggleFold(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const open = !el.classList.contains('open');
+    el.classList.toggle('open', open);
+    try { localStorage.setItem('fold:' + id, open ? '1' : '0'); } catch (e) {}
+}
+window.toggleFold = toggleFold;
+function restoreFolds() {
+    ['fold-trash', 'fold-records', 'od-hero', 'lv-breakdown-card', 'sub-form-card'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && foldOpen(id)) el.classList.add('open');
+    });
+}
+
 // ── 날짜 자동 갱신: 앱으로 돌아오거나 자정이 지나면 날짜에 따라 달라지는 화면을 다시 그림 ──
 let _renderedDay = '';
 function refreshForToday(force = false) {
@@ -1667,7 +1724,7 @@ function renderLoans() {
 
         if (allItems.length > 0) {
             const nowM = new Date(); document.getElementById('loan-schedule-card-title').textContent = `${nowM.getMonth()+1}월 납부 · 최근 납부`;
-            scheduleListEl.innerHTML = allItems.map(it => {
+            const loanRow = it => {
                 const mo = it.date.getMonth() + 1, day = it.date.getDate();
                 const dateStr = `${mo}/${day}`;
                 const pastDueBadge = '';
@@ -1681,7 +1738,10 @@ function renderLoans() {
                     return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">기록 취소</button></div></div>`;
                 }
                 return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown} · <strong>−${fmtMoney(it.payment)}</strong></div></div><div class="right" style="flex-shrink:0;"><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부 기록</button></div></div>`;
-            }).join('');
+            };
+            const pastL = allItems.filter(it => it.isPast), nextL = allItems.filter(it => !it.isPast);
+            scheduleListEl.innerHTML = (nextL.length ? nextL.map(loanRow).join('') : '<div class="empty">이번 달 남은 납부가 없어요</div>')
+                + (pastL.length ? `<div class="fold past-fold${foldOpen('loan-past') ? ' open' : ''}" id="loan-past"><button class="fold-toggle past-toggle" onclick="toggleFold('loan-past')"><span>지난 납부 ${pastL.length}건 · 자동이체로 반영됨</span><span class="chev">▾</span></button><div class="fold-body">${pastL.map(loanRow).join('')}</div></div>` : '');
             const pendingTotal = allItems.filter(it => !it.isDone && !it.isPast).reduce((s, it) => s + it.payment, 0);
             if (pendingTotal > 0) {
                 document.getElementById('loan-schedule-total').textContent = fmtMoney(pendingTotal);
@@ -1719,10 +1779,16 @@ function renderLoans() {
                          : loan.repaymentType === 'overdraft'       ? '마이너스통장'
                          : null;
 
-        return `<div class="loan-card">
-            <div class="loan-card-header">
+        return `<div class="loan-card fold${foldOpen('loan-' + loan.id) ? ' open' : ''}" id="loan-${loan.id}">
+            <button class="fold-toggle loan-row" onclick="toggleFold('loan-${loan.id}')">
+                <span class="loan-row-name">${escHtml(loan.name)}${loan.balanceAsOf || loan.repaymentType === 'overdraft' ? '' : ' ⚠️'}</span>
+                <span class="loan-row-right"><b>${fmtMoney(st ? st.balanceNow : (loan.remainingBalance || 0))}</b><small>${st && st.next ? `${st.next.payDate.getMonth() + 1}/${st.next.payDate.getDate()} ${fmtMoney(st.next.payment)}` : ''}</small></span>
+                <span class="chev">▾</span>
+            </button>
+            <div class="fold-body">
+            <div class="loan-card-header" style="margin-top:12px">
                 <div>
-                    <div class="loan-card-name">🏦 ${escHtml(loan.name)}${repayLabel ? `<span class="loan-repay-badge">${repayLabel}</span>` : ''}</div>
+                    <div class="loan-card-name">${repayLabel ? `<span class="loan-repay-badge" style="margin-left:0">${repayLabel}</span>` : ''}</div>
                     ${loan.memo ? `<div class="loan-card-memo">${escHtml(loan.memo)}</div>` : ''}
                 </div>
                 <div style="display:flex;gap:6px;">
@@ -1757,6 +1823,7 @@ function renderLoans() {
                 </div>`}
             </div>
             <div class="${nextClass}">${nextStr}</div>
+            </div>
         </div>`;
     }).join('');
 
@@ -1987,6 +2054,7 @@ function renderDebtHero() {
     document.getElementById('acct-card').textContent = hasCard || est.living ? money(est.card, '−') : '정산 전';
     document.getElementById('acct-card-sub').textContent = est.living ? `정산 후 생활비 +${odMan(est.living)}` : '생활비 결제';
     document.getElementById('acct-cash').textContent = hasCash ? money(est.cash, '+') : '정산 전';
+    document.getElementById('od-summary').textContent = `실질 빚 ${fmtMoney(est.real)}`;
     document.getElementById('acct-real').innerHTML = `실질 빚 <b>${fmtMoney(est.real)}</b> <span class="muted">= 마통 + 카드 · 음악 통장은 지키는 돈</span>`;
 
     // 진행률 (12/14 마통 잔액 → 0원)
@@ -2192,7 +2260,7 @@ function renderSubscriptions() {
             scheduleCardEl.style.display = 'none';
         } else {
             scheduleCardEl.style.display = '';
-            scheduleListEl.innerHTML = allItems.map(it => {
+            const subRow = it => {
                 if (!it.isDone && it.date < today) {   // 결제일이 지났으면 마통에서 자동 결제된 것으로 봄 (금액이 달랐으면 기록 가능)
                     return `<div class="list-item" style="opacity:0.75"><div class="info"><div class="name">✓ ${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)} · 자동 결제됨</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">실제 금액 기록</button></div></div>`;
                 }
@@ -2201,7 +2269,10 @@ function renderSubscriptions() {
                 } else {
                     return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.sub.name)}</div><div class="sub">${it.dateStr} · ${fmtMoney(it.sub.amount)}</div></div><div class="right"><span class="amount">−${fmtMoney(it.sub.amount)}</span><button class="btn-sm-confirm" onclick="subPayComplete('${it.sub.id}','${it.dateStr}',${it.sub.amount})">결제 기록</button></div></div>`;
                 }
-            }).join('');
+            };
+            const pastS = allItems.filter(it => !it.isDone && it.date < today || it.isDone), nextS = allItems.filter(it => !(it.isDone || it.date < today));
+            scheduleListEl.innerHTML = (nextS.length ? nextS.map(subRow).join('') : '<div class="empty">이번 달 남은 결제가 없어요</div>')
+                + (pastS.length ? `<div class="fold past-fold${foldOpen('sub-past') ? ' open' : ''}" id="sub-past"><button class="fold-toggle past-toggle" onclick="toggleFold('sub-past')"><span>지난 결제 ${pastS.length}건 · 자동 결제됨</span><span class="chev">▾</span></button><div class="fold-body">${pastS.map(subRow).join('')}</div></div>` : '');
             const pendingTotal = allItems.filter(it => !it.isDone && it.date >= today).reduce((s, it) => s + it.sub.amount, 0);
             const totalWrap = document.getElementById('sub-schedule-total-wrap');
             if (pendingTotal > 0) {
@@ -2286,6 +2357,7 @@ function addSubscription() {
 }
 
 function editSubscription(id) {
+    document.getElementById('sub-form-card').classList.add('open');
     const sub = (D.subscriptions || []).find(x => x.id === id);
     if (!sub) return;
     _editingSubId = id;
@@ -2746,6 +2818,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderLvCats();
     lvCatDragInit();
     refreshForToday(true);
+    restoreFolds();
     ['lv-amount', 'lv-memo'].forEach(id => document.getElementById(id)
         .addEventListener('keydown', e => { if (e.key === 'Enter') lvAdd(); }));
     syncUi();
