@@ -135,9 +135,6 @@
         .sync-toast.show { opacity: 1; transform: translate(-50%, 0); }
         .sync-toast.warn { background: var(--warn); color: #fff; }
         .sync-toast.bad { background: var(--bad); color: #fff; }
-        .backup-foot { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 20px 4px 4px; font-size: 0.7rem; color: var(--ink-3); }
-        .backup-foot button { border: none; background: none; color: var(--ink-3); padding: 0; font-size: 0.7rem; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
-        .backup-foot .backup-info::after { content: '·'; margin-left: 6px; }
 
         /* 접기/펼치기 (미니멀: 매일 안 보는 건 접어 둠) */
         .fold-body { display: none; }
@@ -662,7 +659,6 @@
             <div class="fold-body"><div id="data-list-more"></div></div>
             <button class="fold-toggle records-more" id="records-more" onclick="toggleFold('fold-records')"><span id="records-more-label"></span><span class="chev">▾</span></button>
         </div>
-        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">내려받기</button></div>
     </div>
 </div>
 
@@ -948,7 +944,6 @@
             </div>
         </div>
 
-        <div class="backup-foot"><span class="backup-info">자동 백업 대기 중</span><button onclick="downloadMyData()">내려받기</button></div>
     </div>
 </div>
 
