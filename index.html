@@ -117,15 +117,18 @@
         .main-tab.active .tab-ico { filter: none; opacity: 1; transform: translateY(-1px); }
 
         /* 동기화 상태 */
+        /* 화면을 밀어내지 않도록 위에 떠 있는 작은 알림 (실패·연결 대기 때만) */
         .sync-bar {
-            position: sticky; top: 0; z-index: 120; padding: calc(env(safe-area-inset-top) + 8px) 16px 8px;
-            font-size: 0.8rem; font-weight: 600; text-align: center; background: var(--surface-3); color: var(--ink-2);
+            position: fixed; z-index: 120; top: calc(env(safe-area-inset-top) + 10px); left: 50%; transform: translateX(-50%);
+            width: max-content; max-width: calc(100% - 32px); padding: 8px 14px; border-radius: 12px;
+            font-size: 0.78rem; font-weight: 600; text-align: center; background: var(--surface-3); color: var(--ink-2);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
         }
         .sync-bar.hidden { display: none; }
         .sync-bar.warn { background: var(--warn-soft); color: var(--warn); }
         .sync-bar.bad { background: var(--bad-soft); color: var(--bad); }
         .sync-bar button { border: none; background: var(--bad); color: #fff; border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; margin-left: 4px; }
-        body.not-ready .app-section { pointer-events: none; opacity: 0.55; }
+        body.not-ready .app-section { pointer-events: none; }
         .sync-toast {
             position: fixed; left: 50%; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px); transform: translate(-50%, 20px);
             max-width: calc(100% - 32px); width: max-content; z-index: 130; opacity: 0; pointer-events: none;
@@ -1391,8 +1394,8 @@ function syncUi() {
         bar.className = 'sync-bar bad';
         bar.innerHTML = '⚠️ 데이터를 불러오지 못했어요. 기록하기 전에 <button onclick="location.reload()">다시 불러오기</button>';
     } else if (!ready) {
-        bar.className = 'sync-bar';
-        bar.textContent = '☁️ 데이터를 불러오는 중…';
+        bar.className = 'sync-bar hidden';   // 불러오는 중에는 안내 없이 (잠깐이라 화면만 잠금)
+        bar.textContent = '';
     } else if (waiting || !navigator.onLine) {
         bar.className = 'sync-bar warn';
         bar.textContent = '⏳ 인터넷 연결을 기다리는 중 · 기록은 이 기기에 안전하게 저장돼 있어요';
