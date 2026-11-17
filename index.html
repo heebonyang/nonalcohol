@@ -380,6 +380,10 @@
         #app-gk .form-group label .dot { margin-right: 4px; }
 
         /* ── 1순위: 마이너스 통장 ── */
+        #app-gk .od-line { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 0.82rem; color: var(--ink-3); }
+        #app-gk .od-line b { color: var(--ink); font-variant-numeric: tabular-nums; }
+        #app-gk .od-eta:empty { display: none; }
+        #app-gk .od-edit-link { display: block; margin: 12px auto 0; border: none; background: none; padding: 4px 8px; color: var(--ink-3); font-size: 0.76rem; text-decoration: underline; text-underline-offset: 2px; }
         #app-gk .od-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-2); }
         #app-gk .od-hero.open .od-more { margin-top: 14px; }
         #app-gk .od-hero {
@@ -514,6 +518,8 @@
         #app-gk .lv-breakdown-head span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
         #app-gk .lv-breakdown-bar { height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
         #app-gk .lv-breakdown-bar div { height: 100%; background: var(--accent); border-radius: 999px; opacity: 0.85; }
+        #app-gk .lv-card-check { display: flex; align-items: center; gap: 8px; margin: 2px 2px 14px; font-size: 0.86rem; font-weight: 600; color: var(--ink-2); }
+        #app-gk .lv-card-check input { width: 20px; height: 20px; accent-color: var(--c-card); }
         #app-gk .lv-day-head {
             display: flex; justify-content: space-between; padding: 14px 0 6px;
             font-size: 0.76rem; font-weight: 700; color: var(--ink-3); font-variant-numeric: tabular-nums;
@@ -673,68 +679,31 @@
             <span class="page-sub" id="gk-today"></span>
         </div>
 
-        <!-- 내 돈 지도: 1순위 목표 마통 + 세 통장 -->
-        <div class="od-hero fold" id="od-hero" style="display:none">
-            <div class="od-kicker"><span><span class="dot dot-od"></span>1순위 · 마이너스 통장 갚기</span><span class="od-asof" id="od-asof"></span></div>
+        <!-- 1순위 목표: 마이너스 통장 -->
+        <div class="od-hero" id="od-hero" style="display:none">
+            <div class="od-kicker"><span><span class="dot dot-od"></span>마이너스 통장</span><span class="od-asof" id="od-asof"></span></div>
             <div class="od-balance serif" id="od-balance">0원</div>
             <div class="od-progress">
                 <div class="od-track"><div class="od-fill" id="od-fill"></div></div>
                 <div class="od-legend"><span id="od-pct"></span><span id="od-start"></span></div>
             </div>
-            <div class="fold-body">
-            <div class="od-stats">
-                <div class="od-stat"><span class="od-stat-label">하루 이자</span><span class="od-stat-value" id="od-daily"></span></div>
-                <div class="od-stat"><span class="od-stat-label" id="od-next-label">다음 이자</span><span class="od-stat-value" id="od-next"></span></div>
-                <div class="od-stat"><span class="od-stat-label">이번 달 줄인 빚</span><span class="od-stat-value" id="od-month"></span></div>
-            </div>
+            <div class="od-line" id="od-line"></div>
             <div class="od-eta" id="od-eta"></div>
-
-            <div class="acct-title">내 돈 지도</div>
-            <div class="acct-grid">
-                <div class="acct acct-od">
-                    <div class="acct-name"><span class="dot dot-od"></span>마통</div>
-                    <div class="acct-value" id="acct-od"></div>
-                    <div class="acct-sub">월급 입금 · 고정비</div>
-                </div>
-                <div class="acct acct-card">
-                    <div class="acct-name"><span class="dot dot-card"></span>카드</div>
-                    <div class="acct-value" id="acct-card"></div>
-                    <div class="acct-sub" id="acct-card-sub">생활비 결제</div>
-                    <button class="acct-btn" onclick="odCardPaid()">결제됨</button>
-                </div>
-                <div class="acct acct-cash">
-                    <div class="acct-name"><span class="dot dot-cash"></span>음악</div>
-                    <div class="acct-value" id="acct-cash"></div>
-                    <div class="acct-sub">자아실현 통장</div>
-                    <div class="acct-btns">
-                        <button class="acct-btn" onclick="odMusic('in')">+ 수입</button>
-                        <button class="acct-btn" onclick="odMusic('out')">− 쓰기</button>
-                    </div>
-                </div>
-            </div>
-            <div class="acct-real" id="acct-real"></div>
-
-            <button class="od-update-btn" id="od-update-btn" onclick="odToggleForm()">🧾 주간 정산</button>
+            <button class="od-edit-link" id="od-update-btn" onclick="odToggleForm()">잔액 · 이자율 수정</button>
             <div class="od-form" id="od-form" style="display:none">
-                <div class="od-form-hint">은행·카드 앱을 보고 세 숫자를 넣어요. 비워 둔 칸은 지금 추정값으로 저장돼요.</div>
-                <div class="form-group"><label>날짜</label><input type="date" id="od-date"></div>
-                <div class="form-group"><label><span class="dot dot-od"></span>마통 잔액 (원)</label><input type="number" id="od-amount" inputmode="numeric"></div>
                 <div class="gk-row">
-                    <div class="form-group"><label><span class="dot dot-card"></span>카드 결제 예정액</label><input type="number" id="od-card" inputmode="numeric"></div>
-                    <div class="form-group"><label><span class="dot dot-cash"></span>음악 통장 잔액</label><input type="number" id="od-cash" inputmode="numeric"></div>
+                    <div class="form-group"><label>날짜</label><input type="date" id="od-date"></div>
+                    <div class="form-group"><label>잔액 (원)</label><input type="number" id="od-amount" inputmode="numeric"></div>
                 </div>
-                <button class="btn btn-primary" onclick="odSave()">정산 저장</button>
+                <div class="form-group"><label>연 이자율 (%)</label><input type="number" id="od-rate" inputmode="decimal" step="0.001" placeholder="4.899"></div>
+                <button class="btn btn-primary" onclick="odSave()">저장</button>
             </div>
-            <div class="od-history" id="od-history"></div>
-            <div class="od-next-goal" id="od-next-goal"></div>
-            </div>
-            <button class="fold-toggle od-more" onclick="toggleFold('od-hero')"><span id="od-summary"></span><span><span class="od-more-label">자세히</span> <span class="chev">▾</span></span></button>
         </div>
 
         <div class="gk-tabs">
-            <button class="gk-tab active" onclick="showTab('living')"><span class="dot dot-card"></span>생활비</button>
-            <button class="gk-tab" onclick="showTab('subscription')"><span class="dot dot-od"></span>구독</button>
-            <button class="gk-tab" onclick="showTab('loan')"><span class="dot dot-od"></span>대출</button>
+            <button class="gk-tab active" onclick="showTab('living')">생활비</button>
+            <button class="gk-tab" onclick="showTab('subscription')">구독</button>
+            <button class="gk-tab" onclick="showTab('loan')">학자금</button>
         </div>
 
         <div id="tab-living">
@@ -749,7 +718,7 @@
                     <div class="lv-nav-title"><span id="lv-month-title"></span><span class="lv-nav-range" id="lv-month-range"></span></div>
                 </div>
                 <div class="lv-label">
-                    <span><span class="dot dot-card"></span>순수 생활비 · 카드</span>
+                    <span>순수 생활비</span>
                     <button class="lv-goal-btn" onclick="lvEditGoal()">목표 <span id="lv-goal-text"></span> ✏️</button>
                 </div>
                 <div class="lv-spent" id="lv-spent">0원</div>
@@ -782,6 +751,7 @@
                     <div class="lv-cat-hint" id="lv-cat-hint" style="display:none">분류를 잡고 끌면 순서 변경 · 이름을 누르면 수정 · ✕를 누르면 삭제</div>
                 </div>
                 <div class="form-group"><label>내용 (선택)</label><input type="text" id="lv-memo" placeholder="예: 점심, 편의점, 장보기"></div>
+                <label class="lv-card-check"><input type="checkbox" id="lv-card" checked> 💳 신용카드로 결제</label>
                 <button class="btn btn-primary" id="lv-submit-btn" onclick="lvAdd()">+ 기록하기</button>
             </div>
 
@@ -1313,10 +1283,9 @@ const DEFAULT = {
     spendingLog: [],
     subscriptions: [],   // [{id, name, cycle, amount, billingDay, billingDate, active}]
     loans: [],
-    livingLog: [],       // [{id, date, amount, category, memo}] 순수 생활비
+    livingLog: [],       // [{id, date, amount, category, memo, card(신용카드 여부)}] 순수 생활비
     livingGoal100: 3300000, // 환골탈태 100일(12/14~3/23) 생활비 목표
-    odLog: [],           // 주간 정산 [{date, balance(마통), card, cash(음악 통장), at}]
-    moneyEvents: [],     // 정산 사이의 돈 이동 [{id, type:'cardPaid'|'musicIn'|'musicOut', amount, memo, date, at}]
+    odLog: [],           // 마통 잔액 기록 [{date, balance, at}]
     livingCats: null,    // 생활비 분류 목록 (null이면 기본값)           // [{id, name, remainingBalance, interestRate, monthlyPayment, paymentDay, memo}]
     overdraftReminderMonth: ''  // 'YYYY-MM' - 마지막으로 알림 확인한 월
 };
@@ -1692,7 +1661,7 @@ function getLoanNextPayDate(loan) {
 }
 
 function renderLoans() {
-    const loans = D.loans || [];
+    const loans = (D.loans || []).filter(l => l.repaymentType !== 'overdraft');   // 마통은 가계부 맨 위에서만
     const noAsOf = loans.filter(l => !l.balanceAsOf && l.repaymentType && l.repaymentType !== 'overdraft');
     const bulk = document.getElementById('loan-asof-bulk');
     bulk.style.display = noAsOf.length ? '' : 'none';
@@ -1867,16 +1836,6 @@ function addLoan() {
     if (idx >= 0) D.loans[idx] = { ...D.loans[idx], name, remainingBalance, balanceAsOf, interestRate, repaymentType, gracePeriod, gracePeriodEndDate, remainingMonths, loanEndDate, monthlyPayment, paymentDay, creditLimit, memo };
     _editingLoanId = null;
     document.getElementById('loan-form-card').style.display = 'none';
-    if (repaymentType === 'overdraft') {
-        if (!Array.isArray(D.odLog)) D.odLog = [];
-        const est = odEstimate();
-        const prev = D.odLog.find(x => x.date === balanceAsOf) || {};
-        D.odLog = D.odLog.filter(x => x.date !== balanceAsOf);
-        D.odLog.push({ date: balanceAsOf, balance: remainingBalance,
-                       card: prev.card != null ? prev.card : (est ? Math.round(est.card) : 0),
-                       cash: prev.cash != null ? prev.cash : (est ? Math.round(est.cash) : 0), at: Date.now() });
-    }
-
     save();
     renderDebtHero();
     ['loan-name','loan-balance','loan-rate','loan-payday','loan-memo','loan-grace-date','loan-end-date'].forEach(id => {
@@ -1990,49 +1949,23 @@ function loanNoticeComplete(id, date, principal, expectedAmount) {
 
 
 
-// ═══ 내 돈 지도: 🟥 마통(고정비·빚) · 🟨 신용카드(생활비) · 🟪 음악 통장(자아실현) ═══
-// 돈의 흐름: 월급 → 마통으로 입금(빚 감소) / 카드값 → 마통에서 결제 / 음악 통장 → 음악 수입·지출 (빚 계산과 별개로 지키는 돈)
-// (데이터 필드 이름은 예전 그대로 cash = 음악 통장)
-// 기준값 = '주간 정산'(odLog: 은행·카드 앱에서 본 세 숫자). 정산 이후 생긴 일을 더하고 빼서 지금 금액을 추정:
-//   카드 = 정산 카드값 + 이후 기록한 생활비 − 이후 카드값 결제
-//   마통 = 정산 마통 잔액 + 이후 카드값 결제 − 이후 현금→마통 이체
-//   음악 = 정산 음악 통장 + 이후 음악 수입 − 이후 음악 지출 (− 예전 '현금→마통' 기록)
-//   실질 빚 = 마통 + 카드 (음악 통장은 빼지 않음)
-// 진행률 출발점 = Day 1(2026-12-14) 당일 또는 그 직전 정산의 마통 잔액
+// ═══ 마이너스 통장 (가계부 맨 위, 1순위 목표) ═══
+// · 잔액: 은행 앱을 보고 가끔 직접 업데이트 (odLog에 날짜별로 남김)
+// · 이자율: 마통 정보(대출 데이터의 overdraft 항목)에 저장
+// · 진행률 출발점: Day 1(2026-12-14) 당일 또는 그 직전에 기록한 잔액
+// · 카드: 생활비 기록 때 '신용카드'에 체크한 금액을 이번 달 합계로 보여줌 (카드값은 마통에서 빠져나감)
 const OD_START = JK_PROJECT.start;
 function odLoan() { return (D.loans || []).find(l => l.repaymentType === 'overdraft') || null; }
 function odLog() {
     if (!Array.isArray(D.odLog)) D.odLog = [];
     return [...D.odLog].sort((a, b) => a.date.localeCompare(b.date) || (a.at || 0) - (b.at || 0));
 }
-function odEvents() {
-    if (!Array.isArray(D.moneyEvents)) D.moneyEvents = [];
-    return [...D.moneyEvents].sort((a, b) => a.at - b.at);
-}
-function odSnapAt(x) { return x.at || new Date(x.date + 'T23:59:59').getTime(); }
-function odLivingAt(x) { const t = parseInt(String(x.id).slice(0, -4), 36); return isNaN(t) ? 0 : t; }
-function odSnapshot() {   // 가장 최근 기준값: 주간 정산 vs 대출 탭 수정 중 더 최근
+function odCurrent() {      // 가장 최근 잔액
     const log = odLog(), loan = odLoan();
     const last = log[log.length - 1];
-    const fromLoan = loan && loan.balanceAsOf ? { date: loan.balanceAsOf, balance: loan.remainingBalance || 0, at: new Date(loan.balanceAsOf + 'T23:59:59').getTime() } : null;
+    const fromLoan = loan ? { date: loan.balanceAsOf || '', balance: loan.remainingBalance || 0 } : null;
     if (last && (!fromLoan || last.date >= fromLoan.date)) return last;
-    return fromLoan || (loan ? { date: '', balance: loan.remainingBalance || 0, at: 0 } : null);
-}
-function odEstimate() {
-    const snap = odSnapshot();
-    if (!snap) return null;
-    const at = odSnapAt(snap);
-    const ev = odEvents().filter(e => e.at > at);
-    const cardPaid = ev.filter(e => e.type === 'cardPaid').reduce((s, e) => s + e.amount, 0);
-    const cashIn   = ev.filter(e => e.type === 'cashToOd').reduce((s, e) => s + e.amount, 0);
-    const musicIn  = ev.filter(e => e.type === 'musicIn').reduce((s, e) => s + e.amount, 0);
-    const musicOut = ev.filter(e => e.type === 'musicOut').reduce((s, e) => s + e.amount, 0);
-    const living = (D.livingLog || []).filter(x => snap.date && (x.date > snap.date || (x.date === snap.date && odLivingAt(x) > at)))
-                                      .reduce((s, x) => s + x.amount, 0);
-    const od   = Math.max(0, snap.balance + cardPaid - cashIn);
-    const card = Math.max(0, (snap.card || 0) + living - cardPaid);
-    const cash = Math.max(0, (snap.cash || 0) + musicIn - musicOut - cashIn);
-    return { snap, od, card, cash, living, cardPaid, cashIn, real: od + card, adjusted: ev.length > 0 || living > 0 };
+    return fromLoan;
 }
 function odStartEntry() {
     const log = odLog();
@@ -2040,11 +1973,9 @@ function odStartEntry() {
     return before.length ? before[before.length - 1] : (log.find(x => x.date > OD_START) || null);
 }
 function odMd(str) { const d = new Date(str + 'T00:00:00'); return `${d.getMonth() + 1}.${d.getDate()}`; }
-function odMan(n) {       // 칩에 넣을 짧은 금액: 1.47억 / 102만 / 8,500
-    n = Math.round(n);
-    if (n >= 100000000) return `${(Math.floor(n / 1000000) / 100).toFixed(2).replace(/\.?0+$/, '')}억`;   // 1억 4,738만 → 1.47억
-    if (n >= 10000) return `${Math.round(n / 10000).toLocaleString('ko-KR')}만`;
-    return n.toLocaleString('ko-KR');
+function odCardThisMonth() {
+    const ym = todayStr().slice(0, 7);
+    return (D.livingLog || []).filter(x => x.card !== false && x.date.startsWith(ym)).reduce((s, x) => s + x.amount, 0);
 }
 
 function renderDebtHero() {
@@ -2052,32 +1983,19 @@ function renderDebtHero() {
     const loan = odLoan();
     if (!loan) { hero.style.display = 'none'; return; }
     hero.style.display = '';
-    const est = odEstimate();
-    const snap = est ? est.snap : null;
-    const bal = est ? est.od : 0;
+    const cur = odCurrent();
+    const bal = cur ? cur.balance : 0;
     const rate = Number(loan.interestRate) || 0;
     document.getElementById('od-balance').textContent = fmtMoney(bal);
-    document.getElementById('od-asof').textContent = !snap || !snap.date ? '정산해 주세요'
-        : `${odMd(snap.date)} 정산${est.cardPaid || est.cashIn ? ' + 이후 기록' : ''}`;
+    document.getElementById('od-asof').textContent = cur && cur.date ? `${odMd(cur.date)} 기준` : '';
 
-    // 세 통장 칩
-    const hasCard = snap && snap.card != null, hasCash = snap && snap.cash != null;
-    const money = (n, sign) => n > 0 ? `${sign}${odMan(n)}` : '0원';
-    document.getElementById('acct-od').textContent = money(bal, '−');
-    document.getElementById('acct-card').textContent = hasCard || est.living ? money(est.card, '−') : '정산 전';
-    document.getElementById('acct-card-sub').textContent = est.living ? `정산 후 생활비 +${odMan(est.living)}` : '생활비 결제';
-    document.getElementById('acct-cash').textContent = hasCash ? money(est.cash, '+') : '정산 전';
-    document.getElementById('od-summary').textContent = `실질 빚 ${fmtMoney(est.real)}`;
-    document.getElementById('acct-real').innerHTML = `실질 빚 <b>${fmtMoney(est.real)}</b> <span class="muted">= 마통 + 카드 · 음악 통장은 지키는 돈</span>`;
-
-    // 진행률 (12/14 마통 잔액 → 0원)
+    // 진행률 (12/14 잔액 → 0원)
     const start = odStartEntry();
     const fill = document.getElementById('od-fill');
     if (todayStr() < OD_START || !start) {
         fill.style.width = '0%';
         const dLeft = Math.round((new Date(OD_START + 'T00:00:00') - loanToday()) / 86400000);
-        document.getElementById('od-pct').innerHTML = todayStr() < OD_START
-            ? `12월 14일 잔액부터 진행률을 세요 · D-${dLeft}` : '12월 14일 무렵 정산하면 진행률이 보여요';
+        document.getElementById('od-pct').textContent = todayStr() < OD_START ? `12월 14일부터 · D-${dLeft}` : '12월 14일 잔액을 넣으면 시작해요';
         document.getElementById('od-start').textContent = '';
     } else {
         const paid = Math.max(0, start.balance - bal);
@@ -2087,121 +2005,62 @@ function renderDebtHero() {
         document.getElementById('od-start').textContent = `출발 ${fmtMoney(start.balance)}`;
     }
 
-    // 하루 이자 · 다음 이자 · 이번 달 줄인 빚
-    document.getElementById('od-daily').textContent = fmtMoney(Math.floor(bal * rate / 100 / 365));
-    const st = loanStatus({ ...loan, remainingBalance: bal, balanceAsOf: snap && snap.date ? snap.date : null });
-    if (st && st.next) {
-        document.getElementById('od-next-label').textContent = `${st.next.payDate.getMonth() + 1}/${st.next.payDate.getDate()} 이자 (예상)`;
-        document.getElementById('od-next').textContent = fmtMoney(st.next.interest);
-    } else document.getElementById('od-next').textContent = '-';
-    const t = loanToday();
-    const monthStart = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-01`;
-    const log = odLog();
-    const beforeMonth = log.filter(x => x.date < monthStart);
-    const base = beforeMonth.length ? beforeMonth[beforeMonth.length - 1] : log.find(x => x.date >= monthStart);
-    const monthDelta = base ? base.balance - bal : 0;
-    document.getElementById('od-month').textContent = monthDelta > 0 ? fmtMoney(monthDelta) : monthDelta < 0 ? `+${fmtMoney(-monthDelta)} 늘어남` : '0원';
+    // 한 줄 요약: 하루 이자 · 이번 달 카드
+    document.getElementById('od-line').innerHTML =
+        `<span>하루 이자 <b>${fmtMoney(Math.floor(bal * rate / 100 / 365))}</b></span><span>💳 이번 달 카드 <b>${fmtMoney(odCardThisMonth())}</b></span>`;
 
-    // 완납 예상 (출발점 이후 2주 이상 쌓였을 때)
+    // 완납 예상 (출발점 이후 2주 넘게 기록이 쌓였을 때만)
     const etaEl = document.getElementById('od-eta');
-    if (bal <= 0) etaEl.textContent = '🎉 마이너스 통장 졸업! 이제 학자금 차례예요.';
-    else if (start && snap && snap.date > start.date) {
-        const days = Math.round((new Date(snap.date) - new Date(start.date)) / 86400000);
+    etaEl.textContent = '';
+    if (bal <= 0 && start) etaEl.textContent = '🎉 마이너스 통장 졸업!';
+    else if (start && cur && cur.date > start.date) {
+        const days = Math.round((new Date(cur.date) - new Date(start.date)) / 86400000);
         const perDay = (start.balance - bal) / days;
         if (days >= 14 && perDay > 0) {
             const eta = new Date(loanToday().getTime() + Math.ceil(bal / perDay) * 86400000);
-            etaEl.textContent = `📈 지금 속도(한 달 약 ${fmtMoney(perDay * 30)})면 ${eta.getFullYear()}년 ${eta.getMonth() + 1}월에 다 갚아요.`;
-        } else if (days >= 14) etaEl.textContent = '출발 이후 잔액이 줄지 않았어요. 생활비를 조금만 더 아껴 봐요.';
-        else etaEl.textContent = '정산이 2주 이상 쌓이면 완납 예상 시기를 알려줄게요.';
-    } else etaEl.textContent = `마통에 넣는 100만원마다 하루 이자가 ${fmtMoney(Math.floor(1000000 * rate / 100 / 365))}씩 줄어요.`;
-
-    // 다음 목표: 학자금
-    const others = (D.loans || []).filter(l => l.repaymentType && l.repaymentType !== 'overdraft');
-    const sum = others.reduce((s, l) => { const x = loanStatus(l); return s + (x ? x.balanceNow : (l.remainingBalance || 0)); }, 0);
-    document.getElementById('od-next-goal').innerHTML = others.length
-        ? `다음 목표 · 학자금 ${others.length}건 <b>${fmtMoney(sum)}</b> <span class="muted">(자동이체로 매달 줄어드는 중)</span>` : '';
-
-    // 최근 기록 (정산 + 결제/이체)
-    const rows = [
-        ...log.map(x => ({ at: odSnapAt(x), date: x.date, html: `🧾 정산&nbsp;<b>마통 ${odMan(x.balance)}</b>${x.card != null ? ` · 카드 ${odMan(x.card)}` : ''}${x.cash != null ? ` · 음악 ${odMan(x.cash)}` : ''}`, del: `odDelete('snap','${x.date}')` })),
-        ...odEvents().map(e => ({ at: e.at, date: e.date, html: ({
-            cardPaid: `<span class="dot dot-card"></span>카드값 결제 <b>${fmtMoney(e.amount)}</b>`,
-            cashToOd: `<span class="dot dot-cash"></span>현금 → 마통 <b>${fmtMoney(e.amount)}</b>`,
-            musicIn:  `<span class="dot dot-cash"></span>음악 수입 <b>+${fmtMoney(e.amount)}</b>${e.memo ? ` · ${escHtml(e.memo)}` : ''}`,
-            musicOut: `<span class="dot dot-cash"></span>음악에 씀 <b>−${fmtMoney(e.amount)}</b>${e.memo ? ` · ${escHtml(e.memo)}` : ''}`,
-        })[e.type] || '', del: `odDelete('ev','${e.id}')` })),
-    ].sort((a, b) => b.at - a.at).slice(0, 6);
-    document.getElementById('od-history').innerHTML = rows.length ? '<div class="od-history-title">최근 기록</div>' + rows.map(r =>
-        `<div class="od-history-row"><span>${r.date.slice(5).replace('-', '.')}</span><span>${r.html}<button class="od-history-del" onclick="${r.del}">삭제</button></span></div>`).join('') : '';
+            etaEl.textContent = `지금 속도면 ${eta.getFullYear()}년 ${eta.getMonth() + 1}월에 다 갚아요`;
+        }
+    }
 }
 
 function odToggleForm() {
     const f = document.getElementById('od-form'), btn = document.getElementById('od-update-btn');
     const open = f.style.display === 'none';
     f.style.display = open ? '' : 'none';
-    btn.classList.toggle('open', open);
-    btn.textContent = open ? '닫기' : '🧾 주간 정산';
+    btn.textContent = open ? '닫기' : '잔액 · 이자율 수정';
     if (open) {
-        const est = odEstimate();
+        const cur = odCurrent(), loan = odLoan();
         document.getElementById('od-date').value = todayStr();
         document.getElementById('od-date').max = todayStr();
-        [['od-amount', est ? est.od : null], ['od-card', est ? est.card : null], ['od-cash', est ? est.cash : null]].forEach(([id, v]) => {
-            const el = document.getElementById(id);
-            el.value = '';
-            el.placeholder = v != null ? `추정 ${Math.round(v).toLocaleString('ko-KR')}` : '';
-        });
+        document.getElementById('od-amount').value = '';
+        document.getElementById('od-amount').placeholder = cur ? cur.balance.toLocaleString('ko-KR') : '';
+        document.getElementById('od-rate').value = loan && loan.interestRate != null ? loan.interestRate : '';
     }
 }
 
 function odSave() {
-    const date = document.getElementById('od-date').value;
-    const balance = parseInt(document.getElementById('od-amount').value);
-    const cardIn = document.getElementById('od-card').value, cashIn = document.getElementById('od-cash').value;
-    if (!date) { alert('날짜를 골라 주세요.'); return; }
-    if (isNaN(balance) || balance < 0) { alert('마통 잔액을 입력해 주세요. (다 갚았으면 0)'); return; }
-    const est = odEstimate();
-    // 비워 둔 칸은 지금 추정값을 그대로 기준값으로 씀
-    const card = cardIn === '' ? (est ? Math.round(est.card) : 0) : Math.max(0, parseInt(cardIn) || 0);
-    const cash = cashIn === '' ? (est ? Math.round(est.cash) : 0) : Math.max(0, parseInt(cashIn) || 0);
-    if (!Array.isArray(D.odLog)) D.odLog = [];
-    D.odLog = D.odLog.filter(x => x.date !== date);
-    D.odLog.push({ date, balance, card, cash, at: Date.now() });   // cash = 음악 통장
-    // 대출 탭의 마이너스 통장도 같은 잔액·기준일로 맞춤 (더 최근 기록일 때)
     const loan = odLoan();
-    if (loan && date >= (loan.balanceAsOf || '')) { loan.remainingBalance = balance; loan.balanceAsOf = date; }
+    if (!loan) return;
+    const date = document.getElementById('od-date').value;
+    const amountIn = document.getElementById('od-amount').value.trim();
+    const rateIn = document.getElementById('od-rate').value.trim();
+    if (amountIn !== '') {
+        const balance = parseInt(amountIn);
+        if (isNaN(balance) || balance < 0) { alert('잔액을 확인해 주세요. (다 갚았으면 0)'); return; }
+        if (!date) { alert('날짜를 골라 주세요.'); return; }
+        if (!Array.isArray(D.odLog)) D.odLog = [];
+        D.odLog = D.odLog.filter(x => x.date !== date);
+        D.odLog.push({ date, balance, at: Date.now() });
+        if (date >= (loan.balanceAsOf || '')) { loan.remainingBalance = balance; loan.balanceAsOf = date; }
+    }
+    if (rateIn !== '') {
+        const rate = parseFloat(rateIn);
+        if (isNaN(rate) || rate < 0 || rate > 30) { alert('이자율을 확인해 주세요. (예: 4.899)'); return; }
+        loan.interestRate = rate;
+    }
     save();
     odToggleForm();
-    renderDebtHero(); renderLoans();
-}
-
-function odCardPaid() {
-    const est = odEstimate();
-    const input = prompt('마통에서 빠져나간 카드값을 입력하세요 (원)', est ? Math.round(est.card) : '');
-    if (input === null) return;
-    const amount = parseInt(String(input).replace(/[^0-9]/g, ''));
-    if (!amount || amount <= 0) { alert('금액을 입력해 주세요.'); return; }
-    if (!Array.isArray(D.moneyEvents)) D.moneyEvents = [];
-    D.moneyEvents.push({ id: uid(), type: 'cardPaid', amount, date: todayStr(), at: Date.now() });
-    save(); renderDebtHero();
-}
-
-function odMusic(kind) {
-    const isIn = kind === 'in';
-    const input = prompt(isIn ? '🎵 음악으로 번 돈을 입력하세요 (원)\n예: 0집 판매, 공연 티켓, 후원' : '🎵 음악에 쓴 돈을 입력하세요 (원)\n예: 녹음, 장비, 공연 준비', '');
-    if (input === null) return;
-    const amount = parseInt(String(input).replace(/[^0-9]/g, ''));
-    if (!amount || amount <= 0) { alert('금액을 입력해 주세요.'); return; }
-    const memo = (prompt('어디에서/어디에? (선택)', '') || '').trim().slice(0, 30);
-    if (!Array.isArray(D.moneyEvents)) D.moneyEvents = [];
-    D.moneyEvents.push({ id: uid(), type: isIn ? 'musicIn' : 'musicOut', amount, memo, date: todayStr(), at: Date.now() });
-    save(); renderDebtHero();
-}
-
-function odDelete(kind, key) {
-    if (!confirm('이 기록을 지울까요?')) return;
-    if (kind === 'snap') D.odLog = (D.odLog || []).filter(x => x.date !== key);
-    else D.moneyEvents = (D.moneyEvents || []).filter(e => e.id !== key);
-    save(); renderDebtHero();
+    renderDebtHero();
 }
 
 // ── 구독 관리 ──
@@ -2723,7 +2582,7 @@ function renderLiving() {
         const sum = list.reduce((s, x) => s + x.amount, 0);
         return `<div class="lv-day-head"><span>${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[d.getDay()]})</span><span>${fmtMoney(sum)}</span></div>` +
             list.map(x => `<div class="list-item">
-                <div class="info"><div class="name">${escHtml(x.memo || x.category || '생활비')}</div><div class="sub">${escHtml(x.category || '기타')}</div></div>
+                <div class="info"><div class="name">${escHtml(x.memo || x.category || '생활비')}</div><div class="sub">${escHtml(x.category || '기타')} · ${x.card === false ? '현금·체크' : '💳 카드'}</div></div>
                 <div class="right"><span class="amount">−${fmtMoney(x.amount)}</span>
                     <button class="btn-sm-edit" onclick="lvEdit('${x.id}')">수정</button>
                     <button class="btn-sm" onclick="lvDelete('${x.id}')">삭제</button></div>
@@ -2735,6 +2594,7 @@ function lvResetForm() {
     _editingLivingId = null;
     document.getElementById('lv-amount').value = '';
     document.getElementById('lv-memo').value = '';
+    document.getElementById('lv-card').checked = true;
     document.getElementById('lv-form-title').textContent = '생활비 기록';
     const btn = document.getElementById('lv-submit-btn');
     btn.textContent = '+ 기록하기';
@@ -2745,15 +2605,16 @@ function lvAdd() {
     const date   = document.getElementById('lv-date').value;
     const amount = parseInt(document.getElementById('lv-amount').value);
     const memo   = document.getElementById('lv-memo').value.trim();
+    const card   = document.getElementById('lv-card').checked;
     if (!date) { alert('날짜를 선택해 주세요.'); return; }
     if (date < LV_START || date > LV_END) { alert('생활비는 환골탈태 100일(12월 14일 ~ 3월 23일) 동안만 기록해요.'); return; }
     if (!amount || amount <= 0) { alert('금액을 입력해 주세요.'); return; }
     if (!D.livingLog) D.livingLog = [];
     if (_editingLivingId) {
         const it = D.livingLog.find(x => x.id === _editingLivingId);
-        if (it) Object.assign(it, { date, amount, memo, category: lv_category });
+        if (it) Object.assign(it, { date, amount, memo, category: lv_category, card });
     } else {
-        D.livingLog.push({ id: uid(), date, amount, memo, category: lv_category });
+        D.livingLog.push({ id: uid(), date, amount, memo, category: lv_category, card });
     }
     lvResetForm();
     save(); renderLiving(); renderDebtHero();
@@ -2766,6 +2627,7 @@ function lvEdit(id) {
     document.getElementById('lv-date').value   = it.date;
     document.getElementById('lv-amount').value = it.amount;
     document.getElementById('lv-memo').value   = it.memo || '';
+    document.getElementById('lv-card').checked = it.card !== false;
     lv_category = it.category || '기타';
     renderLvCats();
     document.getElementById('lv-form-title').textContent = '생활비 수정';
@@ -2799,9 +2661,6 @@ window.deleteLoan         = deleteLoan;
 window.loanBulkSetAsOf    = loanBulkSetAsOf;
 window.odToggleForm       = odToggleForm;
 window.odSave             = odSave;
-window.odDelete           = odDelete;
-window.odCardPaid         = odCardPaid;
-window.odMusic            = odMusic;
 window.cancelLoanEdit     = cancelLoanEdit;
 window.loanNoticeComplete  = loanNoticeComplete;
 window.loanNoticeUnconfirm = loanNoticeUnconfirm;
