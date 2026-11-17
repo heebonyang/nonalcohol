@@ -1012,6 +1012,7 @@ function switchApp(name, btn) {
     document.getElementById('app-' + name).classList.add('active');
     btn.classList.add('active');
     window.scrollTo(0, 0);
+    try { localStorage.setItem('tab:main', name); } catch (e) {}   // 새로고침해도 이 탭으로
 }
 window.switchApp = switchApp;
 
@@ -1519,6 +1520,18 @@ function showTab(name) {
     if (name === 'living') renderLiving();
     if (name === 'subscription') renderSubscriptions();
     if (name === 'loan') renderLoans();
+    try { localStorage.setItem('tab:gk', name); } catch (e) {}
+}
+
+// 새로고침했을 때 마지막으로 보던 탭으로 (이 기기에만 기억)
+function restoreTabs() {
+    let main = null, sub = null;
+    try { main = localStorage.getItem('tab:main'); sub = localStorage.getItem('tab:gk'); } catch (e) {}
+    if (sub && ['living', 'subscription', 'loan'].includes(sub)) showTab(sub);
+    if (main === 'gk') {
+        document.querySelectorAll('.app-section').forEach(el => el.classList.toggle('active', el.id === 'app-gk'));
+        document.querySelectorAll('.main-tab').forEach((el, i) => el.classList.toggle('active', i === 1));
+    }
 }
 
 // ── 대출 관리 ──
@@ -2819,6 +2832,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     lvCatDragInit();
     refreshForToday(true);
     restoreFolds();
+    restoreTabs();
     ['lv-amount', 'lv-memo'].forEach(id => document.getElementById(id)
         .addEventListener('keydown', e => { if (e.key === 'Enter') lvAdd(); }));
     syncUi();
