@@ -634,6 +634,20 @@
         </div>
         <div class="milestone-bar" id="jk-milestones"></div>
 
+        <div class="input-card">
+            <div class="form-grid">
+                <input type="date" id="targetDate" onchange="jk_resetInputs()">
+                <button class="btn-save" id="save-btn" onclick="jk_addRecord()">🏅 오늘도 승리</button>
+            </div>
+            <div class="jk-missing" id="jk-missing"></div>
+        </div>
+        <div class="table-card fold" id="fold-records">
+            <div class="list-head"><span>최근 기록</span><span id="jk-record-count"></span></div>
+            <div id="data-list"></div>
+            <div class="fold-body"><div id="data-list-more"></div></div>
+            <button class="fold-toggle records-more" id="records-more" onclick="toggleFold('fold-records')"><span id="records-more-label"></span><span class="chev">▾</span></button>
+        </div>
+
         <!-- 🗑️ 휴지통: 100일 중 5칸까지 (규칙은 코드에 고정, 수정 불가) -->
         <div class="trash-card fold" id="fold-trash">
             <button class="fold-toggle trash-head" onclick="toggleFold('fold-trash')"><span class="trash-title">🗑️ 휴지통</span><span><span class="trash-count" id="jk-trash-count"></span> <span class="chev">▾</span></span></button>
@@ -647,20 +661,6 @@
             </div>
             <button class="trash-use-btn" id="trash-use-btn" onclick="jk_useTrash()">🗑️ 휴지통 쓰기</button>
             </div>
-        </div>
-
-        <div class="input-card">
-            <div class="form-grid">
-                <input type="date" id="targetDate" onchange="jk_resetInputs()">
-                <button class="btn-save" id="save-btn" onclick="jk_addRecord()">🏅 오늘도 승리</button>
-            </div>
-            <div class="jk-missing" id="jk-missing"></div>
-        </div>
-        <div class="table-card fold" id="fold-records">
-            <div class="list-head"><span>최근 기록</span><span id="jk-record-count"></span></div>
-            <div id="data-list"></div>
-            <div class="fold-body"><div id="data-list-more"></div></div>
-            <button class="fold-toggle records-more" id="records-more" onclick="toggleFold('fold-records')"><span id="records-more-label"></span><span class="chev">▾</span></button>
         </div>
     </div>
 </div>
@@ -1238,7 +1238,9 @@ function jk_resetInputs() {
     const tBtn = document.getElementById('trash-use-btn');
     const usedThatDay = D_jk.records.some(r => r.date === date && r.sober === 'X');
     tBtn.disabled = usedThatDay || !date || date < JK_PROJECT.start || date > jkEndStr();
-    tBtn.textContent = usedThatDay ? '🗑️ 이 날은 휴지통을 썼어요' : date && date < JK_PROJECT.start ? '🗑️ 휴지통은 12월 14일부터' : '🗑️ 휴지통 쓰기';
+    const dLabel = date ? `${Number(date.slice(5, 7))}/${Number(date.slice(8))}` : '';
+    tBtn.textContent = usedThatDay ? `🗑️ ${dLabel}은 휴지통을 썼어요` : date && date < JK_PROJECT.start ? '🗑️ 휴지통은 12월 14일부터'
+        : date === todayStr() ? '🗑️ 오늘 휴지통 쓰기' : `🗑️ ${dLabel} 휴지통 쓰기`;
 }
 
 // 휴지통 쓰기: 규칙 안내(남은 칸·초과·이틀 연속)를 보여 주고, 정직하게 기록
