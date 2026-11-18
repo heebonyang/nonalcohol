@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>생활 관리</title>
+    <script>
+    // 🧪 테스트 모드: 주소에 ?test (또는 ?test=2026-12-20) → 그 날짜인 것처럼 시계를 옮기고, 테스트 전용 데이터만 씀
+    (function () {
+        const q = new URLSearchParams(location.search);
+        if (!q.has('test')) return;
+        const v = q.get('test');
+        const target = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '2026-12-14';
+        const RealDate = Date, real = new RealDate();
+        const t = new RealDate(target + 'T00:00:00');
+        t.setHours(real.getHours(), real.getMinutes(), real.getSeconds());
+        const off = t.getTime() - RealDate.now();
+        class TestDate extends RealDate {
+            constructor(...a) { if (a.length) super(...a); else super(RealDate.now() + off); }
+            static now() { return RealDate.now() + off; }
+        }
+        window.Date = TestDate;
+        window.__TEST_MODE = { date: target };
+    })();
+    </script>
     <meta name="theme-color" content="#F4F2EC" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1A1917" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -125,6 +144,12 @@
             box-shadow: 0 6px 20px rgba(0,0,0,0.12);
         }
         .sync-bar.hidden { display: none; }
+        .test-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: calc(env(safe-area-inset-top) + 8px) 16px 8px; background: #2B2A26; color: #F1EEE6; font-size: 0.78rem; }
+        .test-bar[hidden] { display: none; }
+        .test-bar span { display: inline-flex; gap: 6px; }
+        .test-bar button, .test-bar a { border: none; background: rgba(255,255,255,0.14); color: #fff; border-radius: 999px;
+            padding: 4px 10px; font-size: 0.74rem; font-weight: 700; text-decoration: none; font-family: inherit; }
         .sync-bar.warn { background: var(--warn-soft); color: var(--warn); }
         .sync-bar.bad { background: var(--bad-soft); color: var(--bad); }
         .sync-bar button { border: none; background: var(--bad); color: #fff; border-radius: 999px; padding: 3px 10px; font-size: 0.78rem; font-weight: 700; margin-left: 4px; }
@@ -607,6 +632,8 @@
 <body>
 
 <div class="sync-bar hidden" id="sync-bar"></div>
+<div class="test-bar" id="test-bar" hidden>🧪 테스트 모드 · <b id="test-date"></b>인 것처럼 · 실제 기록과 분리
+    <span><button onclick="testReset()">처음부터</button><a href="./">끝내기</a></span></div>
 <div class="sync-toast" id="sync-toast"></div>
 
 <!-- ══ 메인 탭 내비게이션 ══ -->
@@ -989,7 +1016,9 @@ window.switchApp = switchApp;
 // ═══════════════════════════════════
 // ── 금주 앱 (jk) ──
 // ═══════════════════════════════════
-const JK_DOC_REF = doc(db, 'challenge', 'main');
+const TEST_MODE = !!window.__TEST_MODE;
+const JK_MAIN_REF = doc(db, 'challenge', 'main');
+const JK_DOC_REF = TEST_MODE ? doc(db, 'challenge', 'test') : JK_MAIN_REF;
 let D_jk = { records: [] };
 
 // 연속 금주: 오늘(오늘 기록이 없으면 어제)부터 거꾸로, 날짜가 끊기지 않고 이어진 승리 일수
@@ -1272,7 +1301,8 @@ window.jk_pickDate     = (d) => { const el = document.getElementById('targetDate
 // ═══════════════════════════════════
 // ── 가계부 앱 (gk) ──
 // ═══════════════════════════════════
-const GK_DOC_REF = doc(db, 'budget', 'main');
+const GK_MAIN_REF = doc(db, 'budget', 'main');
+const GK_DOC_REF = TEST_MODE ? doc(db, 'budget', 'test') : GK_MAIN_REF;
 let _editingSubId    = null;
 let _editingLoanId   = null;
 const DEFAULT = {
@@ -1393,6 +1423,7 @@ function syncToast(msg, kind = '', sticky = false) {
 let _backupDone = '';
 let _lastBackup = null;
 async function maybeDailyBackup() {
+    if (TEST_MODE) return;
     const stores = Object.values(SYNC);
     if (!stores.length || !stores.every(s => s.ready && s.fromServer)) return;
     const today = todayStr();
@@ -1448,6 +1479,28 @@ function restoreFolds() {
         if (el && foldOpen(id)) el.classList.add('open');
     });
 }
+
+// ── 🧪 테스트 모드: 실제 데이터를 복사한 테스트 전용 공간에서만 기록 ──
+async function testCopyFromMain(force) {
+    for (const [mainRef, testRef] of [[JK_MAIN_REF, JK_DOC_REF], [GK_MAIN_REF, GK_DOC_REF]]) {
+        if (!force && (await getDoc(testRef)).exists()) continue;
+        const m = await getDoc(mainRef);
+        await setDoc(testRef, m.exists() ? m.data() : {});
+    }
+}
+async function testSetup() {
+    const bar = document.getElementById('test-bar');
+    bar.hidden = false;
+    const d = window.__TEST_MODE.date;
+    document.getElementById('test-date').textContent = `${Number(d.slice(5, 7))}월 ${Number(d.slice(8))}일`;
+    try { await testCopyFromMain(false); } catch (e) { console.error('테스트 준비 실패:', e); }
+}
+async function testReset() {
+    if (!confirm('테스트 기록을 지우고 지금의 실제 데이터로 다시 시작할까요?\n(실제 기록은 바뀌지 않아요)')) return;
+    await testCopyFromMain(true);
+    location.reload();
+}
+window.testReset = testReset;
 
 // ── 날짜 자동 갱신: 앱으로 돌아오거나 자정이 지나면 날짜에 따라 달라지는 화면을 다시 그림 ──
 let _renderedDay = '';
@@ -2696,6 +2749,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         .addEventListener('keydown', e => { if (e.key === 'Enter') lvAdd(); }));
     syncUi();
 
+    if (TEST_MODE) await testSetup();
     syncStore('jk', JK_DOC_REF, {
         apply: data => { D_jk = { records: [], ...data }; },
         render: () => jk_renderTable(),
