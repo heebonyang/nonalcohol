@@ -598,6 +598,12 @@
         #app-gk .loan-asof-bulk-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
         #app-gk .loan-asof-bulk-row input { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 16px; color: var(--ink); }
         #app-gk .loan-asof-bulk-row .btn-sm-confirm { height: 40px; padding: 0 14px; }
+        #app-gk .loan-import textarea {
+            width: 100%; min-height: 64px; padding: 10px 12px; margin-bottom: 10px; resize: vertical;
+            border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2);
+            font: inherit; font-size: 16px; line-height: 1.5; color: var(--ink); outline: none;
+        }
+        #app-gk .loan-import textarea:focus { border-color: var(--accent); background: var(--surface); }
         #app-gk .loan-form-hint { font-size: 0.74rem; color: var(--ink-3); line-height: 1.5; margin: -4px 2px 14px; }
         #app-gk .loan-form-hint b { color: var(--ink-2); }
         #app-gk .loan-asof-warn { font-size: 0.74rem; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 7px 10px; margin-bottom: 10px; line-height: 1.45; }
@@ -794,6 +800,11 @@
         </div>
 
         <div id="tab-loan" style="display:none">
+            <div class="card loan-import">
+                <h2>출금 내역 넣기</h2>
+                <textarea id="loan-import-text" rows="3" placeholder="예) 12/16 81,362 (여러 줄 붙여넣기 가능)"></textarea>
+                <button class="btn btn-primary" onclick="loanImportPayments()">어느 대출인지 찾아서 반영</button>
+            </div>
             <!-- D-day 납부 예정 목록 -->
             <div class="card" id="loan-schedule-card" style="display:none">
                 <h2 id="loan-schedule-card-title">이번달 납부 예정</h2>
@@ -1749,12 +1760,23 @@ function renderLoans() {
                                            || (x.payDate >= recent && x.payDate < t0));
             const completedMap = {};
             (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
-            return payments.map(m => ({
+            const items = payments.map(m => ({
                 loanId: loan.id, loanName: loan.name, rawDate: m.date, date: m.payDate,
                 payment: m.payment, interest: m.interest, principal: m.principal,
                 isGrace: m.isGrace, isOverdraft: m.isOverdraft,
                 isDone: m.date in completedMap, isPast: m.payDate < t0, actualAmount: completedMap[m.date],
             }));
+            // 출금 내역으로 기록돼 일정에서 빠진 회차도 '지난 납부'에 ✅로 보여줌 (최근 40일)
+            const since = new Date(t0); since.setDate(since.getDate() - 40);
+            (loan.completedSchedule || []).forEach(c => {
+                if (!c.due || items.some(it => it.rawDate === c.date)) return;
+                const dd = new Date(c.due + 'T00:00:00');
+                if (dd < since) return;
+                items.push({ loanId: loan.id, loanName: loan.name, rawDate: c.date, date: dd, payment: c.actualAmount,
+                             interest: c.interest || 0, principal: c.principal || 0, isDone: true, isPast: true,
+                             actualAmount: c.actualAmount, paidOn: c.paidOn, imported: true });
+            });
+            return items;
         }).sort((a, b) => a.date - b.date);
 
         if (allItems.length > 0) {
@@ -1768,6 +1790,9 @@ function renderLoans() {
                     : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
                 if (it.isPast && !it.isDone) {
                     return `<div class="list-item" style="opacity:0.75"><div class="info"><div class="name">✓ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} · 자동이체로 반영됨</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">실제 금액 기록</button></div></div>`;
+                }
+                if (it.imported) {
+                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr}분 · ${it.paidOn ? `${Number(it.paidOn.slice(5, 7))}/${Number(it.paidOn.slice(8))} 출금 ` : ''}${fmtMoney(it.actualAmount)} · 잔액 반영됨</div></div></div>`;
                 }
                 if (it.isDone) {
                     return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">기록 취소</button></div></div>`;
@@ -1984,6 +2009,119 @@ function loanNoticeUnconfirm(id, date, principal, actualAmount) {
     loan.completedSchedule = (loan.completedSchedule || []).filter(c => c.date !== date);
     save(); renderLoans();
 }
+
+// ═══ 출금 내역으로 학자금 납부 자동 찾기 ═══
+// 은행 출금 내역(날짜 + 금액)을 붙여넣으면, 출금일 앞 7일 ~ 뒤 3일 안에 예정된 납부 중
+// 금액이 가장 가까운 회차를 찾음(주말·공휴일로 늦게 빠진 것 포함). 한 건으로 안 맞으면
+// 같은 무렵 납부 2~3건의 합계로도 찾음. 찾은 회차는 ✅ 기록하고, 잔액을 그 회차 이후 금액으로,
+// 기준일을 실제 출금일로 맞춤 → 다음 이자도 그 날짜 기준으로 계산됨.
+const MATCH_BEFORE = 7, MATCH_AFTER = 3;
+
+// "12/16 81,362" · "2026-12-16 81362원" · "12월 16일 81,362" · "2026.12.16 학자금 81,362" 등
+function parsePaymentLines(text) {
+    const today = todayStr();
+    const out = [], bad = [];
+    text.split(/\n+/).map(l => l.trim()).filter(Boolean).forEach(line => {
+        let y, m, d, rest = line;
+        let mt = line.match(/(\d{4})[-./년\s]+(\d{1,2})[-./월\s]+(\d{1,2})일?/);
+        if (mt) { [y, m, d] = [+mt[1], +mt[2], +mt[3]]; rest = line.replace(mt[0], ' '); }
+        else if ((mt = line.match(/(\d{1,2})\s*[-./월]\s*(\d{1,2})일?/))) {
+            [m, d] = [+mt[1], +mt[2]]; rest = line.replace(mt[0], ' ');
+            y = +today.slice(0, 4);
+            if (`${y}-${pad(m)}-${pad(d)}` > today) y -= 1;   // 아직 안 온 날짜면 작년
+        }
+        const nums = (rest.match(/\d[\d,]*/g) || []).map(n => parseInt(n.replace(/,/g, ''))).filter(n => n >= 1000);
+        if (!m || !d || !nums.length || m > 12 || d > 31) { bad.push(line); return; }
+        out.push({ date: `${y}-${pad(m)}-${pad(d)}`, amount: nums[nums.length - 1], line });
+    });
+    return { out, bad };
+}
+
+function paymentCandidates(dateStr, taken) {
+    const paid = new Date(dateStr + 'T00:00:00');
+    const list = [];
+    (D.loans || []).filter(l => l.repaymentType && l.repaymentType !== 'overdraft').forEach(loan => {
+        const done = new Set((loan.completedSchedule || []).map(c => c.date));
+        (calcRepaymentSchedule(loan) || []).forEach(it => {
+            const key = loan.id + '|' + it.date;
+            if (done.has(it.date) || taken.has(key)) return;
+            const gap = Math.round((paid - it.payDate) / 86400000);   // +: 예정일보다 늦게 빠짐
+            if (gap >= -MATCH_AFTER && gap <= MATCH_BEFORE) list.push({ loan, it, gap, key });
+        });
+    });
+    return list;
+}
+const matchTol = expected => Math.max(300, Math.round(expected * 0.03));
+
+function findPaymentMatch(entry, taken) {
+    const cands = paymentCandidates(entry.date, taken);
+    // 1) 한 건
+    let best = null;
+    cands.forEach(c => {
+        const diff = Math.abs(entry.amount - c.it.payment);
+        if (diff > matchTol(c.it.payment)) return;
+        const score = diff / c.it.payment + Math.abs(c.gap) * 0.002;
+        if (!best || score < best.score) best = { items: [c], score, diff };
+    });
+    if (best) return best;
+    // 2) 같은 무렵 2~3건 합계
+    const n = Math.min(cands.length, 12);
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) {
+        const pair = [cands[a], cands[b]];
+        for (const extra of [null, ...cands.slice(b + 1, n)]) {
+            const items = extra ? [...pair, extra] : pair;
+            const sum = items.reduce((s, c) => s + c.it.payment, 0);
+            const diff = Math.abs(entry.amount - sum);
+            if (diff > matchTol(sum)) continue;
+            const score = diff / sum + items.reduce((s, c) => s + Math.abs(c.gap), 0) * 0.002 + items.length * 0.01;
+            if (!best || score < best.score) best = { items, score, diff };
+        }
+    }
+    return best;
+}
+
+function loanImportPayments() {
+    const ta = document.getElementById('loan-import-text');
+    const { out, bad } = parsePaymentLines(ta.value);
+    if (!out.length) { alert('날짜와 금액을 찾지 못했어요.\n예) 12/16 81,362'); return; }
+    out.sort((a, b) => a.date.localeCompare(b.date));
+    const taken = new Set(), results = [];
+    out.forEach(e => {
+        const m = findPaymentMatch(e, taken);
+        if (m) m.items.forEach(c => taken.add(c.key));
+        results.push({ e, m });
+    });
+    const md = s => `${Number(s.slice(5, 7))}/${Number(s.slice(8))}`;
+    const lines = results.map(({ e, m }) => {
+        if (!m) return `❓ ${md(e.date)} ${fmtMoney(e.amount)} → 맞는 납부를 못 찾았어요`;
+        return `✅ ${md(e.date)} ${fmtMoney(e.amount)} → ` + m.items.map(c => {
+            const due = `${c.it.payDate.getMonth() + 1}/${c.it.payDate.getDate()}`;
+            return `${c.loan.name} ${due}분${c.gap > 0 ? `(${c.gap}일 늦게)` : ''}`;
+        }).join(' + ');
+    });
+    const ok = results.filter(r => r.m);
+    if (bad.length) lines.push(...bad.map(l => `⚠️ 읽지 못함: ${l}`));
+    if (!ok.length) { alert(lines.join('\n') + '\n\n이미 잔액에 반영된 기간이거나 금액이 많이 달라요.'); return; }
+    if (!confirm(lines.join('\n') + `\n\n✅ ${ok.length}건을 기록하고 잔액에 반영할까요?`)) return;
+
+    ok.forEach(({ e, m }) => {
+        m.items.forEach(c => {
+            const loan = c.loan;
+            const actual = m.items.length === 1 ? e.amount : c.it.payment;   // 합쳐 빠졌으면 예상액으로 나눔
+            loan.completedSchedule = (loan.completedSchedule || []).filter(x => x.date !== c.it.date);
+            loan.completedSchedule.push({ date: c.it.date, actualAmount: actual, paidOn: e.date, due: fmtDate(c.it.payDate), principal: c.it.principal, interest: c.it.interest });
+            // 그 회차까지 낸 것으로 잔액·기준일을 맞춤 (이후 이자는 실제 출금일부터)
+            if (!loan.balanceAsOf || e.date >= loan.balanceAsOf) {
+                loan.remainingBalance = c.it.balance;
+                loan.balanceAsOf = e.date;
+            }
+        });
+    });
+    save();
+    ta.value = '';
+    renderLoans(); renderDebtHero();
+}
+window.loanImportPayments = loanImportPayments;
 
 function loanNoticeComplete(id, date, principal, expectedAmount) {
     const loan = (D.loans || []).find(x => x.id === id);
