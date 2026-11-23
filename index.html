@@ -598,6 +598,33 @@
         #app-gk .loan-asof-bulk-row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
         #app-gk .loan-asof-bulk-row input { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 16px; color: var(--ink); }
         #app-gk .loan-asof-bulk-row .btn-sm-confirm { height: 40px; padding: 0 14px; }
+        /* 학자금 표 */
+        #app-gk .ln-sum { text-align: left; }
+        #app-gk .ln-sum-label { font-size: 0.78rem; color: var(--ink-3); font-weight: 600; }
+        #app-gk .ln-sum-value { font-size: 2.1rem; font-weight: 700; margin-top: 4px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+        #app-gk .ln-table { font-size: 0.86rem; }
+        #app-gk .ln-tr { display: grid; align-items: center; gap: 8px; padding: 11px 0; border-top: 1px solid var(--line-2); }
+        #app-gk .ln-tr.c4 { grid-template-columns: 44px 1fr auto 92px; }
+        #app-gk .ln-tr.c3 { grid-template-columns: 1fr auto 112px; }
+        #app-gk .ln-th { border-top: none; padding: 0 0 8px; font-size: 0.72rem; font-weight: 700; color: var(--ink-3); }
+        #app-gk .ln-tr .r { text-align: right; }
+        #app-gk .ln-tr .num { font-variant-numeric: tabular-nums; }
+        #app-gk .ln-tr.dim { color: var(--ink-3); }
+        #app-gk .ln-tr.dim .num { color: var(--ink-3); }
+        #app-gk .ln-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 3px 8px; white-space: nowrap; }
+        #app-gk .ln-badge.done { background: var(--good-soft); color: var(--good); }
+        #app-gk .ln-badge.next { background: var(--surface-3); color: var(--ink-2); }
+        #app-gk .ln-badge.past { background: transparent; color: var(--ink-3); border: 1px solid var(--line); }
+        #app-gk .ln-foot:empty, #app-gk .ln-note:empty { display: none; }
+        #app-gk .ln-foot { display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.86rem; font-weight: 600; color: var(--ink-2); }
+        #app-gk .ln-foot b { color: var(--ink); font-variant-numeric: tabular-nums; }
+        #app-gk .ln-note { margin-top: 8px; font-size: 0.72rem; color: var(--ink-3); line-height: 1.5; }
+        #app-gk .ln-click { cursor: pointer; }
+        #app-gk .ln-item.open .ln-click { font-weight: 700; }
+        #app-gk .ln-detail { padding: 2px 0 12px; font-size: 0.8rem; color: var(--ink-3); }
+        #app-gk .ln-detail > div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
+        #app-gk .ln-detail b { color: var(--ink-2); font-weight: 600; text-align: right; }
+        #app-gk .ln-detail .btn-sm-edit { margin-top: 6px; }
         #app-gk .loan-import textarea {
             width: 100%; min-height: 64px; padding: 10px 12px; margin-bottom: 10px; resize: vertical;
             border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2);
@@ -800,22 +827,10 @@
         </div>
 
         <div id="tab-loan" style="display:none">
-            <div class="card loan-import">
-                <h2>출금 내역 넣기</h2>
-                <textarea id="loan-import-text" rows="3" placeholder="예) 12/16 81,362 (여러 줄 붙여넣기 가능)"></textarea>
-                <button class="btn btn-primary" onclick="loanImportPayments()">어느 대출인지 찾아서 반영</button>
-            </div>
-            <!-- D-day 납부 예정 목록 -->
-            <div class="card" id="loan-schedule-card" style="display:none">
-                <h2 id="loan-schedule-card-title">이번달 납부 예정</h2>
-                <div id="loan-schedule-list"></div>
-                <div id="loan-schedule-total-wrap" style="display:none">
-                    <div class="divider"></div>
-                    <div class="total-row">
-                        <span>납부 예정 합계</span>
-                        <span id="loan-schedule-total" class="neg"></span>
-                    </div>
-                </div>
+            <!-- 합계 -->
+            <div class="card ln-sum">
+                <div class="ln-sum-label">학자금 잔액 합계</div>
+                <div class="ln-sum-value serif" id="ln-total">0원</div>
             </div>
 
             <!-- 기준일 없는 대출 일괄 설정 -->
@@ -828,10 +843,27 @@
                 </div>
             </div>
 
-            <!-- 대출 목록 -->
+            <!-- 이번 달 납부 표 -->
             <div class="card">
-                <h2>등록된 대출</h2>
-                <div id="loan-list"><div class="empty">등록된 대출이 없습니다</div></div>
+                <h2 id="ln-month-title">이번 달 납부</h2>
+                <div class="ln-table" id="ln-month"></div>
+                <div class="ln-foot" id="ln-month-foot"></div>
+                <div class="ln-note" id="ln-month-note"></div>
+            </div>
+
+            <!-- 대출별 잔액 표 -->
+            <div class="card">
+                <h2>대출별 잔액</h2>
+                <div class="ln-table" id="ln-loans"></div>
+            </div>
+
+            <!-- 출금 내역 넣기 (접힘) -->
+            <div class="card fold loan-import" id="ln-import">
+                <button class="fold-toggle card-fold" onclick="toggleFold('ln-import')"><span>출금 내역 넣기</span><span class="chev">▾</span></button>
+                <div class="fold-body" style="margin-top:12px">
+                    <textarea id="loan-import-text" rows="3" placeholder="예) 12/16 81,362 (여러 줄 붙여넣기 가능)"></textarea>
+                    <button class="btn btn-primary" onclick="loanImportPayments()">어느 대출인지 찾아서 반영</button>
+                </div>
             </div>
 
             <!-- 대출 수정 폼: 평소엔 숨김, 수정 버튼을 누를 때만 열림 (새 대출 추가는 없음) -->
@@ -1485,7 +1517,7 @@ function toggleFold(id) {
 }
 window.toggleFold = toggleFold;
 function restoreFolds() {
-    ['fold-trash', 'fold-records', 'od-hero', 'lv-breakdown-card', 'sub-form-card'].forEach(id => {
+    ['fold-trash', 'fold-records', 'od-hero', 'lv-breakdown-card', 'sub-form-card', 'ln-import'].forEach(id => {
         const el = document.getElementById(id);
         if (el && foldOpen(id)) el.classList.add('open');
     });
@@ -1726,7 +1758,8 @@ function getLoanNextPayDate(loan) {
 
 function renderLoans() {
     const loans = (D.loans || []).filter(l => l.repaymentType !== 'overdraft');   // 마통은 가계부 맨 위에서만
-    const noAsOf = loans.filter(l => !l.balanceAsOf && l.repaymentType && l.repaymentType !== 'overdraft');
+    // 기준일 없는 대출 일괄 설정 배너
+    const noAsOf = loans.filter(l => !l.balanceAsOf && l.repaymentType);
     const bulk = document.getElementById('loan-asof-bulk');
     bulk.style.display = noAsOf.length ? '' : 'none';
     if (noAsOf.length) {
@@ -1735,159 +1768,98 @@ function renderLoans() {
         if (!di.value) di.value = todayStr();
         di.max = todayStr();
     }
-    const el = document.getElementById('loan-list');
-    const scheduleCardEl = document.getElementById('loan-schedule-card');
-    const scheduleListEl = document.getElementById('loan-schedule-list');
-    const scheduleTotalWrap = document.getElementById('loan-schedule-total-wrap');
 
-    // 대출 없을 때
-    if (loans.length === 0) {
-        if (scheduleCardEl) scheduleCardEl.style.display = 'none';
-        el.innerHTML = '<div class="empty">등록된 대출이 없습니다</div>';
-        return;
-    }
+    const t0 = loanToday();
+    const short = name => String(name).replace(/^학자금\s*/, '') || name;      // 탭이 '학자금'이라 이름은 짧게
+    const md = d => `${d.getMonth() + 1}/${d.getDate()}`;
+    const mdStr = s => `${Number(s.slice(5, 7))}/${Number(s.slice(8))}`;
+    const won = n => Math.round(n).toLocaleString('ko-KR');
+    const stats = loans.map(l => ({ loan: l, st: loanStatus(l) }));
 
-    const today2 = new Date(); today2.setHours(0,0,0,0);
+    // ── 합계 ──
+    const total = stats.reduce((s, x) => s + (x.st ? x.st.balanceNow : (x.loan.remainingBalance || 0)), 0);
+    document.getElementById('ln-total').textContent = fmtMoney(total);
 
-    // 이번달 납부 예정 카드
-    if (scheduleCardEl && scheduleListEl) {
-        const t0 = loanToday();
-        const allItems = loans.flatMap(loan => {
-            // 이번 달 회차 + 지난 10일 안의 회차(달이 바뀌어도 뒤늦게 기록할 수 있게)
-            const sch = calcRepaymentSchedule(loan) || [];
-            const recent = new Date(t0); recent.setDate(recent.getDate() - 10);
-            const payments = sch.filter(x => (x.payDate.getFullYear() === t0.getFullYear() && x.payDate.getMonth() === t0.getMonth())
-                                           || (x.payDate >= recent && x.payDate < t0));
-            const completedMap = {};
-            (loan.completedSchedule || []).forEach(c => { completedMap[c.date] = c.actualAmount; });
-            const items = payments.map(m => ({
-                loanId: loan.id, loanName: loan.name, rawDate: m.date, date: m.payDate,
-                payment: m.payment, interest: m.interest, principal: m.principal,
-                isGrace: m.isGrace, isOverdraft: m.isOverdraft,
-                isDone: m.date in completedMap, isPast: m.payDate < t0, actualAmount: completedMap[m.date],
-            }));
-            // 출금 내역으로 기록돼 일정에서 빠진 회차도 '지난 납부'에 ✅로 보여줌 (최근 40일)
-            const since = new Date(t0); since.setDate(since.getDate() - 40);
-            (loan.completedSchedule || []).forEach(c => {
-                if (!c.due || items.some(it => it.rawDate === c.date)) return;
-                const dd = new Date(c.due + 'T00:00:00');
-                if (dd < since) return;
-                items.push({ loanId: loan.id, loanName: loan.name, rawDate: c.date, date: dd, payment: c.actualAmount,
-                             interest: c.interest || 0, principal: c.principal || 0, isDone: true, isPast: true,
-                             actualAmount: c.actualAmount, paidOn: c.paidOn, imported: true });
-            });
-            return items;
-        }).sort((a, b) => a.date - b.date);
+    // ── 이번 달 납부 표: 날짜 · 대출 · 금액 · 상태 (모든 줄 같은 형식) ──
+    // 상태: '✓ 12/16 출금'(출금 내역으로 확인) / '예정' / '지남'(자동이체로 나간 것으로 보고 잔액에 반영)
+    const rows = [];
+    const since = new Date(t0); since.setDate(since.getDate() - 10);   // 달이 바뀌어도 최근 10일은 보여줌
+    const inView = d => (d.getFullYear() === t0.getFullYear() && d.getMonth() === t0.getMonth()) || (d >= since && d < t0);
+    stats.forEach(({ loan, st }) => {
+        const recs = loan.completedSchedule || [];
+        const recBy = Object.fromEntries(recs.map(c => [c.date, c]));
+        (st ? st.schedule : []).filter(x => inView(x.payDate)).forEach(x => {
+            const r = recBy[x.date];
+            rows.push({ due: x.payDate, loanId: loan.id, name: short(loan.name), key: x.date,
+                        amount: r ? r.actualAmount : x.payment, status: r ? 'done' : (x.payDate < t0 ? 'past' : 'next'), paidOn: r && r.paidOn });
+        });
+        // 출금 내역으로 기록돼 일정에서 빠진 회차
+        recs.filter(c => c.due && inView(new Date(c.due + 'T00:00:00')) && !rows.some(r => r.loanId === loan.id && r.key === c.date))
+            .forEach(c => rows.push({ due: new Date(c.due + 'T00:00:00'), loanId: loan.id, name: short(loan.name), key: c.date,
+                                      amount: c.actualAmount, status: 'done', paidOn: c.paidOn }));
+    });
+    rows.sort((a, b) => a.due - b.due || a.name.localeCompare(b.name));
+    const badge = r => r.status === 'done' ? `<span class="ln-badge done">✓ ${r.paidOn ? mdStr(r.paidOn) + ' 출금' : '확인'}</span>`
+                     : r.status === 'past' ? `<span class="ln-badge past">지남</span>`
+                     : `<span class="ln-badge next">예정</span>`;
+    document.getElementById('ln-month-title').textContent = `${t0.getMonth() + 1}월 납부`;
+    document.getElementById('ln-month').innerHTML = rows.length
+        ? `<div class="ln-tr ln-th c4"><span>날짜</span><span>대출</span><span class="r">금액</span><span class="r">상태</span></div>` +
+          rows.map(r => `<div class="ln-tr c4${r.status === 'next' ? '' : ' dim'}"${r.status === 'done' ? ` onclick="loanUndoRecord('${r.loanId}','${r.key}')"` : ''}>
+              <span class="num">${md(r.due)}</span><span>${escHtml(r.name)}</span><span class="r num">${won(r.amount)}</span><span class="r">${badge(r)}</span></div>`).join('')
+        : '<div class="empty">이번 달 납부가 없어요</div>';
+    const left = rows.filter(r => r.status === 'next').reduce((s, r) => s + r.amount, 0);
+    document.getElementById('ln-month-foot').innerHTML = rows.length
+        ? `<span>남은 납부 ${rows.filter(r => r.status === 'next').length}건</span><b>${fmtMoney(left)}</b>` : '';
+    document.getElementById('ln-month-note').textContent = rows.some(r => r.status === 'past')
+        ? "'지남'은 자동이체로 나간 것으로 보고 잔액에 반영했어요. 출금 내역을 넣으면 ✓로 바뀌어요." : '';
 
-        if (allItems.length > 0) {
-            const nowM = new Date(); document.getElementById('loan-schedule-card-title').textContent = `${nowM.getMonth()+1}월 납부 · 최근 납부`;
-            const loanRow = it => {
-                const mo = it.date.getMonth() + 1, day = it.date.getDate();
-                const dateStr = `${mo}/${day}`;
-                const pastDueBadge = '';
-                const breakdown = (it.isGrace || it.isOverdraft)
-                    ? `이자 ${fmtMoney(it.interest)}`
-                    : `원금 ${fmtMoney(it.principal)} + 이자 ${fmtMoney(it.interest)}`;
-                if (it.isPast && !it.isDone) {
-                    return `<div class="list-item" style="opacity:0.75"><div class="info"><div class="name">✓ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} · 자동이체로 반영됨</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">실제 금액 기록</button></div></div>`;
-                }
-                if (it.imported) {
-                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr}분 · ${it.paidOn ? `${Number(it.paidOn.slice(5, 7))}/${Number(it.paidOn.slice(8))} 출금 ` : ''}${fmtMoney(it.actualAmount)} · 잔액 반영됨</div></div></div>`;
-                }
-                if (it.isDone) {
-                    return `<div class="list-item" style="opacity:0.8"><div class="info"><div class="name">✅ ${escHtml(it.loanName)}</div><div class="sub">${dateStr} · ${breakdown} → 실제 ${fmtMoney(it.actualAmount)}</div></div><div class="right"><button class="btn-sm-unconfirm" onclick="loanNoticeUnconfirm('${it.loanId}','${it.rawDate}',${it.principal},${it.actualAmount})">기록 취소</button></div></div>`;
-                }
-                return `<div class="list-item"><div class="info"><div class="name">${escHtml(it.loanName)}${pastDueBadge}</div><div class="sub">${dateStr} · ${breakdown} · <strong>−${fmtMoney(it.payment)}</strong></div></div><div class="right" style="flex-shrink:0;"><button class="btn-sm-confirm" onclick="loanNoticeComplete('${it.loanId}','${it.rawDate}',${it.principal},${it.payment})">납부 기록</button></div></div>`;
-            };
-            const pastL = allItems.filter(it => it.isPast), nextL = allItems.filter(it => !it.isPast);
-            scheduleListEl.innerHTML = (nextL.length ? nextL.map(loanRow).join('') : '<div class="empty">이번 달 남은 납부가 없어요</div>')
-                + (pastL.length ? `<div class="fold past-fold${foldOpen('loan-past') ? ' open' : ''}" id="loan-past"><button class="fold-toggle past-toggle" onclick="toggleFold('loan-past')"><span>지난 납부 ${pastL.length}건 · 자동이체로 반영됨</span><span class="chev">▾</span></button><div class="fold-body">${pastL.map(loanRow).join('')}</div></div>` : '');
-            const pendingTotal = allItems.filter(it => !it.isDone && !it.isPast).reduce((s, it) => s + it.payment, 0);
-            if (pendingTotal > 0) {
-                document.getElementById('loan-schedule-total').textContent = fmtMoney(pendingTotal);
-                scheduleTotalWrap.style.display = 'block';
-            } else {
-                scheduleTotalWrap.style.display = 'none';
-            }
-            scheduleCardEl.style.display = 'block';
-        } else {
-            scheduleCardEl.style.display = 'none';
-        }
-    }
-
-    // 대출 목록 (당일 기준 다음 납부일 오름차순 정렬)
-    const today = new Date(); today.setHours(0,0,0,0);
-    const sortedLoans = [...loans].sort((a, b) => {
-        const da = getLoanNextPayDate(a);
-        const db = getLoanNextPayDate(b);
-        if (!da && !db) return 0;
-        if (!da) return 1;
-        if (!db) return -1;
+    // ── 대출별 잔액 표: 대출 · 잔액 · 다음 납부 (누르면 자세히) ──
+    const order = [...stats].sort((a, b) => {
+        const da = a.st && a.st.next ? a.st.next.payDate : null, db = b.st && b.st.next ? b.st.next.payDate : null;
+        if (!da || !db) return !da - !db;
         return da - db;
     });
-    el.innerHTML = sortedLoans.map(loan => {
-        const nextDate = getLoanNextPayDate(loan);
-        const daysLeft = nextDate ? Math.ceil((nextDate - today) / 86400000) : null;
-        const isSoon   = daysLeft !== null && daysLeft <= 7;
-        const nextStr  = nextDate ? `다음 납부일: ${fmtDate(nextDate)}${isSoon ? ` (${daysLeft === 0 ? '오늘' : `${daysLeft}일 후`})` : ''}` : '납부일 미설정';
-        const nextClass = isSoon ? 'loan-next-pay' : 'loan-next-pay far';
-        const st = loanStatus(loan);
-
-        // 상환 방식 뱃지
-        const repayLabel = loan.repaymentType === 'annuity'         ? '원리금균등'
-                         : loan.repaymentType === 'principal_equal' ? '원금균등'
-                         : loan.repaymentType === 'overdraft'       ? '마이너스통장'
-                         : null;
-
-        return `<div class="loan-card fold${foldOpen('loan-' + loan.id) ? ' open' : ''}" id="loan-${loan.id}">
-            <button class="fold-toggle loan-row" onclick="toggleFold('loan-${loan.id}')">
-                <span class="loan-row-name">${escHtml(loan.name)}${loan.balanceAsOf || loan.repaymentType === 'overdraft' ? '' : ' ⚠️'}</span>
-                <span class="loan-row-right"><b>${fmtMoney(st ? st.balanceNow : (loan.remainingBalance || 0))}</b><small>${st && st.next ? `${st.next.payDate.getMonth() + 1}/${st.next.payDate.getDate()} ${fmtMoney(st.next.payment)}` : ''}</small></span>
-                <span class="chev">▾</span>
-            </button>
-            <div class="fold-body">
-            <div class="loan-card-header" style="margin-top:12px">
-                <div>
-                    <div class="loan-card-name">${repayLabel ? `<span class="loan-repay-badge" style="margin-left:0">${repayLabel}</span>` : ''}</div>
-                    ${loan.memo ? `<div class="loan-card-memo">${escHtml(loan.memo)}</div>` : ''}
+    document.getElementById('ln-loans').innerHTML = loans.length
+        ? `<div class="ln-tr ln-th c3"><span>대출</span><span class="r">잔액</span><span class="r">다음 납부</span></div>` +
+          order.map(({ loan, st }) => {
+              const id = 'ln-' + loan.id;
+              const n = st && st.next;
+              const type = loan.repaymentType === 'annuity' ? '원리금균등' : loan.repaymentType === 'principal_equal' ? '원금균등' : '-';
+              return `<div class="ln-item fold${foldOpen(id) ? ' open' : ''}" id="${id}">
+                <div class="ln-tr c3 ln-click" onclick="toggleFold('${id}')">
+                    <span>${escHtml(short(loan.name))}${loan.balanceAsOf ? '' : ' ⚠️'}</span>
+                    <span class="r num">${won(st ? st.balanceNow : (loan.remainingBalance || 0))}</span>
+                    <span class="r num">${n ? `${md(n.payDate)} · ${won(n.payment)}` : '-'}</span>
                 </div>
-                <div style="display:flex;gap:6px;">
+                <div class="fold-body ln-detail">
+                    <div><span>방식 · 금리</span><b>${type} · ${loan.interestRate != null ? loan.interestRate + '%' : '-'}</b></div>
+                    <div><span>다음 납부</span><b>${n ? `원금 ${won(n.principal)} + 이자 ${won(n.interest)}` : '-'}</b></div>
+                    <div><span>남은 회차</span><b>${st ? `${st.remainingCount}회 · ${fmtYearMonth(fmtDate(st.last.payDate))} 완납` : '-'}</b></div>
+                    <div><span>앞으로 낼 이자</span><b>${st ? fmtMoney(st.remainingInterest) : '-'}</b></div>
+                    <div><span>잔액 기준</span><b>${loan.balanceAsOf ? mdStr(loan.balanceAsOf) + ' · ' + won(loan.remainingBalance || 0) : '없음'}</b></div>
                     <button class="btn-sm-edit" onclick="editLoan('${loan.id}')">수정</button>
-                    <button class="btn-sm" onclick="deleteLoan('${loan.id}')">삭제</button>
                 </div>
-            </div>
-            ${!loan.balanceAsOf ? `<div class="loan-asof-warn">⚠️ 잔액 기준일이 없어 오늘 기준으로 계산 중이에요. 수정을 눌러 최신 잔액과 조회한 날짜를 넣어 주세요.</div>` : ''}
-            <div class="loan-meta-grid">
-                <div class="loan-meta-item">
-                    <div class="loan-meta-label">현재 잔액 (추정)</div>
-                    <div class="loan-meta-value neg">${fmtMoney(st ? st.balanceNow : (loan.remainingBalance || 0))}</div>
-                    <div class="loan-meta-sub">입력 ${fmtMoney(loan.remainingBalance || 0)}${loan.balanceAsOf ? ` · ${loan.balanceAsOf.slice(2).replace(/-/g, '.')} 기준` : ''}</div>
-                </div>
-                <div class="loan-meta-item">
-                    <div class="loan-meta-label">연 금리</div>
-                    <div class="loan-meta-value">${loan.interestRate != null ? loan.interestRate + '%' : '-'}</div>
-                    <div class="loan-meta-sub">매월 ${loan.paymentDay || '-'}일 납부</div>
-                </div>
-                <div class="loan-meta-item">
-                    <div class="loan-meta-label">다음 납부액</div>
-                    <div class="loan-meta-value">${st && st.next ? fmtMoney(st.next.payment) : '-'}</div>
-                    ${st && st.next ? `<div class="loan-meta-sub">${st.next.principal ? `원금 ${fmtMoney(st.next.principal)} + ` : ''}이자 ${fmtMoney(st.next.interest)}</div>` : ''}
-                </div>
-                ${loan.repaymentType === 'overdraft' ? `<div class="loan-meta-item">
-                    <div class="loan-meta-label">1년 이자 (예상)</div>
-                    <div class="loan-meta-value">${st ? fmtMoney(st.remainingInterest) : '-'}</div>
-                </div>` : `<div class="loan-meta-item">
-                    <div class="loan-meta-label">남은 상환</div>
-                    <div class="loan-meta-value">${st ? `${st.remainingCount}회` : '-'}</div>
-                    <div class="loan-meta-sub">${st ? `${fmtYearMonth(fmtDate(st.last.payDate))} 완납 · 이자 ${fmtMoney(st.remainingInterest)}` : ''}</div>
-                </div>`}
-            </div>
-            <div class="${nextClass}">${nextStr}</div>
-            </div>
-        </div>`;
-    }).join('');
-
+              </div>`;
+          }).join('')
+        : '<div class="empty">등록된 학자금이 없어요</div>';
 }
+
+// 출금 내역으로 넣은 기록 취소 (잔액·기준일도 넣기 전으로)
+function loanUndoRecord(loanId, key) {
+    const loan = (D.loans || []).find(l => l.id === loanId);
+    if (!loan) return;
+    const rec = (loan.completedSchedule || []).find(c => c.date === key);
+    if (!rec) return;
+    if (!confirm(`${loan.name} ${rec.due ? rec.due.slice(5).replace('-', '/') : ''} 납부 기록을 취소할까요?`)) return;
+    loan.completedSchedule = loan.completedSchedule.filter(c => c.date !== key);
+    if (rec.prevAsOf !== undefined && loan.balanceAsOf === rec.paidOn) {
+        loan.remainingBalance = rec.prevBalance;
+        loan.balanceAsOf = rec.prevAsOf;
+    }
+    save(); renderLoans();
+}
+window.loanUndoRecord = loanUndoRecord;
 
 function addLoan() {
     const name             = document.getElementById('loan-name').value.trim();
@@ -2109,7 +2081,8 @@ function loanImportPayments() {
             const loan = c.loan;
             const actual = m.items.length === 1 ? e.amount : c.it.payment;   // 합쳐 빠졌으면 예상액으로 나눔
             loan.completedSchedule = (loan.completedSchedule || []).filter(x => x.date !== c.it.date);
-            loan.completedSchedule.push({ date: c.it.date, actualAmount: actual, paidOn: e.date, due: fmtDate(c.it.payDate), principal: c.it.principal, interest: c.it.interest });
+            loan.completedSchedule.push({ date: c.it.date, actualAmount: actual, paidOn: e.date, due: fmtDate(c.it.payDate), principal: c.it.principal, interest: c.it.interest,
+                                          prevBalance: loan.remainingBalance, prevAsOf: loan.balanceAsOf || null });
             // 그 회차까지 낸 것으로 잔액·기준일을 맞춤 (이후 이자는 실제 출금일부터)
             if (!loan.balanceAsOf || e.date >= loan.balanceAsOf) {
                 loan.remainingBalance = c.it.balance;
