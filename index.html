@@ -62,6 +62,10 @@
             --c-card: #B8862B; --c-card-soft: #F6ECD6;
             --c-cash: #7A5A8C; --c-cash-soft: #EEE6F1;
             --c-edu: #2F7A80;  --c-edu-soft: #E2EFEF; --c-edu-mid: #B9D9DA;
+            --c-card-mid: #EBD9B0;
+            /* 생활비 분류 색 (분류 순서대로) */
+            --cat0: #C2603F; --cat1: #B8862B; --cat2: #2F7A80; --cat3: #7A5A8C;
+            --cat4: #4F7A5B; --cat5: #A0566E; --cat6: #5B6B9A; --cat7: #8C7A5B;
             --shadow: 0 1px 2px rgba(31,30,28,0.04), 0 4px 16px rgba(31,30,28,0.05);
             --radius: 18px;
             --radius-sm: 12px;
@@ -95,6 +99,9 @@
                 --c-card: #DDB15E; --c-card-soft: #383021;
                 --c-cash: #C3A3D4; --c-cash-soft: #2E2633;
                 --c-edu: #7CC4C8;  --c-edu-soft: #1F3133; --c-edu-mid: #2E4A4C;
+                --c-card-mid: #4A3F27;
+                --cat0: #E08664; --cat1: #DDB15E; --cat2: #7CC4C8; --cat3: #C3A3D4;
+                --cat4: #8DBB97; --cat5: #D98FA6; --cat6: #9DAAD6; --cat7: #C9B68E;
                 --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.18);
                 color-scheme: dark;
             }
@@ -446,6 +453,22 @@
         #app-gk .od-next-goal b { color: var(--ink-2); }
 
         /* ── 생활비 요약 카드 ── */
+        /* 생활비 색 */
+        #app-gk #lv-hero { background: var(--c-card-soft); border-color: transparent; }
+        #app-gk #lv-hero .lv-label { color: var(--c-card); font-weight: 700; }
+        #app-gk #lv-hero .lv-goal-btn { background: var(--surface); }
+        #app-gk #lv-hero .lv-bar { background: var(--c-card-mid); }
+        #app-gk #lv-hero .lv-stat { background: var(--surface); }
+        #app-gk .lv-status.good { background: var(--good-soft); border-color: transparent; color: var(--good); }
+        #app-gk .lv-status.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
+        #app-gk .lv-status.bad  { background: var(--bad-soft);  border-color: transparent; color: var(--bad); }
+        #app-gk .lv-stat-value.good { color: var(--good); } #app-gk .lv-stat-value.bad { color: var(--bad); } #app-gk .lv-stat-value.tone-card { color: var(--c-card); }
+        #app-gk .cdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; flex-shrink: 0; }
+        #app-gk .lv-cat.active { background: var(--cc); border-color: var(--cc); color: #fff; }
+        #app-gk .lv-cat.active .cdot { background: #fff !important; }
+        #app-gk .lv-pay { display: inline-block; font-size: 0.66rem; font-weight: 700; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 1px; }
+        #app-gk .lv-pay.card { background: var(--c-card-soft); color: var(--c-card); }
+        #app-gk .lv-pay.cash { background: var(--surface-3); color: var(--ink-3); }
         #app-gk .lv-hero {
             background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
             box-shadow: var(--shadow); padding: 14px 16px 16px; margin-bottom: 12px;
@@ -508,7 +531,7 @@
             color: var(--ink-2); border-radius: 999px; font-size: 0.85rem; font-weight: 600;
             display: inline-flex; align-items: center;
         }
-        #app-gk .lv-cat.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
         #app-gk .lv-cat-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         #app-gk .lv-cat-title { font-size: 0.75rem; color: var(--ink-3); font-weight: 600; }
         #app-gk .lv-cat-edit-toggle {
@@ -544,7 +567,7 @@
         #app-gk .lv-breakdown-head { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
         #app-gk .lv-breakdown-head span:last-child { font-weight: 700; font-variant-numeric: tabular-nums; }
         #app-gk .lv-breakdown-bar { height: 6px; background: var(--surface-3); border-radius: 999px; overflow: hidden; }
-        #app-gk .lv-breakdown-bar div { height: 100%; background: var(--accent); border-radius: 999px; opacity: 0.85; }
+        #app-gk .lv-breakdown-bar div { height: 100%; background: var(--accent); border-radius: 999px; }
         #app-gk .lv-card-check { display: flex; align-items: center; gap: 8px; margin: 2px 2px 14px; font-size: 0.86rem; font-weight: 600; color: var(--ink-2); }
         #app-gk .lv-card-check input { width: 20px; height: 20px; accent-color: var(--c-card); }
         #app-gk .lv-day-head {
@@ -2536,7 +2559,7 @@ function renderLvCats() {
         ).join('') + `<button type="button" class="lv-cat lv-cat-add" onclick="lvAddCat()">+ 추가</button>`;
     } else {
         el.innerHTML = cats.map((c, i) =>
-            `<button type="button" class="lv-cat${c === lv_category ? ' active' : ''}" onclick="lvPickCat(${i})">${escHtml(c)}</button>`
+            `<button type="button" class="lv-cat${c === lv_category ? ' active' : ''}" style="--cc:var(--cat${i % 8})" onclick="lvPickCat(${i})"><i class="cdot" style="background:var(--cat${i % 8})"></i>${escHtml(c)}</button>`
         ).join('');
     }
 }
@@ -2609,6 +2632,10 @@ function lvCatDragInit() {
     box.addEventListener('contextmenu', e => { if (lv_catEditing) e.preventDefault(); });
 }
 
+function lvCatColor(name) {
+    const i = lvCats().indexOf(name);
+    return i < 0 ? 'var(--ink-3)' : `var(--cat${i % 8})`;
+}
 function lvPickCat(i) { lv_category = lvCats()[i]; renderLvCats(); }
 function lvToggleCatEdit() { lv_catEditing = !lv_catEditing; renderLvCats(); }
 
@@ -2701,9 +2728,11 @@ function renderLiving() {
 
     const paceEl = document.getElementById('lv-bar-pace');
     const statusEl = document.getElementById('lv-status');
-    const set = (i, label, value) => {
+    const set = (i, label, value, tone = '') => {
         document.getElementById(`lv-stat${i}-label`).textContent = label;
-        document.getElementById(`lv-stat${i}`).textContent = value;
+        const v = document.getElementById(`lv-stat${i}`);
+        v.textContent = value;
+        v.className = 'lv-stat-value' + (tone ? ' ' + tone : '');
     };
 
     if (isCurrent) {
@@ -2719,18 +2748,22 @@ function renderLiving() {
 
         if (remain < 0) {
             statusEl.textContent = `🚨 목표를 ${fmtMoney(-remain)} 넘었어요. 남은 ${daysLeft}일은 최대한 아껴봐요!`;
+            statusEl.className = 'lv-status bad';
         } else if (spent <= pace) {
             statusEl.textContent = `👍 순항 중! 적정 페이스보다 ${fmtMoney(pace - spent)} 덜 썼어요.`;
+            statusEl.className = 'lv-status good';
         } else {
             statusEl.textContent = `⚠️ 적정 페이스보다 ${fmtMoney(spent - pace)} 더 썼어요. 조금만 아껴봐요.`;
+            statusEl.className = 'lv-status warn';
         }
-        set(1, '남은 예산', remain < 0 ? `−${fmtMoney(-remain)}` : fmtMoney(remain));
-        set(2, '오늘 가능액', fmtMoney(Math.max(0, dailyAllow - todaySpent)));
+        set(1, '남은 예산', remain < 0 ? `−${fmtMoney(-remain)}` : fmtMoney(remain), remain < 0 ? 'bad' : 'good');
+        set(2, '오늘 가능액', fmtMoney(Math.max(0, dailyAllow - todaySpent)), 'tone-card');
         set(3, '오늘 쓴 돈', fmtMoney(todaySpent));
     } else {
         paceEl.style.display = 'none';
         document.getElementById('lv-pace-legend').textContent = '';
         const usedDays = new Set(items.map(x => x.date)).size;
+        statusEl.className = 'lv-status ' + (items.length === 0 ? '' : remain >= 0 ? 'good' : 'bad');
         statusEl.textContent = items.length === 0 ? '📭 100일 동안 기록이 없어요.'
             : remain >= 0 ? `🎉 100일 완주! 목표보다 ${fmtMoney(remain)} 아꼈어요.`
             : `😢 목표보다 ${fmtMoney(-remain)} 더 썼어요.`;
@@ -2759,8 +2792,8 @@ function renderLiving() {
         document.getElementById('lv-breakdown').innerHTML = Object.entries(byCat)
             .sort((a, b) => b[1] - a[1])
             .map(([c, v]) => `<div class="lv-breakdown-row">
-                <div class="lv-breakdown-head"><span>${escHtml(c)} <span class="muted">${Math.round(v / spent * 100)}%</span></span><span>${fmtMoney(v)}</span></div>
-                <div class="lv-breakdown-bar"><div style="width:${v / max * 100}%"></div></div>
+                <div class="lv-breakdown-head"><span><i class="cdot" style="background:${lvCatColor(c)}"></i>${escHtml(c)} <span class="muted">${Math.round(v / spent * 100)}%</span></span><span>${fmtMoney(v)}</span></div>
+                <div class="lv-breakdown-bar"><div style="width:${v / max * 100}%;background:${lvCatColor(c)}"></div></div>
             </div>`).join('');
     } else {
         bdCard.style.display = 'none';
@@ -2779,7 +2812,7 @@ function renderLiving() {
         const sum = list.reduce((s, x) => s + x.amount, 0);
         return `<div class="lv-day-head"><span>${d.getMonth() + 1}월 ${d.getDate()}일 (${WD[d.getDay()]})</span><span>${fmtMoney(sum)}</span></div>` +
             list.map(x => `<div class="list-item">
-                <div class="info"><div class="name">${escHtml(x.memo || x.category || '생활비')}</div><div class="sub">${escHtml(x.category || '기타')} · ${x.card === false ? '현금·체크' : '💳 카드'}</div></div>
+                <div class="info"><div class="name">${escHtml(x.memo || x.category || '생활비')}</div><div class="sub"><i class="cdot" style="background:${lvCatColor(x.category || '기타')}"></i>${escHtml(x.category || '기타')}<span class="lv-pay ${x.card === false ? 'cash' : 'card'}">${x.card === false ? '현금' : '💳 카드'}</span></div></div>
                 <div class="right"><span class="amount">−${fmtMoney(x.amount)}</span>
                     <button class="btn-sm-edit" onclick="lvEdit('${x.id}')">수정</button>
                     <button class="btn-sm" onclick="lvDelete('${x.id}')">삭제</button></div>
