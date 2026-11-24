@@ -253,7 +253,11 @@
         #app-jk .btn-save:active { transform: scale(0.98); }
         #app-jk .btn-save:disabled { background: var(--good-soft); color: var(--good); cursor: default; transform: none; }
 
-        /* 휴지통 */
+        /* 쉼표 (100일 중 5개) */
+        #app-jk .rest { font-family: var(--serif); font-weight: 700; line-height: 0.6; display: inline-block; transform: translateY(-0.12em); }
+        #app-jk .trash-title .rest { color: var(--accent); font-size: 1.3rem; margin-right: 2px; }
+        #app-jk .trash-slot.used .rest { font-size: 1.5rem; }
+        #app-jk .jk-dot.x .rest { font-size: 1.5rem; transform: translateY(-0.32em); }
         #app-jk .trash-card {
             background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
             padding: 14px 16px; margin-bottom: 12px;
@@ -751,9 +755,9 @@
             <button class="fold-toggle records-more" id="records-more" onclick="toggleFold('fold-records')"><span id="records-more-label"></span><span class="chev">▾</span></button>
         </div>
 
-        <!-- 🗑️ 휴지통: 100일 중 5칸까지 (규칙은 코드에 고정, 수정 불가) -->
+        <!-- 쉼표: 100일 중 5개까지 — 멈추는 게 아니라 잠깐 쉬고 이어지는 것 (규칙은 코드에 고정, 수정 불가) -->
         <div class="trash-card fold" id="fold-trash">
-            <button class="fold-toggle trash-head" onclick="toggleFold('fold-trash')"><span class="trash-title">🗑️ 휴지통</span><span><span class="trash-count" id="jk-trash-count"></span> <span class="chev">▾</span></span></button>
+            <button class="fold-toggle trash-head" onclick="toggleFold('fold-trash')"><span class="trash-title"><span class="rest">,</span> 쉼표</span><span><span class="trash-count" id="jk-trash-count"></span> <span class="chev">▾</span></span></button>
             <div class="fold-body">
             <div class="trash-slots" id="jk-trash-slots"></div>
             <div class="trash-over" id="jk-trash-over"></div>
@@ -762,7 +766,7 @@
                 <div class="rules-title">📜 나의 다섯 줄</div>
                 <ol class="rules-list" id="jk-rules"></ol>
             </div>
-            <button class="trash-use-btn" id="trash-use-btn" onclick="jk_useTrash()">🗑️ 휴지통 쓰기</button>
+            <button class="trash-use-btn" id="trash-use-btn" onclick="jk_useTrash()">, 쉼표 찍기</button>
             </div>
         </div>
     </div>
@@ -1123,17 +1127,17 @@ const JK_PROJECT = Object.freeze({
     days:    100,            // Day 100 = 2027-03-23 (화)
     concert: '2027-03-27',   // 부산 공연 (토)
 });
-// ── 휴지통 규칙 (고정, 앱에서 수정 불가) ──
+// ── 쉼표 규칙 (고정, 앱에서 수정 불가) ──
 const JK_TRASH = Object.freeze({ slots: 5, successDays: 95 });
 const JK_RULES = Object.freeze([
-    '<b>목표</b>: 0칸 사용 (100일 연속 금주)',
-    '<b>성공 기준</b>: 휴지통 5칸 이내 (95일 이상)',
-    '<b>연속 사용 금지</b>: 이틀 연속으로는 쓰지 않음',
+    '<b>목표</b>: 쉼표 0개 (100일 연속 금주)',
+    '<b>성공 기준</b>: 쉼표 5개 이내 (95일 이상)',
+    '<b>연속 금지</b>: 이틀 연속으로는 찍지 않음',
     '<b>초과 시</b>: 6번째부터는 "초과 1"로 적고 도전은 계속함',
     '<b>기록</b>: 연속 일수와 누적 일수를 같이 적음',
 ]);
 function jkEndStr() { return jkYmd(jkAdd(jkDate(JK_PROJECT.start), JK_PROJECT.days - 1)); }
-// 프로젝트 기간 안에서 쓴 휴지통 (날짜순) + 몇 번째인지·초과인지·연속 사용인지
+// 프로젝트 기간 안에서 찍은 쉼표 (날짜순) + 몇 번째인지·초과인지·연속인지
 function jkTrashUses() {
     const end = jkEndStr();
     const xs = D_jk.records.filter(r => r.sober === 'X' && r.date >= JK_PROJECT.start && r.date <= end)
@@ -1145,7 +1149,7 @@ function jkTrashUses() {
         return { ...r, n: i + 1, over: i >= JK_TRASH.slots ? i - JK_TRASH.slots + 1 : 0, consecutive };
     });
 }
-function jkTrashLabel(u) { return u.over ? `초과 ${u.over}` : `휴지통 ${u.n}/${JK_TRASH.slots}`; }
+function jkTrashLabel(u) { return u.over ? `초과 ${u.over}` : `쉼표 ${u.n}/${JK_TRASH.slots}`; }
 
 const JK_MILESTONES = Object.freeze([
     { day: 30,  icon: '🌱', label: 'Day 30'  },
@@ -1210,11 +1214,11 @@ function jk_renderTrash() {
     const used = uses.length, over = Math.max(0, used - JK_TRASH.slots);
     const started = jkDayIndex() >= 1, ended = jkDayIndex() > JK_PROJECT.days;
     const countEl = document.getElementById('jk-trash-count');
-    countEl.textContent = over ? `5 / 5칸 · 초과 ${over}` : `${used} / ${JK_TRASH.slots}칸`;
+    countEl.textContent = over ? `5 / 5개 · 초과 ${over}` : `${used} / ${JK_TRASH.slots}개`;
     countEl.classList.toggle('over', over > 0);
     const slots = Array.from({ length: JK_TRASH.slots }, (_, i) => {
         const u = uses[i];
-        return u ? `<div class="trash-slot used"><b>🗑️</b>${jkDate(u.date).getMonth() + 1}.${jkDate(u.date).getDate()}</div>`
+        return u ? `<div class="trash-slot used"><b class="rest">,</b>${jkDate(u.date).getMonth() + 1}.${jkDate(u.date).getDate()}</div>`
                  : `<div class="trash-slot">${i + 1}</div>`;
     }).join('');
     document.getElementById('jk-trash-slots').innerHTML = slots;
@@ -1223,13 +1227,13 @@ function jk_renderTrash() {
 
     const consec = uses.some(u => u.consecutive);
     const statusEl = document.getElementById('jk-trash-status');
-    if (!started) statusEl.textContent = '12월 14일부터 세요. 목표는 0칸, 5칸까지는 성공이에요.';
-    else if (ended) statusEl.textContent = over ? `100일 완주! 초과 ${over}칸 — 끝까지 도전한 것 자체가 승리예요.`
-        : used === 0 ? '🏆 휴지통 0칸, 완벽한 100일!' : `🎉 성공! 휴지통 ${used}칸으로 ${JK_PROJECT.days - used}일 금주.`;
+    if (!started) statusEl.textContent = '12월 14일부터 세요. 목표는 0개, 5개까지는 성공이에요.';
+    else if (ended) statusEl.textContent = over ? `100일 완주! 초과 ${over}개 — 끝까지 이어 간 것 자체가 승리예요.`
+        : used === 0 ? '🏆 쉼표 없이, 완벽한 100일!' : `🎉 성공! 쉼표 ${used}개로 ${JK_PROJECT.days - used}일 금주.`;
     else if (over) statusEl.textContent = `초과 ${over} — 성공 기준은 넘었지만 도전은 계속돼요. 오늘 하루에 집중해요.`;
-    else if (used === 0) statusEl.textContent = '아직 한 칸도 안 썼어요. 이대로 0칸으로 가 봐요.';
-    else statusEl.textContent = `${JK_TRASH.slots - used}칸 남았어요. 남은 날을 다 지키면 ${JK_PROJECT.days - used}일 금주로 성공이에요.`;
-    if (consec) statusEl.textContent += ' ⚠️ 이틀 연속 사용 기록이 있어요.';
+    else if (used === 0) statusEl.textContent = '아직 쉼표 없이 이어지고 있어요. 이대로 끝까지 가 봐요.';
+    else statusEl.textContent = `쉼표 ${JK_TRASH.slots - used}개 남았어요. 남은 날을 다 지키면 ${JK_PROJECT.days - used}일 금주로 성공이에요.`;
+    if (consec) statusEl.textContent += ' ⚠️ 이틀 연속 쉼표가 있어요.';
 
     document.getElementById('jk-rules').innerHTML = JK_RULES.map(r => `<li>${r}</li>`).join('');
 }
@@ -1247,11 +1251,11 @@ function jk_renderMilestones() {
         if (daysLeft > 0) {
             dday = `<div class="mc-dday${daysLeft <= 7 ? ' soon' : ''}">D-${daysLeft}</div>`;
         } else {
-            // 그날이 지났으면: 그날까지 휴지통 0칸 = 완벽, 5칸 이내 = 달성, 초과 = 통과
+            // 그날이 지났으면: 그날까지 쉼표 0개 = 완벽, 5개 이내 = 달성, 초과 = 통과
             const usedBy = jkTrashUses().filter(u => u.date <= jkYmd(target)).length;
             if (daysLeft === 0) dday = `<div class="mc-dday soon">오늘!</div>`;
             else if (usedBy === 0) { cls = ' done'; dday = `<div class="mc-dday done">완벽 🎉</div>`; }
-            else if (usedBy <= JK_TRASH.slots) { cls = ' done'; dday = `<div class="mc-dday done">달성 · 🗑️${usedBy}</div>`; }
+            else if (usedBy <= JK_TRASH.slots) { cls = ' done'; dday = `<div class="mc-dday done">달성 · 쉼표 ${usedBy}</div>`; }
             else dday = `<div class="mc-dday passed">통과 · 초과</div>`;
         }
         return `<div class="milestone-chip${cls}">
@@ -1279,7 +1283,7 @@ function jk_renderTable() {
         const u = !ok ? uses.find(x => x.date === r.date) : null;
         const tags = u ? `<span class="jk-tag ${u.over ? 'over' : 'slot'}">${jkTrashLabel(u)}</span>${u.consecutive ? '<span class="jk-tag warn">연속</span>' : ''}` : '';
         return `<div class="jk-row">
-            <div class="jk-dot ${ok ? 'o' : 'x'}">${ok ? 'O' : '🗑️'}</div>
+            <div class="jk-dot ${ok ? 'o' : 'x'}">${ok ? 'O' : '<span class="rest">,</span>'}</div>
             <div class="jk-info">
                 <div class="jk-date">${d.getMonth() + 1}월 ${d.getDate()}일<small>${WD[d.getDay()]}요일</small>${tags}</div>
                 ${reasonHtml}
@@ -1321,26 +1325,26 @@ function jk_resetInputs() {
     const usedThatDay = D_jk.records.some(r => r.date === date && r.sober === 'X');
     tBtn.disabled = usedThatDay || !date || date < JK_PROJECT.start || date > jkEndStr();
     const dLabel = date ? `${Number(date.slice(5, 7))}/${Number(date.slice(8))}` : '';
-    tBtn.textContent = usedThatDay ? `🗑️ ${dLabel}은 휴지통을 썼어요` : date && date < JK_PROJECT.start ? '🗑️ 휴지통은 12월 14일부터'
-        : date === todayStr() ? '🗑️ 오늘 휴지통 쓰기' : `🗑️ ${dLabel} 휴지통 쓰기`;
+    tBtn.textContent = usedThatDay ? `${dLabel}에는 쉼표를 찍었어요` : date && date < JK_PROJECT.start ? '쉼표는 12월 14일부터'
+        : date === todayStr() ? ', 오늘 쉼표 찍기' : `, ${dLabel}에 쉼표 찍기`;
 }
 
-// 휴지통 쓰기: 규칙 안내(남은 칸·초과·이틀 연속)를 보여 주고, 정직하게 기록
+// 쉼표 찍기: 규칙 안내(남은 개수·초과·이틀 연속)를 보여 주고, 정직하게 기록
 function jk_useTrash() {
     const date = document.getElementById('targetDate').value;
     if (!date) { alert('날짜를 선택해 주세요.'); return; }
     if (date > todayStr()) { alert('아직 오지 않은 날은 기록할 수 없어요.'); return; }
-    if (date < JK_PROJECT.start || date > jkEndStr()) { alert('휴지통은 100일(12/14~3/23) 동안만 써요.'); return; }
+    if (date < JK_PROJECT.start || date > jkEndStr()) { alert('쉼표는 100일(12/14~3/23) 동안만 찍어요.'); return; }
     const others = jkTrashUses().filter(u => u.date !== date);
     const n = others.filter(u => u.date < date).length + 1;            // 이 날짜가 몇 번째가 되는지
     const d = jkDate(date);
     const consecutive = others.some(u => u.date === jkYmd(jkAdd(d, -1)) || u.date === jkYmd(jkAdd(d, 1)));
     const wasWin = D_jk.records.some(r => r.date === date && r.sober === 'O');
     let msg = n <= JK_TRASH.slots
-        ? `🗑️ 휴지통 ${n}/${JK_TRASH.slots}칸을 써요.\n남은 칸: ${JK_TRASH.slots - others.length - 1}칸`
-        : `🗑️ ${n}번째 — "초과 ${n - JK_TRASH.slots}"로 기록돼요.\n성공 기준(5칸)은 넘었지만 도전은 계속돼요.`;
-    if (consecutive) msg += `\n\n⚠️ 규칙: 이틀 연속으로는 쓰지 않음.\n그래도 정직하게 기록할까요?`;
-    if (wasWin) msg += `\n\n이 날의 승리 기록이 휴지통으로 바뀌어요.`;
+        ? `, 쉼표 ${n}/${JK_TRASH.slots}개를 찍어요.\n잠깐 쉬고, 문장은 이어져요.\n남은 쉼표: ${JK_TRASH.slots - others.length - 1}개`
+        : `, ${n}번째 쉼표 — "초과 ${n - JK_TRASH.slots}"로 기록돼요.\n성공 기준(5개)은 넘었지만 도전은 계속돼요.`;
+    if (consecutive) msg += `\n\n⚠️ 규칙: 이틀 연속으로는 찍지 않음.\n그래도 정직하게 기록할까요?`;
+    if (wasWin) msg += `\n\n이 날의 승리 기록이 쉼표로 바뀌어요.`;
     if (!confirm(msg)) return;
     const reason = (prompt('어떤 상황이었는지 짧게 남겨 둘까요? (선택)', '') || '').trim().slice(0, 60);
     const idx = D_jk.records.findIndex(r => r.date === date);
