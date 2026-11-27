@@ -667,6 +667,34 @@
         #app-gk .ln-pct { font-size: 0.66rem; color: var(--ink-3); font-weight: 600; }
         #app-gk .ln-soon { color: var(--warn); font-weight: 700; }
         #app-gk .ln-foot b { color: var(--c-edu); }
+        /* 대출별 잔액 카드 */
+        #app-gk .ln-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        #app-gk .ln-tile {
+            position: relative; display: flex; flex-direction: column; min-width: 0; cursor: pointer;
+            background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 14px; padding: 12px 12px 10px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        #app-gk .ln-tile:active { transform: scale(0.99); }
+        #app-gk .ln-tile.open { grid-column: 1 / -1; border-color: var(--c-edu); box-shadow: 0 4px 14px rgba(47,122,128,0.12); }
+        #app-gk .ln-tile-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+        #app-gk .ln-tile-name { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.01em; }
+        #app-gk .ln-tile-rate { font-size: 0.72rem; color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+        #app-gk .ln-tile-type { align-self: flex-start; margin-top: 4px; font-size: 0.64rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--c-edu-soft); color: var(--c-edu); }
+        #app-gk .ln-tile-type.annuity { background: var(--c-cash-soft); color: var(--c-cash); }
+        #app-gk .ln-tile-bal { margin-top: 10px; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        #app-gk .ln-tile-bal small { font-family: var(--sans); font-size: 0.72rem; font-weight: 600; color: var(--ink-3); margin-left: 2px; }
+        #app-gk .ln-tile-bar { height: 5px; margin-top: 8px; border-radius: 999px; background: var(--c-edu-mid); overflow: hidden; }
+        #app-gk .ln-tile-bar i { display: block; height: 100%; background: var(--c-edu); border-radius: 999px; }
+        #app-gk .ln-tile-prog { display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.68rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+        #app-gk .ln-tile-prog b { color: var(--c-edu); }
+        #app-gk .ln-tile-next {
+            display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 6px 9px;
+            border-radius: 9px; background: var(--surface); font-size: 0.76rem; font-variant-numeric: tabular-nums; color: var(--ink-2);
+        }
+        #app-gk .ln-tile-next b { font-weight: 700; color: var(--ink); }
+        #app-gk .ln-tile-next.soon { background: var(--warn-soft); color: var(--warn); }
+        #app-gk .ln-tile-next.soon b { color: var(--warn); }
+        #app-gk .ln-tile .ln-detail { margin-top: 10px; padding: 10px 0 2px; border-top: 1px solid var(--line-2); }
         #app-gk .ln-detail { padding: 2px 0 12px; font-size: 0.8rem; color: var(--ink-3); }
         #app-gk .ln-detail > div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
         #app-gk .ln-detail b { color: var(--ink-2); font-weight: 600; text-align: right; }
@@ -911,7 +939,7 @@
             <!-- 대출별 잔액 표 -->
             <div class="card">
                 <h2>대출별 잔액</h2>
-                <div class="ln-table" id="ln-loans"></div>
+                <div class="ln-tiles" id="ln-loans"></div>
             </div>
 
             <!-- 대출 수정 폼: 평소엔 숨김, 수정 버튼을 누를 때만 열림 (새 대출 추가는 없음) -->
@@ -1899,32 +1927,39 @@ function renderLoans() {
     document.getElementById('ln-month-note').textContent = rows.some(r => r.status === 'past')
         ? "'지남'은 자동이체로 나간 것으로 보고 잔액에 반영했어요. 출금 내역을 넣으면 ✓로 바뀌어요." : '';
 
-    // ── 대출별 잔액 표: 대출 · 잔액 · 다음 납부 (누르면 자세히) ──
+    // ── 대출별 잔액: 대출마다 카드 한 장 (2열). 누르면 펼쳐져서 자세히·수정 ──
     const order = [...stats].sort((a, b) => {
         const da = a.st && a.st.next ? a.st.next.payDate : null, db = b.st && b.st.next ? b.st.next.payDate : null;
         if (!da || !db) return !da - !db;
         return da - db;
     });
     document.getElementById('ln-loans').innerHTML = loans.length
-        ? `<div class="ln-tr ln-th c3"><span>대출</span><span class="r">잔액</span><span class="r">다음 납부</span></div>` +
-          order.map(({ loan, st }) => {
+        ? order.map(({ loan, st }) => {
               const id = 'ln-' + loan.id;
               const n = st && st.next;
               const p = progressOf(loan, st);
-              const soon = n && Math.round((n.payDate - t0) / 86400000) <= 3;
-              const type = loan.repaymentType === 'annuity' ? '원리금균등' : loan.repaymentType === 'principal_equal' ? '원금균등' : '-';
-              return `<div class="ln-item fold${foldOpen(id) ? ' open' : ''}" id="${id}">
-                <div class="ln-tr c3 ln-click" onclick="toggleFold('${id}')">
-                    <span class="ln-name"><span>${escHtml(short(loan.name))}${loan.balanceAsOf ? '' : ' ⚠️'}<em>${loan.repaymentType === 'annuity' ? '원리금' : '원금'}</em></span>${p != null ? `<span class="ln-bar"><i style="width:${(p * 100).toFixed(1)}%"></i></span>` : ''}</span>
-                    <span class="r num">${won(st ? st.balanceNow : (loan.remainingBalance || 0))}</span>
-                    <span class="r num${soon ? ' ln-soon' : ''}">${n ? `${md(n.payDate)} · ${won(n.payment)}` : '-'}</span>
+              const dleft = n ? Math.round((n.payDate - t0) / 86400000) : null;
+              const soon = dleft != null && dleft <= 3;
+              const type = loan.repaymentType === 'annuity' ? '원리금균등' : loan.repaymentType === 'principal_equal' ? '원금균등' : '';
+              const endYm = st ? `${st.last.payDate.getFullYear()}.${st.last.payDate.getMonth() + 1}` : '';
+              return `<div class="ln-tile fold${foldOpen(id) ? ' open' : ''}" id="${id}" onclick="if(!event.target.closest('button'))toggleFold('${id}')">
+                <div class="ln-tile-head">
+                    <span class="ln-tile-name">${escHtml(short(loan.name))}${loan.balanceAsOf ? '' : ' ⚠️'}</span>
+                    <span class="ln-tile-rate">${loan.interestRate != null ? loan.interestRate + '%' : ''}</span>
+                </div>
+                ${type ? `<span class="ln-tile-type ${loan.repaymentType}">${type}</span>` : ''}
+                <div class="ln-tile-bal serif">${won(st ? st.balanceNow : (loan.remainingBalance || 0))}<small>원</small></div>
+                ${p != null ? `<div class="ln-tile-bar"><i style="width:${(p * 100).toFixed(1)}%"></i></div>
+                <div class="ln-tile-prog"><b>${Math.round(p * 100)}%</b><span>${endYm} 완납</span></div>` : ''}
+                <div class="ln-tile-next${soon ? ' soon' : ''}">
+                    <span>${n ? (soon ? (dleft === 0 ? '오늘' : `D-${dleft}`) : `${md(n.payDate)}`) : '-'}</span>
+                    <b>${n ? won(n.payment) + '원' : ''}</b>
                 </div>
                 <div class="fold-body ln-detail">
-                    <div><span>방식 · 금리</span><b>${type} · ${loan.interestRate != null ? loan.interestRate + '%' : '-'}</b></div>
-                    <div><span>다음 납부</span><b>${n ? `원금 ${won(n.principal)} + 이자 ${won(n.interest)}` : '-'}</b></div>
-                    <div><span>남은 회차</span><b>${st ? `${st.remainingCount}회 · ${fmtYearMonth(fmtDate(st.last.payDate))} 완납` : '-'}${p != null ? ` · ${Math.round(p * 100)}% 지남` : ''}</b></div>
+                    <div><span>다음 납부</span><b>${n ? `${md(n.payDate)} · 원금 ${won(n.principal)} + 이자 ${won(n.interest)}` : '-'}</b></div>
+                    <div><span>남은 회차</span><b>${st ? `${st.remainingCount}회` : '-'}</b></div>
                     <div><span>앞으로 낼 이자</span><b>${st ? fmtMoney(st.remainingInterest) : '-'}</b></div>
-                    <div><span>잔액 기준</span><b>${loan.balanceAsOf ? mdStr(loan.balanceAsOf) + ' · ' + won(loan.remainingBalance || 0) : '없음'}</b></div>
+                    <div><span>잔액 기준</span><b>${loan.balanceAsOf ? mdStr(loan.balanceAsOf) + ' · ' + won(loan.remainingBalance || 0) + '원' : '없음'}</b></div>
                     <button class="btn-sm-edit" onclick="editLoan('${loan.id}')">수정</button>
                 </div>
               </div>`;
