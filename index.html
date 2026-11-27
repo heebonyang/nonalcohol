@@ -184,6 +184,14 @@
         .fold.open > .fold-toggle .chev, .fold.open > * > .fold-toggle .chev { transform: rotate(180deg); }
         .fold-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-2); }
 
+        /* 🔒 12/14 전: 입력·수정 영역 잠금 */
+        body.pre-start #app-jk .input-card .form-grid, body.pre-start #trash-use-btn,
+        body.pre-start #od-update-btn, body.pre-start #ln-import, body.pre-start #loan-asof-bulk,
+        body.pre-start .ln-detail button, body.pre-start #ln-month .ln-tr,
+        body.pre-start #sub-form-card, body.pre-start #sub-list button, body.pre-start #sub-list .sub-toggle,
+        body.pre-start #sub-schedule-list button, body.pre-start .lv-goal-btn { pointer-events: none; opacity: 0.4; }
+        body.pre-start #app-jk .jk-missing { display: none; }
+
         .app-section { display: none; }
         .app-section.active { display: block; animation: fade-in 0.25s ease; }
         @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -1308,8 +1316,8 @@ function jk_resetInputs() {
     const btn  = document.getElementById('save-btn');
     const done = D_jk.records.some(r => r.date === date && r.sober === 'O');
     const isToday = date === todayStr();
-    btn.disabled = done;
-    btn.textContent = done ? '✓ 이 날은 이미 승리' : isToday ? '🏅 오늘도 승리' : '🏅 이 날도 승리';
+    btn.disabled = done || preStart();
+    btn.textContent = preStart() ? '🔒 12월 14일부터' : done ? '✓ 이 날은 이미 승리' : isToday ? '🏅 오늘도 승리' : '🏅 이 날도 승리';
     // 100일 중 어제까지 기록이 빈 날: 누르면 그 날짜로 바로 이동
     const missEl = document.getElementById('jk-missing');
     const recorded = new Set(D_jk.records.map(r => r.date));
@@ -1431,6 +1439,7 @@ function syncStore(name, ref, { apply, render }) {
         Object.keys(data).forEach(k => { st.synced[k] = JSON.stringify(data[k]); });
         st.ready = true; st.failed = false;
         if (!snap.metadata.fromCache) st.fromServer = true;
+        st.apply = apply; st.render = render; st.lastJson = JSON.stringify(data);   // 되돌리기용 원본 (화면 데이터와 공유하지 않게 문자열로)
         apply(data);
         render();
         syncUi();
@@ -1443,7 +1452,15 @@ function syncStore(name, ref, { apply, render }) {
     return st;
 }
 
+// 🔒 12월 14일 0시 전에는 모든 기록·수정을 잠금 (테스트 모드는 날짜를 옮겨서 열림)
+function preStart() { return todayStr() < JK_PROJECT.start; }
+
 function persist(st, obj) {
+    if (preStart()) {
+        syncToast('🔒 12월 14일부터 기록할 수 있어요');
+        if (st && st.apply) { st.apply(JSON.parse(st.lastJson || '{}')); st.render(); }   // 화면에만 바뀐 걸 원래대로
+        return;
+    }
     if (!st || !st.ready) {
         syncToast('아직 데이터를 불러오는 중이라 저장하지 않았어요. 잠시 후 다시 해 주세요.', 'warn');
         return;
@@ -1592,6 +1609,7 @@ window.testReset = testReset;
 let _renderedDay = '';
 function refreshForToday(force = false) {
     const today = todayStr();
+    document.body.classList.toggle('pre-start', preStart());
     if (!force && today === _renderedDay) return;
     const prev = _renderedDay;
     _renderedDay = today;
@@ -2204,6 +2222,9 @@ function odCardThisMonth() {
 
 function renderDebtHero() {
     const hero = document.getElementById('od-hero');
+    const ub = document.getElementById('od-update-btn');
+    if (preStart()) { ub.textContent = '🔒 12월 14일부터 입력'; document.getElementById('od-form').style.display = 'none'; }
+    else if (document.getElementById('od-form').style.display === 'none') ub.textContent = '잔액 · 이자율 수정';
     const loan = odLoan();
     if (!loan) { hero.style.display = 'none'; return; }
     hero.style.display = '';
@@ -2248,6 +2269,7 @@ function renderDebtHero() {
 }
 
 function odToggleForm() {
+    if (preStart()) return;
     const f = document.getElementById('od-form'), btn = document.getElementById('od-update-btn');
     const open = f.style.display === 'none';
     f.style.display = open ? '' : 'none';
