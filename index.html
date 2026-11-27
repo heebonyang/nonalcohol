@@ -899,12 +899,6 @@
                 <div class="ln-note" id="ln-month-note"></div>
             </div>
 
-            <!-- 대출별 잔액 표 -->
-            <div class="card">
-                <h2>대출별 잔액</h2>
-                <div class="ln-table" id="ln-loans"></div>
-            </div>
-
             <!-- 출금 내역 넣기 (접힘) -->
             <div class="card fold loan-import" id="ln-import">
                 <button class="fold-toggle card-fold" onclick="toggleFold('ln-import')"><span>출금 내역 넣기</span><span class="chev">▾</span></button>
@@ -912,6 +906,12 @@
                     <textarea id="loan-import-text" rows="3" placeholder="예) 12/16 81,362 (여러 줄 붙여넣기 가능)"></textarea>
                     <button class="btn btn-primary" onclick="loanImportPayments()">어느 대출인지 찾아서 반영</button>
                 </div>
+            </div>
+
+            <!-- 대출별 잔액 표 -->
+            <div class="card">
+                <h2>대출별 잔액</h2>
+                <div class="ln-table" id="ln-loans"></div>
             </div>
 
             <!-- 대출 수정 폼: 평소엔 숨김, 수정 버튼을 누를 때만 열림 (새 대출 추가는 없음) -->
