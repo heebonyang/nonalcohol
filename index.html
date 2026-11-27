@@ -184,12 +184,9 @@
         .fold.open > .fold-toggle .chev, .fold.open > * > .fold-toggle .chev { transform: rotate(180deg); }
         .fold-more { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line-2); }
 
-        /* 🔒 12/14 전: 입력·수정 영역 잠금 */
+        /* 🔒 12/14 전: 금주·마통·생활비 입력만 잠금 (학자금·구독은 그대로) */
         body.pre-start #app-jk .input-card .form-grid, body.pre-start #trash-use-btn,
-        body.pre-start #od-update-btn, body.pre-start #ln-import, body.pre-start #loan-asof-bulk,
-        body.pre-start .ln-detail button, body.pre-start #ln-month .ln-tr,
-        body.pre-start #sub-form-card, body.pre-start #sub-list button, body.pre-start #sub-list .sub-toggle,
-        body.pre-start #sub-schedule-list button, body.pre-start .lv-goal-btn { pointer-events: none; opacity: 0.4; }
+        body.pre-start #od-update-btn, body.pre-start .lv-goal-btn { pointer-events: none; opacity: 0.4; }
         body.pre-start #app-jk .jk-missing { display: none; }
 
         .app-section { display: none; }
@@ -1452,13 +1449,25 @@ function syncStore(name, ref, { apply, render }) {
     return st;
 }
 
-// 🔒 12월 14일 0시 전에는 모든 기록·수정을 잠금 (테스트 모드는 날짜를 옮겨서 열림)
+// 🔒 12월 14일 0시 전에는 금주·마통·생활비 기록을 잠금 (학자금·구독은 언제든). 테스트 모드는 날짜를 옮겨서 열림
 function preStart() { return todayStr() < JK_PROJECT.start; }
+const PRESTART_LOCKED = { jk: null /* 금주 전체 */, gk: ['livingLog', 'odLog', 'livingGoal100', 'livingCats'] };
+function preStartBlocked(st, obj) {
+    if (!preStart() || !st) return false;
+    const locked = PRESTART_LOCKED[st.name];
+    if (locked === null) return true;
+    const def = st.name === 'gk' ? freshDefault() : {};
+    return (locked || []).some(k => {
+        const now = JSON.stringify(obj[k]);
+        if (st.synced[k] === undefined) return obj[k] !== undefined && now !== JSON.stringify(def[k]);   // 서버에 없고 기본값 그대로면 변화 아님
+        return now !== st.synced[k];
+    });
+}
 
 function persist(st, obj) {
-    if (preStart()) {
+    if (preStartBlocked(st, obj)) {
         syncToast('🔒 12월 14일부터 기록할 수 있어요');
-        if (st && st.apply) { st.apply(JSON.parse(st.lastJson || '{}')); st.render(); }   // 화면에만 바뀐 걸 원래대로
+        if (st.apply) { st.apply(JSON.parse(st.lastJson || '{}')); st.render(); }   // 화면에만 바뀐 걸 원래대로
         return;
     }
     if (!st || !st.ready) {
