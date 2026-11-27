@@ -667,34 +667,27 @@
         #app-gk .ln-pct { font-size: 0.66rem; color: var(--ink-3); font-weight: 600; }
         #app-gk .ln-soon { color: var(--warn); font-weight: 700; }
         #app-gk .ln-foot b { color: var(--c-edu); }
-        /* 대출별 잔액 카드 */
-        #app-gk .ln-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        /* 대출별 잔액: 세로 목록 카드 */
+        #app-gk .ln-tiles { display: flex; flex-direction: column; gap: 6px; }
         #app-gk .ln-tile {
-            position: relative; display: flex; flex-direction: column; min-width: 0; cursor: pointer;
-            background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 14px; padding: 12px 12px 10px;
-            transition: border-color 0.15s, box-shadow 0.15s;
+            cursor: pointer; background: var(--surface-2); border: 1px solid var(--line-2);
+            border-radius: 12px; padding: 10px 12px 9px; transition: border-color 0.15s;
         }
-        #app-gk .ln-tile:active { transform: scale(0.99); }
-        #app-gk .ln-tile.open { grid-column: 1 / -1; border-color: var(--c-edu); box-shadow: 0 4px 14px rgba(47,122,128,0.12); }
-        #app-gk .ln-tile-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-        #app-gk .ln-tile-name { font-size: 0.95rem; font-weight: 800; letter-spacing: -0.01em; }
-        #app-gk .ln-tile-rate { font-size: 0.72rem; color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
-        #app-gk .ln-tile-type { align-self: flex-start; margin-top: 4px; font-size: 0.64rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--c-edu-soft); color: var(--c-edu); }
+        #app-gk .ln-tile.open { border-color: var(--c-edu); }
+        #app-gk .ln-r1 { display: flex; align-items: center; gap: 6px; min-width: 0; }
+        #app-gk .ln-tile-name { font-size: 0.86rem; font-weight: 800; white-space: nowrap; }
+        #app-gk .ln-tile-type { font-size: 0.6rem; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--c-edu-soft); color: var(--c-edu); white-space: nowrap; }
         #app-gk .ln-tile-type.annuity { background: var(--c-cash-soft); color: var(--c-cash); }
-        #app-gk .ln-tile-bal { margin-top: 10px; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-        #app-gk .ln-tile-bal small { font-family: var(--sans); font-size: 0.72rem; font-weight: 600; color: var(--ink-3); margin-left: 2px; }
-        #app-gk .ln-tile-bar { height: 5px; margin-top: 8px; border-radius: 999px; background: var(--c-edu-mid); overflow: hidden; }
+        #app-gk .ln-tile-rate { font-size: 0.66rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+        #app-gk .ln-tile-bal { margin-left: auto; font-size: 0.95rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        #app-gk .ln-tile-bal small { font-size: 0.66rem; font-weight: 600; color: var(--ink-3); margin-left: 1px; }
+        #app-gk .ln-tile-bar { height: 4px; margin-top: 8px; border-radius: 999px; background: var(--c-edu-mid); overflow: hidden; }
         #app-gk .ln-tile-bar i { display: block; height: 100%; background: var(--c-edu); border-radius: 999px; }
-        #app-gk .ln-tile-prog { display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.68rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-        #app-gk .ln-tile-prog b { color: var(--c-edu); }
-        #app-gk .ln-tile-next {
-            display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 6px 9px;
-            border-radius: 9px; background: var(--surface); font-size: 0.76rem; font-variant-numeric: tabular-nums; color: var(--ink-2);
-        }
-        #app-gk .ln-tile-next b { font-weight: 700; color: var(--ink); }
-        #app-gk .ln-tile-next.soon { background: var(--warn-soft); color: var(--warn); }
-        #app-gk .ln-tile-next.soon b { color: var(--warn); }
-        #app-gk .ln-tile .ln-detail { margin-top: 10px; padding: 10px 0 2px; border-top: 1px solid var(--line-2); }
+        #app-gk .ln-r3 { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.68rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+        #app-gk .ln-r3 b { color: var(--c-edu); }
+        #app-gk .ln-tile-next { color: var(--ink-2); font-weight: 600; white-space: nowrap; }
+        #app-gk .ln-tile-next.soon { color: var(--warn); font-weight: 800; }
+        #app-gk .ln-tile .ln-detail { margin-top: 8px; padding: 8px 0 2px; border-top: 1px solid var(--line-2); font-size: 0.74rem; }
         #app-gk .ln-detail { padding: 2px 0 12px; font-size: 0.8rem; color: var(--ink-3); }
         #app-gk .ln-detail > div { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
         #app-gk .ln-detail b { color: var(--ink-2); font-weight: 600; text-align: right; }
@@ -1943,17 +1936,16 @@ function renderLoans() {
               const type = loan.repaymentType === 'annuity' ? '원리금균등' : loan.repaymentType === 'principal_equal' ? '원금균등' : '';
               const endYm = st ? `${st.last.payDate.getFullYear()}.${st.last.payDate.getMonth() + 1}` : '';
               return `<div class="ln-tile fold${foldOpen(id) ? ' open' : ''}" id="${id}" onclick="if(!event.target.closest('button'))toggleFold('${id}')">
-                <div class="ln-tile-head">
+                <div class="ln-r1">
                     <span class="ln-tile-name">${escHtml(short(loan.name))}${loan.balanceAsOf ? '' : ' ⚠️'}</span>
+                    ${type ? `<span class="ln-tile-type ${loan.repaymentType}">${type}</span>` : ''}
                     <span class="ln-tile-rate">${loan.interestRate != null ? loan.interestRate + '%' : ''}</span>
+                    <span class="ln-tile-bal">${won(st ? st.balanceNow : (loan.remainingBalance || 0))}<small>원</small></span>
                 </div>
-                ${type ? `<span class="ln-tile-type ${loan.repaymentType}">${type}</span>` : ''}
-                <div class="ln-tile-bal serif">${won(st ? st.balanceNow : (loan.remainingBalance || 0))}<small>원</small></div>
-                ${p != null ? `<div class="ln-tile-bar"><i style="width:${(p * 100).toFixed(1)}%"></i></div>
-                <div class="ln-tile-prog"><b>${Math.round(p * 100)}%</b><span>${endYm} 완납</span></div>` : ''}
-                <div class="ln-tile-next${soon ? ' soon' : ''}">
-                    <span>${n ? (soon ? (dleft === 0 ? '오늘' : `D-${dleft}`) : `${md(n.payDate)}`) : '-'}</span>
-                    <b>${n ? won(n.payment) + '원' : ''}</b>
+                ${p != null ? `<div class="ln-tile-bar"><i style="width:${(p * 100).toFixed(1)}%"></i></div>` : ''}
+                <div class="ln-r3">
+                    <span>${p != null ? `<b>${Math.round(p * 100)}%</b> · ${endYm} 완납` : ''}</span>
+                    <span class="ln-tile-next${soon ? ' soon' : ''}">${n ? `${soon ? (dleft === 0 ? '오늘' : `D-${dleft}`) : md(n.payDate)} · ${won(n.payment)}원` : '-'}</span>
                 </div>
                 <div class="fold-body ln-detail">
                     <div><span>다음 납부</span><b>${n ? `${md(n.payDate)} · 원금 ${won(n.principal)} + 이자 ${won(n.interest)}` : '-'}</b></div>
