@@ -229,6 +229,21 @@
         .voyage .v-remove { flex: none; width: 36px; height: 36px; border: 0; border-radius: 8px; background: none; cursor: pointer; color: var(--v-muted); font-size: 1.2rem; line-height: 1; }
         .voyage .v-remove:hover { color: var(--v-fg); background: var(--surface-3); }
         .voyage .v-empty { margin: 16px 0 0; color: var(--v-muted); font-size: 0.86rem; }
+        .voyage .v-undo { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 12px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 0.8rem; }
+        .voyage .v-undo[hidden] { display: none; }
+        .voyage .v-undo-btn { flex: none; border: none; background: none; color: #f6c38b; font-weight: 800; font-size: 0.8rem; padding: 2px 4px; cursor: pointer; }
+        .voyage .v-trash { margin-top: 14px; border-top: 1px solid var(--v-line); }
+        .voyage .v-trash[hidden] { display: none; }
+        .voyage .v-trash-toggle { display: flex; width: 100%; justify-content: space-between; align-items: center; border: none; background: none; padding: 12px 2px 10px; color: var(--ink-3); font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .voyage .v-trash-toggle b { color: var(--ink-2); }
+        .voyage .v-trash-list { list-style: none; margin: 0; padding: 0; }
+        .voyage .v-trash-list li { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid var(--v-line); }
+        .voyage .v-trash-text { flex: 1; min-width: 0; font-size: 0.82rem; color: var(--ink-3); text-decoration: line-through; }
+        .voyage .v-trash-text small { margin-left: 6px; font-size: 0.68rem; text-decoration: none; display: inline-block; }
+        .voyage .v-trash-back, .voyage .v-trash-del, .voyage .v-trash-empty { flex: none; border: none; border-radius: 999px; height: 28px; padding: 0 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+        .voyage .v-trash-back { background: var(--surface-3); color: var(--ink-2); }
+        .voyage .v-trash-del, .voyage .v-trash-empty { background: var(--bad-soft); color: var(--bad); }
+        .voyage .v-trash-foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 4px; font-size: 0.7rem; color: var(--ink-3); }
         @media (prefers-reduced-motion: reduce) { .voyage .v-bar { transition: none; } }
         #app-vy .voyage-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 16px 10px; margin-bottom: 12px; }
         #app-vy { padding: calc(env(safe-area-inset-top) + 20px) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); }
@@ -1471,7 +1486,7 @@ window.jk_pickDate     = (d) => { const el = document.getElementById('targetDate
 // 출항(12/14 0시)이 시작되면 탭은 흐려지고 눌리지 않으며, 저장도 막힘
 const VY_MAIN_REF = doc(db, 'voyage', 'main');
 const VY_DOC_REF = TEST_MODE ? doc(db, 'voyage', 'test') : VY_MAIN_REF;
-let D_vy = { items: [] };
+let D_vy = { items: [], trash: [] };   // trash: 휴지통 [{id, text, done, deletedAt}]
 const VY_SEED = [
     { id: 'cmwbr02oz4am', text: '현대해상 문답 작성', done: false },
     { id: 'cmwk831ubxc1', text: '보정플러그인 해지하고 비됴클래스 링크로 다시 구매하기', done: false },
@@ -1510,7 +1525,15 @@ function mountVoyage(root, storage) {
       <button type="submit">추가</button>
     </form>
     <ul class="v-list"></ul>
-    <p class="v-empty">아직 준비할 일이 없어요.</p>`;
+    <p class="v-empty">아직 준비할 일이 없어요.</p>
+    <div class="v-undo" hidden><span class="v-undo-text"></span><button type="button" class="v-undo-btn">되돌리기</button></div>
+    <div class="v-trash" hidden>
+      <button type="button" class="v-trash-toggle"><span>🗑 휴지통 <b class="v-trash-n">0</b></span><span class="v-trash-chev">▾</span></button>
+      <div class="v-trash-body" hidden>
+        <ul class="v-trash-list"></ul>
+        <div class="v-trash-foot"><span>30일이 지나면 저절로 비워져요</span><button type="button" class="v-trash-empty">비우기</button></div>
+      </div>
+    </div>`;
     const $ = sel => root.querySelector(sel);
     const valid = list => (Array.isArray(list) ? list : [])
         .filter(i => i && typeof i.id === 'string' && typeof i.text === 'string')
@@ -1568,7 +1591,15 @@ function mountVoyage(root, storage) {
         remove.className = 'v-remove';
         remove.textContent = '×';
         remove.setAttribute('aria-label', item.text + ' 지우기');
-        remove.addEventListener('click', () => { items = items.filter(i => i !== item); commit(); });
+        remove.addEventListener('click', () => {
+            const pos = items.indexOf(item);
+            items = items.filter(i => i !== item);
+            render();
+            if (storage.trash) {   // 휴지통으로 옮기고, 잠깐 '되돌리기'를 보여줌
+                storage.trash(item, items.map(i => ({ ...i })), pos);
+                showUndo(item);
+            } else commit();
+        });
         li.append(handle, label, remove);
         return li;
     }
@@ -1618,8 +1649,51 @@ function mountVoyage(root, storage) {
         commit();
     });
     render();
+    // ── 휴지통 ──
+    let trash = [];
+    const trashBox = root.querySelector('.v-trash'), trashBody = root.querySelector('.v-trash-body');
+    root.querySelector('.v-trash-toggle').addEventListener('click', () => {
+        trashBody.hidden = !trashBody.hidden;
+        root.querySelector('.v-trash-chev').textContent = trashBody.hidden ? '▾' : '▴';
+    });
+    root.querySelector('.v-trash-empty').addEventListener('click', () => {
+        if (!trash.length || !confirm(`휴지통의 ${trash.length}개를 완전히 지울까요?`)) return;
+        storage.purge && storage.purge(null);
+    });
+    function renderTrash() {
+        trashBox.hidden = trash.length === 0;
+        root.querySelector('.v-trash-n').textContent = trash.length;
+        const md = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
+        root.querySelector('.v-trash-list').replaceChildren(...[...trash].sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0)).map(t => {
+            const li = document.createElement('li');
+            const text = document.createElement('span');
+            text.className = 'v-trash-text';
+            text.textContent = t.text;
+            const when = document.createElement('small');
+            when.textContent = t.deletedAt ? md(t.deletedAt) + ' 지움' : '';
+            text.append(when);
+            const back = document.createElement('button');
+            back.type = 'button'; back.className = 'v-trash-back'; back.textContent = '되돌리기';
+            back.addEventListener('click', () => storage.restore && storage.restore(t.id));
+            const del = document.createElement('button');
+            del.type = 'button'; del.className = 'v-trash-del'; del.textContent = '완전 삭제';
+            del.addEventListener('click', () => { if (confirm(`'${t.text}'을(를) 완전히 지울까요?`)) storage.purge && storage.purge(t.id); });
+            li.append(text, back, del);
+            return li;
+        }));
+    }
+    let undoTimer = null;
+    function showUndo(item) {
+        const box = root.querySelector('.v-undo');
+        root.querySelector('.v-undo-text').textContent = `'${item.text.length > 18 ? item.text.slice(0, 18) + '…' : item.text}' 휴지통으로 옮겼어요`;
+        box.hidden = false;
+        root.querySelector('.v-undo-btn').onclick = () => { box.hidden = true; storage.restore && storage.restore(item.id); };
+        clearTimeout(undoTimer);
+        undoTimer = setTimeout(() => { box.hidden = true; }, 6000);
+    }
+
     Promise.resolve(storage.load()).then(list => { items = valid(list); render(); });
-    const unsubscribe = storage.subscribe ? storage.subscribe(list => { items = valid(list); render(); }) : null;
+    const unsubscribe = storage.subscribe ? storage.subscribe((list, tr) => { items = valid(list); trash = valid(tr).map((t, k) => ({ ...t, deletedAt: (tr[k] || {}).deletedAt })); render(); renderTrash(); }) : null;
     return () => { if (typeof unsubscribe === 'function') unsubscribe(); root.replaceChildren(); };
 }
 
@@ -1628,12 +1702,37 @@ const _vyListeners = new Set();
 const voyageStorage = {
     load() { return (D_vy.items || []).map(i => ({ ...i })); },
     save(items) {
-        if (!voyageOpen()) { syncToast('⛵ 출항이 시작돼서 출항 준비는 닫혔어요'); _vyListeners.forEach(cb => cb(D_vy.items || [])); return; }
+        if (!voyageOpen()) { syncToast('⛵ 출항이 시작돼서 출항 준비는 닫혔어요'); _vyNotify(); return; }
         D_vy = { ...D_vy, items };
         persist(SYNC.vy, D_vy);
     },
     subscribe(cb) { _vyListeners.add(cb); return () => _vyListeners.delete(cb); },
+    // × → 휴지통으로 (지운 시각과 함께)
+    trash(item, items, pos) {
+        if (!voyageOpen()) { _vyNotify(); return; }
+        const trash = [...(D_vy.trash || []).filter(t => t.id !== item.id), { id: item.id, text: item.text, done: !!item.done, deletedAt: Date.now(), pos: pos >= 0 ? pos : null }];
+        D_vy = { ...D_vy, items, trash };
+        persist(SYNC.vy, D_vy);
+    },
+    // 휴지통 → 원래 자리로 되돌리기 (자리를 모르면 맨 아래)
+    restore(id) {
+        if (!voyageOpen()) { _vyNotify(); return; }
+        const t = (D_vy.trash || []).find(x => x.id === id);
+        if (!t) return;
+        const list = (D_vy.items || []).filter(i => i.id !== id);
+        const at = t.pos != null ? Math.min(t.pos, list.length) : list.length;
+        list.splice(at, 0, { id: t.id, text: t.text, done: !!t.done });
+        D_vy = { ...D_vy, trash: D_vy.trash.filter(x => x.id !== id), items: list };
+        persist(SYNC.vy, D_vy);
+    },
+    // 완전 삭제 (id 없으면 휴지통 비우기)
+    purge(id) {
+        if (!voyageOpen()) { _vyNotify(); return; }
+        D_vy = { ...D_vy, trash: id ? (D_vy.trash || []).filter(x => x.id !== id) : [] };
+        persist(SYNC.vy, D_vy);
+    },
 };
+function _vyNotify() { _vyListeners.forEach(cb => cb(D_vy.items || [], D_vy.trash || [])); }
 let _vySeeded = false;
 function renderVoyage() {
     const st = SYNC.vy;
@@ -1643,7 +1742,13 @@ function renderVoyage() {
         D_vy = { items: VY_SEED.map(i => ({ ...i })) };
         persist(st, D_vy);
     }
-    _vyListeners.forEach(cb => cb(D_vy.items || []));
+    // 휴지통 30일 지난 것 자동 정리
+    const cutoff = Date.now() - 30 * 86400000;
+    if (st && st.ready && voyageOpen() && (D_vy.trash || []).some(t => (t.deletedAt || 0) < cutoff)) {
+        D_vy = { ...D_vy, trash: D_vy.trash.filter(t => (t.deletedAt || 0) >= cutoff) };
+        persist(st, D_vy);
+    }
+    _vyNotify();
     applyVoyageGate();
 }
 // 출항 후: 탭 흐리게·누를 수 없게, 보고 있었다면 금주 탭으로
@@ -3240,7 +3345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (TEST_MODE) await testSetup();
     mountVoyage(document.getElementById('voyage-root'), voyageStorage);
     syncStore('vy', VY_DOC_REF, {
-        apply: data => { D_vy = { items: [], ...data }; },
+        apply: data => { D_vy = { items: [], trash: [], ...data }; },
         render: () => renderVoyage(),
     });
     syncStore('jk', JK_DOC_REF, {
