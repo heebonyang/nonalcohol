@@ -186,7 +186,7 @@
 
         /* 🔒 12/14 전: 금주·마통·생활비 입력만 잠금 (학자금·구독은 그대로) */
         body.pre-start #app-jk .input-card .form-grid, body.pre-start #trash-use-btn,
-        body.pre-start #od-update-btn, body.pre-start .lv-goal-btn { pointer-events: none; opacity: 0.4; }
+        body.pre-start .lv-goal-btn { pointer-events: none; opacity: 0.4; }
         body.pre-start #app-jk .jk-missing { display: none; }
 
         /* ⛵ 출항 준비 — 받은 CSS를 앱 색·글꼴에 맞춤 (.voyage 아래로만) */
@@ -247,7 +247,36 @@
         @media (prefers-reduced-motion: reduce) { .voyage .v-bar { transition: none; } }
         #app-vy .voyage-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 16px 10px; margin-bottom: 12px; }
         #app-vy { padding: calc(env(safe-area-inset-top) + 20px) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); }
-        .main-tab.closed { opacity: 0.35; cursor: default; }
+        /* 출항 전 재정 (마통·카드·큰 지출) */
+        #app-vy .vf h3 { margin: 0; font: 700 1.25rem/1.2 var(--serif); letter-spacing: -0.02em; }
+        #app-vy .vf-sub { margin: 4px 0 0; color: var(--ink-3); font-size: 0.78rem; line-height: 1.5; }
+        #app-vy .vf-now { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+        #app-vy .vf-stat { background: var(--surface-2); border-radius: var(--radius-sm); padding: 12px; min-width: 0; }
+        #app-vy .vf-stat span { display: block; font-size: 0.72rem; color: var(--ink-3); font-weight: 600; }
+        #app-vy .vf-stat b { display: block; margin-top: 4px; font-size: 1.05rem; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #app-vy .vf-stat.od b { color: var(--c-od); } #app-vy .vf-stat.card b { color: var(--c-card); }
+        #app-vy .vf-asof { margin-top: 8px; font-size: 0.72rem; color: var(--ink-3); text-align: right; }
+        #app-vy .vf-asof:empty { display: none; }
+        #app-vy .vf-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        #app-vy .vf-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; color: var(--ink-3); font-weight: 600; min-width: 0; }
+        #app-vy .vf-form .wide { grid-column: 1 / -1; }
+        #app-vy .vf input { width: 100%; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 0.92rem; }
+        #app-vy .vf input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+        #app-vy .vf-btn { grid-column: 1 / -1; height: 42px; border: none; border-radius: 10px; background: var(--ink); color: var(--bg); font-weight: 700; font-size: 0.88rem; cursor: pointer; }
+        #app-vy .vf-sec { display: flex; justify-content: space-between; align-items: baseline; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line-2); font-size: 0.9rem; font-weight: 700; }
+        #app-vy .vf-sec small { font-size: 0.76rem; color: var(--ink-3); font-weight: 600; }
+        #app-vy .vf-sec small b { color: var(--ink); font-variant-numeric: tabular-nums; }
+        #app-vy .vf-buy-form { grid-template-columns: 1.6fr 1fr; }
+        #app-vy .vf-list { list-style: none; margin: 10px 0 0; padding: 0; }
+        #app-vy .vf-list li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line-2); font-size: 0.88rem; }
+        #app-vy .vf-list .d { flex: none; width: 40px; color: var(--ink-3); font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+        #app-vy .vf-list .n { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        #app-vy .vf-list .a { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+        #app-vy .vf-list button { flex: none; width: 30px; height: 30px; border: none; background: none; color: var(--ink-3); font-size: 1.1rem; cursor: pointer; border-radius: 8px; }
+        #app-vy .vf-empty { margin: 10px 0 0; font-size: 0.8rem; color: var(--ink-3); }
+        #app-vy .vf-hist { margin-top: 6px; }
+        #app-vy .vf-hist summary { font-size: 0.74rem; color: var(--ink-3); cursor: pointer; padding: 4px 0; }
+        #app-vy .vf-hist li { font-size: 0.8rem; }
 
         .app-section { display: none; }
         .app-section.active { display: block; animation: fade-in 0.25s ease; }
@@ -807,6 +836,32 @@
 <div id="app-vy" class="app-section">
     <div class="container">
         <div class="card voyage-card"><div id="voyage-root"></div></div>
+        <div class="card voyage-card vf" id="vy-fin">
+            <h3>출항 전 재정</h3>
+            <p class="vf-sub">마지막으로 넣은 마통·카드 금액이 12월 14일 가계부의 출발점이 돼요</p>
+            <div class="vf-now">
+                <div class="vf-stat od"><span>마통 잔고</span><b id="vf-od">-</b></div>
+                <div class="vf-stat card"><span>💳 카드 사용액</span><b id="vf-card">-</b></div>
+            </div>
+            <div class="vf-asof" id="vf-asof"></div>
+            <div class="vf-form">
+                <label class="wide">날짜<input type="date" id="vf-date"></label>
+                <label>마통 잔고 (원)<input type="number" id="vf-od-in" inputmode="numeric" min="0"></label>
+                <label>카드 사용액 (원)<input type="number" id="vf-card-in" inputmode="numeric" min="0"></label>
+                <button class="vf-btn" onclick="vfSaveSnap()">지금 상황 저장</button>
+            </div>
+            <details class="vf-hist" id="vf-hist" hidden><summary>지난 기록</summary><ul class="vf-list" id="vf-hist-list"></ul></details>
+
+            <div class="vf-sec"><span>굵직한 지출</span><small>합계 <b id="vf-buy-total">0원</b></small></div>
+            <div class="vf-form vf-buy-form">
+                <label>무엇을<input type="text" id="vf-buy-name" placeholder="예) 플스5" maxlength="60" autocomplete="off"></label>
+                <label>금액 (원)<input type="number" id="vf-buy-amount" inputmode="numeric" min="0"></label>
+                <label class="wide">날짜<input type="date" id="vf-buy-date"></label>
+                <button class="vf-btn" onclick="vfAddBuy()">기록</button>
+            </div>
+            <ul class="vf-list" id="vf-buy-list"></ul>
+            <p class="vf-empty" id="vf-buy-empty">출항 전 마지막 사치를 기록해 두세요.</p>
+        </div>
     </div>
 </div>
 
@@ -891,6 +946,7 @@
                     <div class="form-group"><label>잔액 (원)</label><input type="number" id="od-amount" inputmode="numeric"></div>
                 </div>
                 <div class="form-group"><label>연 이자율 (%)</label><input type="number" id="od-rate" inputmode="decimal" step="0.001" placeholder="4.899"></div>
+                <label class="lv-card-check" id="od-carry-wrap" style="display:none"><input type="checkbox" id="od-carry"> <span id="od-carry-text"></span></label>
                 <button class="btn btn-primary" onclick="odSave()">저장</button>
             </div>
         </div>
@@ -1483,7 +1539,7 @@ window.jk_pickDate     = (d) => { const el = document.getElementById('targetDate
 // ── ⛵ 출항 준비 (12/14 출항 전까지 쓰는 체크리스트) ──
 // ═══════════════════════════════════
 // 저장: Firestore voyage/main { items: [{id, text, done}] } — 금주·가계부와 같은 실시간 동기화(syncStore/persist)
-// 출항(12/14 0시)이 시작되면 탭은 흐려지고 눌리지 않으며, 저장도 막힘
+// 출항(12/14 0시)이 시작되면 탭이 사라지고, 저장도 막힘 (기록은 남아서 가계부 마통 출발점으로 이어짐)
 const VY_MAIN_REF = doc(db, 'voyage', 'main');
 const VY_DOC_REF = TEST_MODE ? doc(db, 'voyage', 'test') : VY_MAIN_REF;
 let D_vy = { items: [], trash: [] };   // trash: 휴지통 [{id, text, done, deletedAt}]
@@ -1531,7 +1587,7 @@ function mountVoyage(root, storage) {
       <button type="button" class="v-trash-toggle"><span>🗑 휴지통 <b class="v-trash-n">0</b></span><span class="v-trash-chev">▾</span></button>
       <div class="v-trash-body" hidden>
         <ul class="v-trash-list"></ul>
-        <div class="v-trash-foot"><span>30일이 지나면 저절로 비워져요</span><button type="button" class="v-trash-empty">비우기</button></div>
+        <div class="v-trash-foot"><span></span><button type="button" class="v-trash-empty">비우기</button></div>
       </div>
     </div>`;
     const $ = sel => root.querySelector(sel);
@@ -1742,22 +1798,98 @@ function renderVoyage() {
         D_vy = { items: VY_SEED.map(i => ({ ...i })) };
         persist(st, D_vy);
     }
-    // 휴지통 30일 지난 것 자동 정리
-    const cutoff = Date.now() - 30 * 86400000;
-    if (st && st.ready && voyageOpen() && (D_vy.trash || []).some(t => (t.deletedAt || 0) < cutoff)) {
-        D_vy = { ...D_vy, trash: D_vy.trash.filter(t => (t.deletedAt || 0) >= cutoff) };
-        persist(st, D_vy);
-    }
     _vyNotify();
+    renderVyFin();
     applyVoyageGate();
+    if (SYNC.gk && SYNC.gk.ready) renderDebtHero();   // 마통 출발점이 출항 준비 기록을 이어받음
 }
-// 출항 후: 탭 흐리게·누를 수 없게, 보고 있었다면 금주 탭으로
+
+// ── 출항 전 재정: 마통 잔고·카드 사용액 (날짜별, 하루 한 개) + 굵직한 지출 ──
+// voyage/main { snaps: [{date, od, card, at}], buys: [{id, date, name, amount, at}] }
+function vySnaps() { return [...(D_vy.snaps || [])].sort((a, b) => a.date.localeCompare(b.date) || (a.at || 0) - (b.at || 0)); }
+function vyLastSnap() { const s = vySnaps(); return s[s.length - 1] || null; }
+function vyLastDay() { const d = new Date(JK_PROJECT.start + 'T00:00:00'); d.setDate(d.getDate() - 1); return fmtDate(d); }
+function vyMd(str) { return `${Number(str.slice(5, 7))}.${Number(str.slice(8))}`; }
+function vyFinDefaults() {
+    const today = todayStr(), max = today < vyLastDay() ? today : vyLastDay();
+    ['vf-date', 'vf-buy-date'].forEach(id => {
+        const el = document.getElementById(id);
+        el.max = max;
+        if (!el.value || el.value > max) el.value = max;
+    });
+}
+function renderVyFin() {
+    const last = vyLastSnap();
+    document.getElementById('vf-od').textContent = last ? fmtMoney(last.od) : '-';
+    document.getElementById('vf-card').textContent = last ? fmtMoney(last.card) : '-';
+    document.getElementById('vf-asof').textContent = last ? `${vyMd(last.date)} 기준 · 합치면 ${fmtMoney(last.od + last.card)}` : '';
+    document.getElementById('vf-od-in').placeholder = last ? last.od.toLocaleString('ko-KR') : '예) 140,000,000';
+    document.getElementById('vf-card-in').placeholder = last ? last.card.toLocaleString('ko-KR') : '예) 400,000';
+    const hist = vySnaps().reverse().slice(1);
+    document.getElementById('vf-hist').hidden = !hist.length;
+    document.getElementById('vf-hist-list').innerHTML = hist.map(x =>
+        `<li><span class="d">${vyMd(x.date)}</span><span class="n">마통 ${fmtMoney(x.od)}</span><span class="a">💳 ${fmtMoney(x.card)}</span></li>`).join('');
+    const buys = [...(D_vy.buys || [])].sort((a, b) => b.date.localeCompare(a.date) || (b.at || 0) - (a.at || 0));
+    document.getElementById('vf-buy-total').textContent = fmtMoney(buys.reduce((s, b) => s + b.amount, 0));
+    document.getElementById('vf-buy-list').innerHTML = buys.map(b =>
+        `<li><span class="d">${vyMd(b.date)}</span><span class="n">${escHtml(b.name)}</span><span class="a">${fmtMoney(b.amount)}</span>` +
+        `<button type="button" aria-label="${escHtml(b.name)} 지우기" onclick="vfDelBuy('${b.id}')">×</button></li>`).join('');
+    document.getElementById('vf-buy-empty').hidden = buys.length > 0;
+    vyFinDefaults();
+}
+function vfNum(id) {
+    const v = document.getElementById(id).value.trim();
+    if (v === '') return null;
+    const n = parseInt(v, 10);
+    return isNaN(n) || n < 0 ? NaN : n;
+}
+function vfSaveSnap() {
+    if (!voyageOpen()) { syncToast('⛵ 출항이 시작돼서 출항 준비는 닫혔어요'); return; }
+    const date = document.getElementById('vf-date').value;
+    let od = vfNum('vf-od-in'), card = vfNum('vf-card-in');
+    if (Number.isNaN(od) || Number.isNaN(card)) { alert('금액을 확인해 주세요.'); return; }
+    if (od === null && card === null) { alert('마통 잔고나 카드 사용액을 넣어 주세요.'); return; }
+    if (!date || date > vyLastDay() || date > todayStr()) { alert('날짜를 확인해 주세요. (오늘까지, 12월 13일까지)'); return; }
+    const prev = vySnaps().filter(x => x.date <= date).pop() || vyLastSnap();
+    if (od === null) { if (!prev) { alert('처음에는 마통 잔고를 꼭 넣어 주세요.'); return; } od = prev.od; }
+    if (card === null) card = prev ? prev.card : 0;
+    D_vy = { ...D_vy, snaps: [...(D_vy.snaps || []).filter(x => x.date !== date), { date, od, card, at: Date.now() }] };
+    persist(SYNC.vy, D_vy);
+    document.getElementById('vf-od-in').value = '';
+    document.getElementById('vf-card-in').value = '';
+    renderVoyage();
+    syncToast(`${vyMd(date)} 마통·카드 저장했어요`);
+}
+function vfAddBuy() {
+    if (!voyageOpen()) { syncToast('⛵ 출항이 시작돼서 출항 준비는 닫혔어요'); return; }
+    const name = document.getElementById('vf-buy-name').value.trim();
+    const amount = vfNum('vf-buy-amount');
+    const date = document.getElementById('vf-buy-date').value;
+    if (!name) { alert('무엇을 샀는지 적어 주세요.'); return; }
+    if (!amount) { alert('금액을 확인해 주세요.'); return; }
+    if (!date || date > todayStr()) { alert('날짜를 확인해 주세요. (오늘까지)'); return; }
+    const id = 'b' + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36);
+    D_vy = { ...D_vy, buys: [...(D_vy.buys || []), { id, date, name: name.slice(0, 60), amount, at: Date.now() }] };
+    persist(SYNC.vy, D_vy);
+    document.getElementById('vf-buy-name').value = '';
+    document.getElementById('vf-buy-amount').value = '';
+    renderVoyage();
+}
+function vfDelBuy(id) {
+    if (!voyageOpen()) return;
+    const b = (D_vy.buys || []).find(x => x.id === id);
+    if (!b || !confirm(`${b.name} ${fmtMoney(b.amount)} 기록을 지울까요?`)) return;
+    D_vy = { ...D_vy, buys: D_vy.buys.filter(x => x.id !== id) };
+    persist(SYNC.vy, D_vy);
+    renderVoyage();
+}
+Object.assign(window, { vfSaveSnap, vfAddBuy, vfDelBuy });
+// 출항(12/14 0시) 후: 출항 준비 탭을 아예 없앰, 보고 있었다면 금주 탭으로
 function applyVoyageGate() {
     const open = voyageOpen();
     const tab = document.querySelector('.main-tab[data-app="vy"]');
     if (!tab) return;
-    tab.disabled = !open;
-    tab.classList.toggle('closed', !open);
+    tab.style.display = open ? '' : 'none';
     if (!open && document.getElementById('app-vy').classList.contains('active')) {
         switchApp('jk', document.querySelector('.main-tab[data-app="jk"]'));
     }
@@ -1787,6 +1919,18 @@ const freshDefault = () => JSON.parse(JSON.stringify(DEFAULT));   // 기본값 �
 let D = freshDefault();
 
 function save() { persist(SYNC.gk, D); }
+
+// 2026-11-28: 그동안 넣은 마통 잔액 기록을 한 번 비움 → 이제 출항 준비 탭에서 새로 넣은 값이 출발점 (이자율은 유지)
+const OD_RESET_ID = '2026-11-28';
+function odResetOnce() {
+    const st = SYNC.gk;
+    if (!st || !st.fromServer || !st.exists || D.odResetAt === OD_RESET_ID) return;
+    D.odLog = [];
+    const loan = (D.loans || []).find(l => l.repaymentType === 'overdraft');
+    if (loan) { loan.remainingBalance = 0; loan.balanceAsOf = null; }
+    D.odResetAt = OD_RESET_ID;
+    persist(st, D, { force: true });
+}
 
 // ═══════════════════════════════════
 // ── 데이터 보호: 실시간 동기화 · 기기 저장 · 바뀐 항목만 저장 · 자동 백업 ──
@@ -1837,8 +1981,8 @@ function preStartBlocked(st, obj) {
     });
 }
 
-function persist(st, obj) {
-    if (preStartBlocked(st, obj)) {
+function persist(st, obj, { force = false } = {}) {
+    if (!force && preStartBlocked(st, obj)) {
         syncToast('🔒 12월 14일부터 기록할 수 있어요');
         if (st.apply) { st.apply(JSON.parse(st.lastJson || '{}')); st.render(); }   // 화면에만 바뀐 걸 원래대로
         return;
@@ -2584,14 +2728,20 @@ function loanNoticeComplete(id, date, principal, expectedAmount) {
 // ═══ 마이너스 통장 (가계부 맨 위, 1순위 목표) ═══
 // · 잔액: 은행 앱을 보고 가끔 직접 업데이트 (odLog에 날짜별로 남김)
 // · 이자율: 마통 정보(대출 데이터의 overdraft 항목)에 저장
-// · 진행률 출발점: Day 1(2026-12-14) 당일 또는 그 직전에 기록한 잔액
+// · 진행률 출발점: 출항 준비 탭에 마지막으로 넣은 마통 + 카드 사용액 (없으면 12/14 당일 또는 그 직전 잔액)
 // · 카드: 생활비 기록 때 '신용카드'에 체크한 금액을 이번 달 합계로 보여줌 (카드값은 마통에서 빠져나감)
 const OD_START = JK_PROJECT.start;
 function odLoan() { return (D.loans || []).find(l => l.repaymentType === 'overdraft') || null; }
-function odLog() {
+function odLog() {   // 가계부 기록 + 출항 준비 기간(~12/13)에 넣은 마통·카드
     if (!Array.isArray(D.odLog)) D.odLog = [];
-    return [...D.odLog].sort((a, b) => a.date.localeCompare(b.date) || (a.at || 0) - (b.at || 0));
+    const vy = (D_vy.snaps || []).map(x => ({ date: x.date, balance: x.od, card: x.card, at: x.at || 0, fromVoyage: true }));
+    return [...vy, ...D.odLog].sort((a, b) => a.date.localeCompare(b.date) || (a.at || 0) - (b.at || 0));
 }
+// 출발점 금액: 출항 준비에서 넘어온 기록이면 카드 사용액도 더함 (카드값은 나중에 마통에서 빠져나가므로)
+function odStartAmount(e) { return e ? e.balance + odCarryCard(e) : 0; }
+// 출항 전 카드값: 결제돼서 마통에서 빠져나갔다고 체크하기 전까지는 갚을 돈에 포함
+function odCarryCard(e) { return e && e.fromVoyage ? (e.card || 0) : 0; }
+function odCarryUnpaid() { return todayStr() >= OD_START && !D.odCarryPaid ? odCarryCard(odStartEntry()) : 0; }
 function odCurrent() {      // 가장 최근 잔액
     const log = odLog(), loan = odLoan();
     const last = log[log.length - 1];
@@ -2601,6 +2751,8 @@ function odCurrent() {      // 가장 최근 잔액
 }
 function odStartEntry() {
     const log = odLog();
+    const vy = log.filter(x => x.fromVoyage);   // 출항 준비 마지막 기록이 출발점
+    if (vy.length) return vy[vy.length - 1];
     const before = log.filter(x => x.date <= OD_START);
     return before.length ? before[before.length - 1] : (log.find(x => x.date > OD_START) || null);
 }
@@ -2613,7 +2765,7 @@ function odCardThisMonth() {
 function renderDebtHero() {
     const hero = document.getElementById('od-hero');
     const ub = document.getElementById('od-update-btn');
-    if (preStart()) { ub.textContent = '🔒 12월 14일부터 입력'; document.getElementById('od-form').style.display = 'none'; }
+    if (preStart()) { ub.textContent = '⛵ 12월 13일까지는 출항 준비 탭에서 입력'; document.getElementById('od-form').style.display = 'none'; }
     else if (document.getElementById('od-form').style.display === 'none') ub.textContent = '잔액 · 이자율 수정';
     const loan = odLoan();
     if (!loan) { hero.style.display = 'none'; return; }
@@ -2633,16 +2785,20 @@ function renderDebtHero() {
         document.getElementById('od-pct').textContent = todayStr() < OD_START ? `12월 14일부터 · D-${dLeft}` : '12월 14일 잔액을 넣으면 시작해요';
         document.getElementById('od-start').textContent = '';
     } else {
-        const paid = Math.max(0, start.balance - bal);
-        const pct = start.balance ? paid / start.balance * 100 : 0;
+        const s0 = odStartAmount(start);
+        const paid = Math.max(0, s0 - bal - odCarryUnpaid());
+        const pct = s0 ? paid / s0 * 100 : 0;
         fill.style.width = Math.min(100, pct) + '%';
         document.getElementById('od-pct').innerHTML = `<b>${pct.toFixed(1)}%</b> 갚음 · ${fmtMoney(paid)}`;
-        document.getElementById('od-start').textContent = `출발 ${fmtMoney(start.balance)}`;
+        document.getElementById('od-start').textContent = `출발 ${fmtMoney(s0)}` + (start.fromVoyage && start.card ? ` (카드 ${fmtMoney(start.card)} 포함)` : '');
     }
 
     // 한 줄 요약: 하루 이자 · 이번 달 카드
+    const preCard = cur && cur.fromVoyage && todayStr() < OD_START;
     document.getElementById('od-line').innerHTML =
-        `<span>하루 이자 <b>${fmtMoney(Math.floor(bal * rate / 100 / 365))}</b></span><span>💳 이번 달 카드 <b>${fmtMoney(odCardThisMonth())}</b></span>`;
+        `<span>하루 이자 <b>${fmtMoney(Math.floor(bal * rate / 100 / 365))}</b></span>` +
+        (preCard ? `<span>💳 카드 사용액 <b>${fmtMoney(cur.card || 0)}</b></span>` : `<span>💳 이번 달 카드 <b>${fmtMoney(odCardThisMonth())}</b></span>`) +
+        (odCarryUnpaid() ? `<span>💳 출항 전 카드값 <b>${fmtMoney(odCarryUnpaid())}</b> 결제 전</span>` : '');
 
     // 완납 예상 (출발점 이후 2주 넘게 기록이 쌓였을 때만)
     const etaEl = document.getElementById('od-eta');
@@ -2650,7 +2806,7 @@ function renderDebtHero() {
     if (bal <= 0 && start) etaEl.textContent = '🎉 마이너스 통장 졸업!';
     else if (start && cur && cur.date > start.date) {
         const days = Math.round((new Date(cur.date) - new Date(start.date)) / 86400000);
-        const perDay = (start.balance - bal) / days;
+        const perDay = (odStartAmount(start) - bal - odCarryUnpaid()) / days;
         if (days >= 14 && perDay > 0) {
             const eta = new Date(loanToday().getTime() + Math.ceil(bal / perDay) * 86400000);
             etaEl.textContent = `지금 속도면 ${eta.getFullYear()}년 ${eta.getMonth() + 1}월에 다 갚아요`;
@@ -2659,7 +2815,7 @@ function renderDebtHero() {
 }
 
 function odToggleForm() {
-    if (preStart()) return;
+    if (preStart()) { switchApp('vy', document.querySelector('.main-tab[data-app="vy"]')); document.getElementById('vy-fin').scrollIntoView({ block: 'start' }); return; }
     const f = document.getElementById('od-form'), btn = document.getElementById('od-update-btn');
     const open = f.style.display === 'none';
     f.style.display = open ? '' : 'none';
@@ -2671,6 +2827,10 @@ function odToggleForm() {
         document.getElementById('od-amount').value = '';
         document.getElementById('od-amount').placeholder = cur ? cur.balance.toLocaleString('ko-KR') : '';
         document.getElementById('od-rate').value = loan && loan.interestRate != null ? loan.interestRate : '';
+        const carry = odCarryUnpaid();
+        document.getElementById('od-carry-wrap').style.display = carry ? '' : 'none';
+        document.getElementById('od-carry').checked = false;
+        document.getElementById('od-carry-text').textContent = `출항 전 카드값 ${fmtMoney(carry)}이 마통에서 빠져나갔어요`;
     }
 }
 
@@ -2694,6 +2854,7 @@ function odSave() {
         if (isNaN(rate) || rate < 0 || rate > 30) { alert('이자율을 확인해 주세요. (예: 4.899)'); return; }
         loan.interestRate = rate;
     }
+    if (odCarryUnpaid() && document.getElementById('od-carry').checked) D.odCarryPaid = true;
     save();
     odToggleForm();
     renderDebtHero();
@@ -3345,7 +3506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (TEST_MODE) await testSetup();
     mountVoyage(document.getElementById('voyage-root'), voyageStorage);
     syncStore('vy', VY_DOC_REF, {
-        apply: data => { D_vy = { items: [], trash: [], ...data }; },
+        apply: data => { D_vy = { items: [], trash: [], snaps: [], buys: [], ...data }; },
         render: () => renderVoyage(),
     });
     syncStore('jk', JK_DOC_REF, {
@@ -3358,7 +3519,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 급여 기록 기능 폐지: 남아 있는 급여 체크·월급날 데이터는 다음 저장 때 함께 지워짐
             delete D.paychecks; delete D.payday;
         },
-        render: () => renderAllGk(),
+        render: () => { odResetOnce(); renderAllGk(); },
     });
 });
 </script>
