@@ -189,6 +189,44 @@
         body.pre-start #od-update-btn, body.pre-start .lv-goal-btn { pointer-events: none; opacity: 0.4; }
         body.pre-start #app-jk .jk-missing { display: none; }
 
+        /* ⛵ 출항 준비 — 받은 CSS를 앱 색·글꼴에 맞춤 (.voyage 아래로만) */
+        .voyage {
+            --v-surface: var(--surface); --v-fg: var(--ink); --v-muted: var(--ink-3); --v-line: var(--line-2); --v-accent: #1d4e6e;
+            color: var(--v-fg); word-break: keep-all; overflow-wrap: anywhere;
+        }
+        @media (prefers-color-scheme: dark) { .voyage { --v-accent: #7fb6d8; --v-on-accent: #13232e; } }
+        .voyage * { box-sizing: border-box; }
+        .voyage h2 { margin: 0; font: 700 1.7rem/1.15 var(--serif); letter-spacing: -0.02em; }
+        .voyage .v-sub { margin: 4px 0 0; color: var(--v-muted); font-size: 0.82rem; }
+        .voyage .v-progress { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+        .voyage .v-track { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+        .voyage .v-bar { height: 100%; width: 0; background: var(--v-accent); border-radius: 999px; transition: width .25s ease; }
+        .voyage .v-count { font-weight: 700; font-size: .9rem; color: var(--v-accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .voyage .v-add { display: flex; gap: 8px; margin-top: 18px; }
+        .voyage .v-add input {
+            flex: 1; min-width: 0; min-height: 46px; padding: 0 12px; font: inherit; font-size: 16px; color: var(--v-fg);
+            background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); outline: none;
+        }
+        .voyage .v-add input:focus { border-color: var(--v-accent); background: var(--surface); }
+        .voyage .v-add button {
+            flex: none; min-height: 46px; padding: 0 18px; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+            background: var(--v-accent); color: var(--v-on-accent, #fff); font: 700 .92rem/1 var(--sans);
+        }
+        .voyage :focus-visible { outline: 2px solid var(--v-accent); outline-offset: 2px; }
+        .voyage .v-list { list-style: none; margin: 12px 0 0; padding: 0; }
+        .voyage .v-list li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--v-line); }
+        .voyage .v-list li:last-child { border-bottom: none; }
+        .voyage .v-item { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 12px 2px; cursor: pointer; font-size: 0.9rem; line-height: 1.45; }
+        .voyage .v-item input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--v-accent); cursor: pointer; }
+        .voyage .v-item.v-done .v-text { color: var(--v-muted); text-decoration: line-through; }
+        .voyage .v-remove { flex: none; width: 36px; height: 36px; border: 0; border-radius: 8px; background: none; cursor: pointer; color: var(--v-muted); font-size: 1.2rem; line-height: 1; }
+        .voyage .v-remove:hover { color: var(--v-fg); background: var(--surface-3); }
+        .voyage .v-empty { margin: 16px 0 0; color: var(--v-muted); font-size: 0.86rem; }
+        @media (prefers-reduced-motion: reduce) { .voyage .v-bar { transition: none; } }
+        #app-vy .voyage-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 16px 10px; margin-bottom: 12px; }
+        #app-vy { padding: calc(env(safe-area-inset-top) + 20px) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); }
+        .main-tab.closed { opacity: 0.35; cursor: default; }
+
         .app-section { display: none; }
         .app-section.active { display: block; animation: fade-in 0.25s ease; }
         @keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -738,9 +776,17 @@
 
 <!-- ══ 메인 탭 내비게이션 ══ -->
 <nav class="main-nav">
-    <button class="main-tab active" onclick="switchApp('jk', this)"><span class="tab-ico">🌊</span><span>금주 100일</span></button>
-    <button class="main-tab" onclick="switchApp('gk', this)"><span class="tab-ico">💰</span><span>가계부</span></button>
+    <button class="main-tab" data-app="vy" onclick="switchApp('vy', this)"><span class="tab-ico">⛵</span><span>출항 준비</span></button>
+    <button class="main-tab active" data-app="jk" onclick="switchApp('jk', this)"><span class="tab-ico">🌊</span><span>금주 100일</span></button>
+    <button class="main-tab" data-app="gk" onclick="switchApp('gk', this)"><span class="tab-ico">💰</span><span>가계부</span></button>
 </nav>
+
+<!-- ══ 출항 준비 ══ -->
+<div id="app-vy" class="app-section">
+    <div class="container">
+        <div class="card voyage-card"><div id="voyage-root"></div></div>
+    </div>
+</div>
 
 <!-- ══ 금주 앱 ══ -->
 <div id="app-jk" class="app-section active">
@@ -1411,6 +1457,139 @@ window.jk_useTrash     = jk_useTrash;
 window.jk_pickDate     = (d) => { const el = document.getElementById('targetDate'); el.value = d; jk_resetInputs(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
 
 // ═══════════════════════════════════
+// ═══════════════════════════════════
+// ── ⛵ 출항 준비 (12/14 출항 전까지 쓰는 체크리스트) ──
+// ═══════════════════════════════════
+// 저장: Firestore voyage/main { items: [{id, text, done}] } — 금주·가계부와 같은 실시간 동기화(syncStore/persist)
+// 출항(12/14 0시)이 시작되면 탭은 흐려지고 눌리지 않으며, 저장도 막힘
+const VY_MAIN_REF = doc(db, 'voyage', 'main');
+const VY_DOC_REF = TEST_MODE ? doc(db, 'voyage', 'test') : VY_MAIN_REF;
+let D_vy = { items: [] };
+const VY_SEED = [
+    { id: 'cmwbr02oz4am', text: '현대해상 문답 작성', done: false },
+    { id: 'cmwk831ubxc1', text: '보정플러그인 해지하고 비됴클래스 링크로 다시 구매하기', done: false },
+    { id: 'cmwkghu2z462', text: '프리미어프로 구독 관리 및 무료 버젼 써보기', done: false },
+    { id: 'cmwltxkv3jiz', text: '음식물쓰레기 버리기', done: false },
+    { id: 'cmwrbes172pg', text: '실내 운동화 구매 및 복싱 등록', done: false },
+    { id: 'cmwrce6oodnc', text: '조병찬 선생님 전화', done: false },
+    { id: 'cmwrcefv2h0u', text: '쇼핑 - 아이폰 케이스', done: false },
+    { id: 'cmwrcete522p', text: '에버노트 구독 취소 확인', done: false },
+    { id: 'cmwrcsxdrtfh', text: '고독한 음감회 일정 확인 및 계획', done: false },
+    { id: 'cmwrcx60vokg', text: '관리비 확인 및 납부', done: false },
+    { id: 'cmwrcxtkp2he', text: '고독한 음감회 1, 2화, 3화 롱폼/숏폼 편집 및 업로드 - 숏츠 기능 사용해보기', done: false },
+    { id: 'cmwrczo2biiw', text: 'gta 6 구매 - 영어 공부 계획', done: false },
+    { id: 'cmwrdg72663q', text: '라이브 아카이브 구도 잡고 자작곡 커버 영상 촬영 및 녹음', done: false },
+    { id: 'cmwrdvatjri7', text: '통신비, 넷플릭스 구독 계좌 셋팅 등 다시 하기 - 통장 나누기', done: false },
+    { id: 'cmwrfgw9922y', text: '레진 세미나 듣기 전 질문 목록 작성하기', done: false },
+    { id: 'cmwufc3wu6eh', text: '세탁망, 분리수거 비닐봉지 쿠팡', done: false },
+    { id: 'cmwyjmeg7yg', text: '비행기표, 숙소 예약', done: false },
+];
+function voyageOpen() { return todayStr() < JK_PROJECT.start; }   // 출항 전에만 사용
+
+/* 출항 준비 — mountVoyage(root, storage): 받은 코드 그대로 (storage만 이 앱의 Firestore에 연결) */
+function mountVoyage(root, storage) {
+    let items = [];
+    root.classList.add('voyage');
+    root.innerHTML = `
+    <h2>출항 준비</h2>
+    <p class="v-sub">100일 항해를 준비하는 기간</p>
+    <div class="v-progress">
+      <div class="v-track" aria-hidden="true"><div class="v-bar"></div></div>
+      <span class="v-count" aria-live="polite">0 / 0</span>
+    </div>
+    <form class="v-add">
+      <input type="text" placeholder="준비할 일" aria-label="준비할 일 추가" autocomplete="off" maxlength="200">
+      <button type="submit">추가</button>
+    </form>
+    <ul class="v-list"></ul>
+    <p class="v-empty">아직 준비할 일이 없어요.</p>`;
+    const $ = sel => root.querySelector(sel);
+    const valid = list => (Array.isArray(list) ? list : [])
+        .filter(i => i && typeof i.id === 'string' && typeof i.text === 'string')
+        .map(i => ({ id: i.id, text: i.text, done: !!i.done }));
+    function commit() {
+        render();
+        Promise.resolve(storage.save(items.map(i => ({ ...i })))).catch(err => console.error('출항 준비 저장 실패', err));
+    }
+    function render() {
+        const ordered = [...items.filter(i => !i.done), ...items.filter(i => i.done)];
+        $('.v-list').replaceChildren(...ordered.map(row));
+        const n = items.filter(i => i.done).length;
+        $('.v-count').textContent = n + ' / ' + items.length;
+        $('.v-bar').style.width = (items.length ? n / items.length * 100 : 0) + '%';
+        $('.v-empty').hidden = items.length > 0;
+    }
+    function row(item) {
+        const li = document.createElement('li');
+        const label = document.createElement('label');
+        label.className = 'v-item' + (item.done ? ' v-done' : '');
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = item.done;
+        box.addEventListener('change', () => { item.done = box.checked; commit(); });
+        const text = document.createElement('span');
+        text.className = 'v-text';
+        text.textContent = item.text;
+        label.append(box, text);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'v-remove';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', item.text + ' 지우기');
+        remove.addEventListener('click', () => { items = items.filter(i => i !== item); commit(); });
+        li.append(label, remove);
+        return li;
+    }
+    $('.v-add').addEventListener('submit', e => {
+        e.preventDefault();
+        const field = $('.v-add input');
+        const text = field.value.trim();
+        if (!text) return;
+        items.push({ id: 'i' + Date.now().toString(36) + Math.floor(Math.random() * 46656).toString(36), text: text.slice(0, 200), done: false });
+        field.value = '';
+        commit();
+    });
+    render();
+    Promise.resolve(storage.load()).then(list => { items = valid(list); render(); });
+    const unsubscribe = storage.subscribe ? storage.subscribe(list => { items = valid(list); render(); }) : null;
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); root.replaceChildren(); };
+}
+
+// 이 앱의 저장소(Firestore 실시간 동기화)에 연결
+const _vyListeners = new Set();
+const voyageStorage = {
+    load() { return (D_vy.items || []).map(i => ({ ...i })); },
+    save(items) {
+        if (!voyageOpen()) { syncToast('⛵ 출항이 시작돼서 출항 준비는 닫혔어요'); _vyListeners.forEach(cb => cb(D_vy.items || [])); return; }
+        D_vy = { ...D_vy, items };
+        persist(SYNC.vy, D_vy);
+    },
+    subscribe(cb) { _vyListeners.add(cb); return () => _vyListeners.delete(cb); },
+};
+let _vySeeded = false;
+function renderVoyage() {
+    const st = SYNC.vy;
+    // 처음 한 번만: 서버에 출항 준비 목록이 아예 없으면 받은 17개를 넣음
+    if (st && st.ready && st.fromServer && !st.exists && !_vySeeded && voyageOpen()) {
+        _vySeeded = true;
+        D_vy = { items: VY_SEED.map(i => ({ ...i })) };
+        persist(st, D_vy);
+    }
+    _vyListeners.forEach(cb => cb(D_vy.items || []));
+    applyVoyageGate();
+}
+// 출항 후: 탭 흐리게·누를 수 없게, 보고 있었다면 금주 탭으로
+function applyVoyageGate() {
+    const open = voyageOpen();
+    const tab = document.querySelector('.main-tab[data-app="vy"]');
+    if (!tab) return;
+    tab.disabled = !open;
+    tab.classList.toggle('closed', !open);
+    if (!open && document.getElementById('app-vy').classList.contains('active')) {
+        switchApp('jk', document.querySelector('.main-tab[data-app="jk"]'));
+    }
+}
+
 // ── 가계부 앱 (gk) ──
 // ═══════════════════════════════════
 const GK_MAIN_REF = doc(db, 'budget', 'main');
@@ -1566,7 +1745,7 @@ async function maybeDailyBackup() {
         const ref = doc(db, 'backups', today);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
-            await setDoc(ref, { at: Date.now(), budget: JSON.parse(JSON.stringify(D)), challenge: JSON.parse(JSON.stringify(D_jk)) });
+            await setDoc(ref, { at: Date.now(), budget: JSON.parse(JSON.stringify(D)), challenge: JSON.parse(JSON.stringify(D_jk)), voyage: JSON.parse(JSON.stringify(D_vy)) });
         }
         const all = await getDocs(collection(db, 'backups'));
         const ids = all.docs.map(d => d.id).sort();
@@ -1615,7 +1794,7 @@ function restoreFolds() {
 
 // ── 🧪 테스트 모드: 실제 데이터를 복사한 테스트 전용 공간에서만 기록 ──
 async function testCopyFromMain(force) {
-    for (const [mainRef, testRef] of [[JK_MAIN_REF, JK_DOC_REF], [GK_MAIN_REF, GK_DOC_REF]]) {
+    for (const [mainRef, testRef] of [[JK_MAIN_REF, JK_DOC_REF], [GK_MAIN_REF, GK_DOC_REF], [VY_MAIN_REF, VY_DOC_REF]]) {
         if (!force && (await getDoc(testRef)).exists()) continue;
         const m = await getDoc(mainRef);
         await setDoc(testRef, m.exists() ? m.data() : {});
@@ -1640,6 +1819,7 @@ let _renderedDay = '';
 function refreshForToday(force = false) {
     const today = todayStr();
     document.body.classList.toggle('pre-start', preStart());
+    if (typeof applyVoyageGate === 'function') applyVoyageGate();
     if (!force && today === _renderedDay) return;
     const prev = _renderedDay;
     _renderedDay = today;
@@ -1684,9 +1864,9 @@ function restoreTabs() {
     let main = null, sub = null;
     try { main = localStorage.getItem('tab:main'); sub = localStorage.getItem('tab:gk'); } catch (e) {}
     if (sub && ['living', 'subscription', 'loan'].includes(sub)) showTab(sub);
-    if (main === 'gk') {
-        document.querySelectorAll('.app-section').forEach(el => el.classList.toggle('active', el.id === 'app-gk'));
-        document.querySelectorAll('.main-tab').forEach((el, i) => el.classList.toggle('active', i === 1));
+    if (main === 'gk' || (main === 'vy' && voyageOpen())) {
+        document.querySelectorAll('.app-section').forEach(el => el.classList.toggle('active', el.id === 'app-' + main));
+        document.querySelectorAll('.main-tab').forEach(el => el.classList.toggle('active', el.dataset.app === main));
     }
 }
 
@@ -2989,6 +3169,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     syncUi();
 
     if (TEST_MODE) await testSetup();
+    mountVoyage(document.getElementById('voyage-root'), voyageStorage);
+    syncStore('vy', VY_DOC_REF, {
+        apply: data => { D_vy = { items: [], ...data }; },
+        render: () => renderVoyage(),
+    });
     syncStore('jk', JK_DOC_REF, {
         apply: data => { D_jk = { records: [], ...data }; },
         render: () => jk_renderTable(),
