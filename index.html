@@ -216,8 +216,15 @@
         .voyage .v-list { list-style: none; margin: 12px 0 0; padding: 0; }
         .voyage .v-list li { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--v-line); }
         .voyage .v-list li:last-child { border-bottom: none; }
-        .voyage .v-item { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 12px 2px; cursor: pointer; font-size: 0.9rem; line-height: 1.45; }
-        .voyage .v-item input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--v-accent); cursor: pointer; }
+        .voyage .v-item { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 12px 2px; cursor: pointer; font-size: 0.9rem; line-height: 1.45; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+        .voyage .v-box {
+            flex: none; width: 21px; height: 21px; margin-top: 0; border-radius: 6px; border: 1.5px solid var(--line);
+            display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; color: #fff; background: var(--surface);
+        }
+        .voyage .v-item.v-done .v-box { background: var(--v-accent); border-color: var(--v-accent); color: var(--v-on-accent, #fff); }
+        .voyage .v-handle { flex: none; width: 22px; align-self: stretch; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-size: 0.9rem; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+        .voyage .v-list li.v-dragging { background: var(--surface-2); border-radius: 10px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); position: relative; z-index: 1; }
+        .voyage .v-list li.v-dragging .v-handle { color: var(--v-accent); cursor: grabbing; }
         .voyage .v-item.v-done .v-text { color: var(--v-muted); text-decoration: line-through; }
         .voyage .v-remove { flex: none; width: 36px; height: 36px; border: 0; border-radius: 8px; background: none; cursor: pointer; color: var(--v-muted); font-size: 1.2rem; line-height: 1; }
         .voyage .v-remove:hover { color: var(--v-fg); background: var(--surface-3); }
@@ -1489,6 +1496,7 @@ function voyageOpen() { return todayStr() < JK_PROJECT.start; }   // 출항 전�
 /* 출항 준비 — mountVoyage(root, storage): 받은 코드 그대로 (storage만 이 앱의 Firestore에 연결) */
 function mountVoyage(root, storage) {
     let items = [];
+    let lastTapAt = 0;   // 목록 전체에서 공유: 탭 직후 다른 줄로 새는 click 막기
     root.classList.add('voyage');
     root.innerHTML = `
     <h2>출항 준비</h2>
@@ -1521,12 +1529,36 @@ function mountVoyage(root, storage) {
     }
     function row(item) {
         const li = document.createElement('li');
-        const label = document.createElement('label');
+        li.dataset.id = item.id;
+        const handle = document.createElement('span');
+        handle.className = 'v-handle';
+        handle.textContent = '⠿';
+        handle.setAttribute('aria-hidden', 'true');
+        // 줄 전체가 체크 버튼 (작은 체크박스를 정확히 누르지 않아도 됨)
+        const label = document.createElement('div');
         label.className = 'v-item' + (item.done ? ' v-done' : '');
-        const box = document.createElement('input');
-        box.type = 'checkbox';
-        box.checked = item.done;
-        box.addEventListener('change', () => { item.done = box.checked; commit(); });
+        label.setAttribute('role', 'checkbox');
+        label.setAttribute('aria-checked', String(item.done));
+        label.tabIndex = 0;
+        const box = document.createElement('span');
+        box.className = 'v-box';
+        box.textContent = item.done ? '✓' : '';
+        const toggle = () => { item.done = !item.done; commit(); };
+        // 손가락을 뗄 때 체크 (click이 빠지는 기기에서도 확실하게). 끌거나 스크롤하면 체크 안 함
+        let down = null;
+        label.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, id: e.pointerId }; });
+        label.addEventListener('pointercancel', () => { down = null; });
+        label.addEventListener('pointerup', e => {
+            if (!down || down.id !== e.pointerId) return;
+            const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+            down = null;
+            if (moved > 10) return;
+            lastTapAt = Date.now();
+            toggle();
+        });
+        // 포인터 이벤트가 없는 경우 대비. 방금 손가락으로 체크했으면(목록이 바뀐 뒤 따라오는 click) 무시
+        label.addEventListener('click', () => { if (Date.now() - lastTapAt > 700) toggle(); });
+        label.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
         const text = document.createElement('span');
         text.className = 'v-text';
         text.textContent = item.text;
@@ -1537,9 +1569,45 @@ function mountVoyage(root, storage) {
         remove.textContent = '×';
         remove.setAttribute('aria-label', item.text + ' 지우기');
         remove.addEventListener('click', () => { items = items.filter(i => i !== item); commit(); });
-        li.append(label, remove);
+        li.append(handle, label, remove);
         return li;
     }
+
+    // ⠿ 손잡이로 순서 바꾸기 (마우스·터치 공통). 놓으면 그 순서로 저장
+    let drag = null;
+    const list = root.querySelector('.v-list');
+    list.addEventListener('pointerdown', e => {
+        const h = e.target.closest('.v-handle');
+        if (!h) return;
+        e.preventDefault();
+        const li = h.closest('li');
+        li.classList.add('v-dragging');
+        try { list.setPointerCapture(e.pointerId); } catch (_) {}
+        drag = { li, pointerId: e.pointerId };
+        if (navigator.vibrate) navigator.vibrate(10);
+    });
+    list.addEventListener('pointermove', e => {
+        if (!drag || e.pointerId !== drag.pointerId) return;
+        e.preventDefault();
+        const over = document.elementFromPoint(e.clientX, e.clientY);
+        const target = over && over.closest('.v-list li');
+        if (!target || target === drag.li) return;
+        const r = target.getBoundingClientRect();
+        if (e.clientY > r.top + r.height / 2) { if (target.nextElementSibling !== drag.li) target.after(drag.li); }
+        else if (target.previousElementSibling !== drag.li) target.before(drag.li);
+    });
+    const dragEnd = e => {
+        if (!drag || e.pointerId !== drag.pointerId) return;
+        drag.li.classList.remove('v-dragging');
+        drag = null;
+        const ids = [...list.children].map(li => li.dataset.id);
+        const byId = Object.fromEntries(items.map(i => [i.id, i]));
+        const next = ids.map(id => byId[id]).filter(Boolean);
+        if (next.length === items.length && next.some((it, k) => it !== items[k])) { items = next; commit(); }
+        else render();
+    };
+    list.addEventListener('pointerup', dragEnd);
+    list.addEventListener('pointercancel', dragEnd);
     $('.v-add').addEventListener('submit', e => {
         e.preventDefault();
         const field = $('.v-add input');
@@ -1691,6 +1759,7 @@ function persist(st, obj) {
          .catch(err => {
              st.pending--; clearTimeout(slow);
              console.error(`${st.name} 저장 실패:`, err);
+             if (st.apply) { try { st.apply(JSON.parse(st.lastJson || '{}')); st.render(); } catch (_) {} }   // 화면을 서버 상태로
              syncToast('⚠️ 저장에 실패했어요. 인터넷을 확인하고 앱을 다시 열어 주세요.', 'bad', true);
          });
     st.writeStartedAt = Date.now();
